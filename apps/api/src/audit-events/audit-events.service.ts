@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
@@ -28,6 +28,14 @@ export class AuditEventsService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(input: CreateAuditEventInput) {
+    if (!input.eventType?.trim()) {
+      throw new BadRequestException('eventType is required');
+    }
+
+    if (!input.entityType?.trim() || !input.entityId?.trim()) {
+      throw new BadRequestException('entityType and entityId are required');
+    }
+
     return this.prisma.auditEvent.create({
       data: {
         organizationId: input.organizationId,

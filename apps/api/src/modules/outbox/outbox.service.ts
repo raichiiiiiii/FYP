@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -16,7 +16,7 @@ export type CreateOutboxEventInput = {
 export class OutboxService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(input: CreateOutboxEventInput) {
+  async create(input: CreateOutboxEventInput) {
     const data = {
       organizationId: input.organizationId,
       eventType: input.eventType,
@@ -28,18 +28,15 @@ export class OutboxService {
     } satisfies Prisma.OutboxEventUncheckedCreateInput;
 
     if (input.idempotencyKey) {
-      return this.prisma.outboxEvent.upsert({
+      const existing = await this.prisma.outboxEvent.findUnique({
         where: {
           idempotencyKey: input.idempotencyKey,
         },
-        create: data,
-        update: {
-          payload: input.payload,
-          nextRunAt: input.nextRunAt,
-          status: 'PENDING',
-          lastError: null,
-        },
       });
+
+      if (existing) {
+        throw new ConflictException('Outbox idempotency key already exists');
+      }
     }
 
     return this.prisma.outboxEvent.create({ data });

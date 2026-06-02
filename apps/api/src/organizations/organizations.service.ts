@@ -12,6 +12,13 @@ type AdminUserInput = {
   passwordHash?: string;
 };
 
+const validDeploymentModes = new Set([
+  'standalone_sme',
+  'financial_entity_node',
+  'fabric_organization',
+  'hosted_financier_portal',
+]);
+
 export type CreateOrganizationInput = {
   legalName: string;
   registrationNumber?: string;
@@ -35,19 +42,23 @@ export class OrganizationsService {
   ) {}
 
   async create(input: CreateOrganizationInput) {
-    if (!input.legalName?.trim()) {
+    const legalName = input.legalName?.trim();
+    const registrationNumber = this.optionalText(input.registrationNumber);
+    const deploymentMode = this.normalizeDeploymentMode(input.deploymentMode);
+
+    if (!legalName) {
       throw new BadRequestException('legalName is required');
     }
 
-    const deploymentMode = input.deploymentMode || 'standalone_sme';
+    await this.assertRegistrationNumberAvailable(registrationNumber);
 
     if (!input.adminUser) {
       const organization = await this.prisma.organization.create({
         data: {
-          legalName: input.legalName,
-          registrationNumber: input.registrationNumber,
-          taxIdentifier: input.taxIdentifier,
-          shariahProfile: input.shariahProfile,
+          legalName,
+          registrationNumber,
+          taxIdentifier: this.optionalText(input.taxIdentifier),
+          shariahProfile: this.optionalText(input.shariahProfile),
           deploymentMode,
         },
       });
@@ -77,10 +88,10 @@ export class OrganizationsService {
     return this.prisma.$transaction(async (tx) => {
       const organization = await tx.organization.create({
         data: {
-          legalName: input.legalName,
-          registrationNumber: input.registrationNumber,
-          taxIdentifier: input.taxIdentifier,
-          shariahProfile: input.shariahProfile,
+          legalName,
+          registrationNumber,
+          taxIdentifier: this.optionalText(input.taxIdentifier),
+          shariahProfile: this.optionalText(input.shariahProfile),
           deploymentMode,
         },
       });
@@ -237,14 +248,25 @@ export class OrganizationsService {
   }
 
   async update(id: string, input: UpdateOrganizationInput) {
+    const deploymentMode = input.deploymentMode
+      ? this.normalizeDeploymentMode(input.deploymentMode)
+      : undefined;
+    const registrationNumber = this.optionalText(input.registrationNumber);
+
+    if (input.legalName !== undefined && !input.legalName.trim()) {
+      throw new BadRequestException('legalName is required');
+    }
+
+    await this.assertRegistrationNumberAvailable(registrationNumber, id);
+
     const organization = await this.prisma.organization.update({
       where: { id },
       data: {
-        legalName: input.legalName,
-        registrationNumber: input.registrationNumber,
-        taxIdentifier: input.taxIdentifier,
-        shariahProfile: input.shariahProfile,
-        deploymentMode: input.deploymentMode,
+        legalName: this.optionalText(input.legalName),
+        registrationNumber,
+        taxIdentifier: this.optionalText(input.taxIdentifier),
+        shariahProfile: this.optionalText(input.shariahProfile),
+        deploymentMode,
       },
     });
 
@@ -261,5 +283,42 @@ export class OrganizationsService {
     });
 
     return organization;
+  }
+
+  private normalizeDeploymentMode(value: string | undefined) {
+    const deploymentMode = this.optionalText(value) || 'standalone_sme';
+
+    if (!validDeploymentModes.has(deploymentMode)) {
+      throw new BadRequestException('deploymentMode must be valid');
+    }
+
+    return deploymentMode;
+  }
+
+  private optionalText(value: string | undefined) {
+    const text = value?.trim();
+    return text || undefined;
+  }
+
+  private async assertRegistrationNumberAvailable(
+    registrationNumber: string | undefined,
+    currentOrganizationId?: string,
+  ) {
+    if (!registrationNumber) {
+      return;
+    }
+
+    const existing = await this.prisma.organization.findFirst({
+      where: {
+        registrationNumber,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing && existing.id !== currentOrganizationId) {
+      throw new BadRequestException('registrationNumber already exists');
+    }
   }
 }

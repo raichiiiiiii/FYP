@@ -11,6 +11,7 @@ import { EvidencePacksController } from './evidence-packs/evidence-packs.control
 import { EvidencePacksService } from './evidence-packs/evidence-packs.service';
 import { HashRecordsController } from './hash-records/hash-records.controller';
 import { HashRecordsService } from './hash-records/hash-records.service';
+import { ObjectStorageService } from './object-storage/object-storage.service';
 
 @Module({
   imports: [DatabaseModule, AuditEventsModule, AuditModule, OutboxModule],
@@ -25,6 +26,8 @@ import { HashRecordsService } from './hash-records/hash-records.service';
     EvidenceItemsService,
     EvidencePacksService,
     HashRecordsService,
+    ObjectStorageService,
   ],
+  exports: [ObjectStorageService],
 })
 export class EvidenceModule {}

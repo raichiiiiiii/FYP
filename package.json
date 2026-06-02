@@ -10,7 +10,17 @@
     "dev": "corepack pnpm -r --parallel dev",
     "lint": "corepack pnpm -r lint",
     "prisma:generate": "corepack pnpm --dir apps/api exec prisma generate --schema prisma/schema.prisma",
-    "test": "corepack pnpm -r test"
+    "test": "corepack pnpm -r test",
+    "test:unit": "corepack pnpm -r test:unit",
+    "test:integration": "corepack pnpm --dir apps/api test:integration && corepack pnpm --dir apps/worker test:integration",
+    "test:e2e": "node tests/e2e/setup-e2e.mjs && playwright test",
+    "test:ci": "corepack pnpm lint && corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm test:e2e"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "pg": "^8.21.0"
+  }
 }

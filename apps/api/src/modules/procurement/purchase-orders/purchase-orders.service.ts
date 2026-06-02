@@ -144,6 +144,12 @@ export class PurchaseOrdersService {
       );
     }
 
+    if (!['APPROVED', 'SOURCING', 'AWARDED'].includes(requisition.status)) {
+      throw new BadRequestException(
+        'Purchase order requires an approved requisition',
+      );
+    }
+
     const purchaseOrder = await this.prisma.purchaseOrder.create({
       data: {
         organizationId,

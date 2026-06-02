@@ -7,7 +7,8 @@
   "types": "src/index.ts",
   "scripts": {
     "lint": "tsc --noEmit",
-    "test": "echo \"No tests configured for @mepn/shared\""
+    "test": "echo \"No tests configured for @mepn/shared\"",
+    "test:unit": "echo \"No unit tests configured for @mepn/shared\""
   },
   "devDependencies": {
     "typescript": "^5.7.3"
