@@ -11,6 +11,11 @@ export class HashRecordsController {
     return this.hashRecordsService.create(body);
   }
 
+  @Get(':id')
+  getHashRecord(@Param('id') id: string) {
+    return this.hashRecordsService.getById(id);
+  }
+
   @Get(':id/verify')
   verifyHashRecord(@Param('id') id: string) {
     return this.hashRecordsService.verify(id);

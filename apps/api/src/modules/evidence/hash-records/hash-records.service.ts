@@ -73,7 +73,22 @@ export class HashRecordsService {
       },
     });
 
-    return record;
+    return this.getById(record.id);
+  }
+
+  async getById(id: string) {
+    const record = await this.prisma.hashRecord.findUnique({
+      where: { id },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Hash record not found');
+    }
+
+    return {
+      ...record,
+      anchorStatus: await this.anchorStatusFor(record),
+    };
   }
 
   async verify(id: string) {
@@ -104,7 +119,63 @@ export class HashRecordsService {
       storedHash: record.canonicalHash,
       computedHash: recomputed.canonicalHash,
       source: recomputed.source,
+      anchorStatus: await this.anchorStatusFor(record),
       verifiedAt: new Date().toISOString(),
+    };
+  }
+
+  private async anchorStatusFor(record: {
+    organizationId: string | null;
+    entityType: string;
+    entityId: string;
+    canonicalHash: string;
+  }) {
+    const [anchor, outboxEvent] = await Promise.all([
+      this.prisma.auditAnchor.findFirst({
+        where: {
+          organizationId: record.organizationId || undefined,
+          rootHash: record.canonicalHash,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.outboxEvent.findFirst({
+        where: {
+          organizationId: record.organizationId || undefined,
+          eventType: 'FABRIC_ANCHOR_REQUESTED',
+          aggregateType: record.entityType,
+          aggregateId: record.entityId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    if (anchor) {
+      return {
+        status: anchor.status,
+        anchorType: anchor.anchorType,
+        anchoredAt: anchor.anchoredAt,
+        rootHash: anchor.rootHash,
+        metadata: anchor.metadata,
+      };
+    }
+
+    if (outboxEvent) {
+      return {
+        status: 'ANCHOR_REQUESTED',
+        anchorType: 'FABRIC_MOCK',
+        outboxStatus: outboxEvent.status,
+        attempts: outboxEvent.attempts,
+        requestedAt: outboxEvent.createdAt,
+      };
+    }
+
+    return {
+      status: 'NOT_REQUESTED',
+      anchorType: 'FABRIC_MOCK',
     };
   }
 

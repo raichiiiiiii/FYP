@@ -3,6 +3,8 @@ import { AuditEventsModule } from '../../audit-events/audit-events.module';
 import { DatabaseModule } from '../../database/database.module';
 import { InvoicesController } from './invoices/invoices.controller';
 import { InvoicesService } from './invoices/invoices.service';
+import { ProcurementOperationsController } from './operations/procurement-operations.controller';
+import { ProcurementOperationsService } from './operations/procurement-operations.service';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { PurchaseOrdersController } from './purchase-orders/purchase-orders.controller';
@@ -29,6 +31,7 @@ import { SuppliersService } from './suppliers/suppliers.service';
     PurchaseOrdersController,
     ReceiptsController,
     InvoicesController,
+    ProcurementOperationsController,
   ],
   providers: [
     ProjectsService,
@@ -39,6 +42,7 @@ import { SuppliersService } from './suppliers/suppliers.service';
     PurchaseOrdersService,
     ReceiptsService,
     InvoicesService,
+    ProcurementOperationsService,
   ],
 })
 export class ProcurementModule {}

@@ -13,7 +13,35 @@ export type E2ESession = {
   organizationId: string;
   actorUserId: string;
   legalName: string;
+  email: string;
+  displayName: string;
+  roleCodes: string[];
+  permissionCodes: string[];
 };
+
+type E2ERoleCode =
+  | 'PROCUREMENT_OFFICER'
+  | 'APPROVER'
+  | 'FINANCIER_USER'
+  | 'SHARIAH_REVIEWER'
+  | 'AUDITOR';
+
+const rolePermissionCodes: Record<E2ERoleCode, string[]> = {
+  PROCUREMENT_OFFICER: ['procurement:create', 'audit:read'],
+  APPROVER: ['procurement:approve', 'audit:read'],
+  FINANCIER_USER: ['finance:review', 'audit:read'],
+  SHARIAH_REVIEWER: ['shariah:review', 'audit:read'],
+  AUDITOR: ['audit:read'],
+};
+
+const adminPermissionCodes = [
+  'users:create',
+  'procurement:create',
+  'procurement:approve',
+  'finance:review',
+  'shariah:review',
+  'audit:read',
+];
 
 export async function resetDatabase() {
   const client = new Client({ connectionString: E2E_DATABASE_URL });
@@ -37,13 +65,33 @@ export async function resetDatabase() {
 }
 
 export async function setSession(page: Page, session: E2ESession) {
+  const authSession = {
+    userId: session.actorUserId,
+    email: session.email,
+    displayName: session.displayName,
+    organizationId: session.organizationId,
+    roleCodes: session.roleCodes,
+    permissionCodes: session.permissionCodes,
+    workspaceScopes: [],
+    expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+    authMode: 'dev',
+    oidcEnabled: false,
+  };
+
   await page.addInitScript((nextSession) => {
-    window.localStorage.setItem(
-      'mepn.organizationId',
-      nextSession.organizationId,
-    );
-    window.localStorage.setItem('mepn.actorUserId', nextSession.actorUserId);
-  }, session);
+    window.localStorage.setItem('mepn.auth.session', JSON.stringify(nextSession));
+  }, authSession);
+
+  try {
+    await page.evaluate((nextSession) => {
+      window.localStorage.setItem(
+        'mepn.auth.session',
+        JSON.stringify(nextSession),
+      );
+    }, authSession);
+  } catch {
+    // The init script above still applies before the next app navigation.
+  }
 }
 
 export async function apiGet<T>(
@@ -89,6 +137,51 @@ export async function createOrganizationViaApi(
     organizationId: setup.organization.id,
     actorUserId: setup.adminUser.id,
     legalName: setup.organization.legalName,
+    email: `admin-${suffix}@example.test`,
+    displayName: 'E2E Admin',
+    roleCodes: ['ORG_ADMIN'],
+    permissionCodes: adminPermissionCodes,
+  } satisfies E2ESession;
+}
+
+export async function createUserSessionWithRole(
+  request: APIRequestContext,
+  adminSession: E2ESession,
+  roleCode: E2ERoleCode,
+) {
+  const suffix = uniqueSuffix();
+  const role = await apiPost<JsonRecord & { id: string }>(request, '/roles', {
+    code: roleCode,
+    name: roleCode
+      .toLowerCase()
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' '),
+    permissionCodes: rolePermissionCodes[roleCode],
+    organizationId: adminSession.organizationId,
+    actorUserId: adminSession.actorUserId,
+  });
+  const user = await apiPost<JsonRecord & { id: string }>(request, '/users', {
+    email: `${roleCode.toLowerCase()}-${suffix}@example.test`,
+    displayName: `${roleCode} E2E User`,
+    organizationId: adminSession.organizationId,
+    actorUserId: adminSession.actorUserId,
+  });
+
+  await apiPost(request, '/memberships', {
+    organizationId: adminSession.organizationId,
+    userId: user.id,
+    roleId: role.id,
+    actorUserId: adminSession.actorUserId,
+  });
+
+  return {
+    ...adminSession,
+    actorUserId: user.id,
+    email: String(user.email),
+    displayName: String(user.displayName),
+    roleCodes: [roleCode],
+    permissionCodes: rolePermissionCodes[roleCode],
   } satisfies E2ESession;
 }
 
@@ -121,6 +214,14 @@ export async function createProcurementViaApi(
       email: `supplier-${suffix}@example.test`,
     }),
   );
+  const approver = await apiPost<JsonRecord & { id: string }>(
+    request,
+    '/users',
+    scoped({
+      email: `approver-${suffix}@example.test`,
+      displayName: `E2E Approver ${suffix}`,
+    }),
+  );
   const requisition = await apiPost<JsonRecord & { id: string }>(
     request,
     '/requisitions',
@@ -142,11 +243,11 @@ export async function createProcurementViaApi(
 
   await apiPost(request, `/requisitions/${requisition.id}/submit`, {
     actorUserId: activeSession.actorUserId,
-    approverUserId: activeSession.actorUserId,
+    approverUserId: approver.id,
   });
   await apiPost(request, `/requisitions/${requisition.id}/approve`, {
-    actorUserId: activeSession.actorUserId,
-    approverUserId: activeSession.actorUserId,
+    actorUserId: approver.id,
+    approverUserId: approver.id,
   });
 
   const rfq = await apiPost<JsonRecord & { id: string }>(

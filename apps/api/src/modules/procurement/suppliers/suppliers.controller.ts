@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import type { CreateSupplierInput } from './suppliers.service';
 import { SuppliersService } from './suppliers.service';
 
@@ -14,5 +14,10 @@ export class SuppliersController {
   @Get()
   listSuppliers(@Query('organizationId') organizationId?: string) {
     return this.suppliersService.list(organizationId);
+  }
+
+  @Get(':id')
+  getSupplier(@Param('id') id: string) {
+    return this.suppliersService.getById(id);
   }
 }

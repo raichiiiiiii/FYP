@@ -20,6 +20,8 @@ Official project references:
 
 - [Technology stack](docs/technology-stack.md)
 - [ADR-011: Implementation Stack for MEPN MVP](docs/adr/ADR-011-implementation-stack.md)
+- [Module roadmap and feature intake](docs/roadmap/module-roadmap.md)
+- [ADR-013: Module Roadmap Feature Intake](docs/adr/ADR-013-module-roadmap-feature-intake.md)
 
 ## Repository Structure
 
@@ -306,6 +308,7 @@ API endpoints:
 - `POST /api/v1/applications/:id/reject`
 - `POST /api/v1/contracts`
 - `GET /api/v1/contracts?organizationId=:organizationId`
+- `POST /api/v1/contracts/:id/generate-document`
 - `POST /api/v1/contracts/:id/mark-signed`
 - `POST /api/v1/disbursements`
 - `POST /api/v1/project-ledgers/entries`
@@ -328,6 +331,46 @@ Contract rule:
 - Disbursement requires an executed contract.
 - Closure requires a calculated profit/loss statement.
 
+## Graph And Canvas
+
+Step 10 adds a read-only project/opportunity graph as a visualization layer. The
+canvas does not create or update transaction records; it renders a backend read
+model from existing procurement, evidence, audit, and finance records.
+
+Frontend screen:
+
+- `http://localhost:5173/graph/projects`
+
+API endpoint:
+
+- `GET /api/v1/graph/projects/:projectId?organizationId=:organizationId&actorUserId=:actorUserId`
+
+Initial graph nodes:
+
+```text
+Organization
+Buyer/customer
+Supplier
+Procurement project
+Requisition
+RFQ
+Quotation
+Purchase order
+Invoice
+Evidence pack
+Finance opportunity
+Mudarabah application
+Contract
+Closure pack
+```
+
+Graph rules:
+
+- Graph data comes from a backend read model.
+- Nodes link back to the source record screens.
+- Finance nodes are hidden for roles without finance/audit visibility.
+- Core transaction processing does not depend on the graph.
+
 ## Integrations And Mock Fabric
 
 Step 8 adds the integration boundary without making the core app depend on real external systems.
@@ -347,6 +390,10 @@ apps/api/src/modules/integrations/
   webhooks/
 ```
 
+Frontend screen:
+
+- `http://localhost:5173/integrations`
+
 Integration request endpoints:
 
 - `POST /api/v1/integrations/erp/sync`
@@ -356,6 +403,12 @@ Integration request endpoints:
 - `POST /api/v1/integrations/webhooks/subscriptions`
 - `GET /api/v1/integrations/webhooks/subscriptions?organizationId=:organizationId`
 - `POST /api/v1/integrations/webhooks/deliveries`
+
+Integration status endpoints:
+
+- `GET /api/v1/integrations/outbox?organizationId=:organizationId`
+- `GET /api/v1/integrations/outbox/:id`
+- `GET /api/v1/integrations/reconciliation?organizationId=:organizationId`
 
 Outbox event types:
 
@@ -372,6 +425,8 @@ Outbox behavior:
 
 - Integration requests are persisted to `OutboxEvent`.
 - `idempotencyKey` prevents duplicate requested integrations.
+- Request actions create audit events with the outbox event ID as the correlation ID.
+- The UI displays `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, and `RETRYING` states.
 - The worker claims pending events, calls the mock adapter, stores an external reference in `IntegrationReconciliationRecord`, then marks the event completed.
 - Failed events are rescheduled with retry state and move to `FAILED` after `WORKER_MAX_ATTEMPTS`.
 - Hash record creation enqueues `FABRIC_ANCHOR_REQUESTED`.
@@ -386,3 +441,23 @@ WORKER_MAX_ATTEMPTS=5
 ```
 
 Real integrations remain deferred until the internal procurement, evidence, audit, and finance paths are stable.
+
+## UAT Preparation
+
+Phase 12 prepares formal UAT with role-based scenarios, evidence capture, defect
+tracking, supervisor notes, and repeatable demo data.
+
+UAT documents:
+
+- [UAT readiness plan](docs/test/uat-readiness.md)
+- [UAT scenario checklist](docs/test/uat-scenario-checklist.md)
+- [UAT defect log](docs/test/uat-defect-log.md)
+- [UAT feedback and supervisor notes](docs/test/uat-feedback-and-supervisor-notes.md)
+
+Create repeatable UAT demo data after the API is running:
+
+```bash
+pnpm seed:uat
+```
+
+Use `UAT_API_BASE_URL` to target a deployed prototype/staging API.

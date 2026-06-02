@@ -37,6 +37,14 @@ export type ExportEvidencePackInput = {
   actorUserId?: string;
 };
 
+export type EvidencePackExportFormat = 'json' | 'pdf';
+
+export type EvidencePackExportArtifact = {
+  fileName: string;
+  contentType: string;
+  content: Buffer;
+};
+
 const evidencePackInclude = {
   project: true,
   items: {
@@ -247,6 +255,32 @@ export class EvidencePacksService {
     });
 
     return exportPayload;
+  }
+
+  async exportArtifact(
+    id: string,
+    format: EvidencePackExportFormat,
+    input: ExportEvidencePackInput = {},
+  ): Promise<EvidencePackExportArtifact> {
+    const payload = await this.export(id, input);
+    const safeTitle = payload.evidencePack.title.replace(
+      /[^a-zA-Z0-9._-]/g,
+      '_',
+    );
+
+    if (format === 'pdf') {
+      return {
+        fileName: `${safeTitle || 'evidence-pack'}.pdf`,
+        contentType: 'application/pdf',
+        content: buildSimplePdf(reviewerSummaryLines(payload)),
+      };
+    }
+
+    return {
+      fileName: `${safeTitle || 'evidence-pack'}.json`,
+      contentType: 'application/json',
+      content: Buffer.from(JSON.stringify(payload, null, 2), 'utf8'),
+    };
   }
 
   private async buildProjectEvidence(
@@ -528,4 +562,99 @@ export class EvidencePacksService {
       take: 500,
     });
   }
+}
+
+function reviewerSummaryLines(payload: {
+  evidencePack: Awaited<ReturnType<EvidencePacksService['getById']>>;
+  auditTimeline: Array<{ eventType: string; createdAt: Date }>;
+  documentHashes: Array<{
+    documentId: string | null;
+    documentVersionId: string | null;
+    contentHash: string | null | undefined;
+  }>;
+  hashRecord: { canonicalHash: string; hashAlgorithm: string };
+}) {
+  const pack = payload.evidencePack;
+
+  return [
+    `Evidence Pack: ${pack.title}`,
+    `Status: ${pack.status}`,
+    `Project: ${pack.project?.name ?? 'Not linked'}`,
+    `Evidence items: ${pack.items.length}`,
+    `Audit events included: ${payload.auditTimeline.length}`,
+    `Document hashes included: ${payload.documentHashes.length}`,
+    `Pack hash (${payload.hashRecord.hashAlgorithm}): ${payload.hashRecord.canonicalHash}`,
+    '',
+    'Evidence Items',
+    ...pack.items
+      .slice(0, 60)
+      .map(
+        (item) =>
+          `${item.evidenceType}: ${item.label} (${item.entityType}/${item.entityId})`,
+      ),
+    '',
+    'Audit Timeline',
+    ...payload.auditTimeline
+      .slice(0, 80)
+      .map((event) => `${event.createdAt.toISOString()} ${event.eventType}`),
+  ];
+}
+
+function buildSimplePdf(lines: string[]) {
+  const escapedLines = lines.flatMap((line) => wrapPdfLine(line, 92));
+  const text = escapedLines
+    .map((line, index) => {
+      const y = 760 - index * 14;
+
+      if (y < 36) {
+        return null;
+      }
+
+      return `BT /F1 10 Tf 36 ${y} Td (${escapePdfText(line)}) Tj ET`;
+    })
+    .filter(Boolean)
+    .join('\n');
+  const objects = [
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+    '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+    '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj',
+    '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+    `5 0 obj << /Length ${Buffer.byteLength(text, 'utf8')} >> stream\n${text}\nendstream endobj`,
+  ];
+  let offset = '%PDF-1.4\n'.length;
+  const xref = ['0000000000 65535 f '];
+  const body = objects
+    .map((object) => {
+      xref.push(`${String(offset).padStart(10, '0')} 00000 n `);
+      offset += object.length + 1;
+      return object;
+    })
+    .join('\n');
+  const xrefOffset = offset;
+  const pdf = `%PDF-1.4\n${body}\nxref\n0 ${xref.length}\n${xref.join(
+    '\n',
+  )}\ntrailer << /Size ${xref.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+
+  return Buffer.from(pdf, 'utf8');
+}
+
+function wrapPdfLine(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return [value];
+  }
+
+  const lines: string[] = [];
+
+  for (let index = 0; index < value.length; index += maxLength) {
+    lines.push(value.slice(index, index + maxLength));
+  }
+
+  return lines;
+}
+
+function escapePdfText(value: string) {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
 }

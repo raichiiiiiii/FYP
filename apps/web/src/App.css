@@ -22,7 +22,20 @@
 .sidebar nav {
   display: flex;
   flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-section {
+  display: grid;
   gap: 8px;
+}
+
+.sidebar-module {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .content-shell {
@@ -45,11 +58,38 @@ button {
   padding: 0 16px;
 }
 
+.button {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.button--secondary {
+  background: #eef3f7;
+  border-color: #d7e0e7;
+  color: #25313c;
+}
+
+.button--danger {
+  background: #9f2d23;
+  border-color: #8b251d;
+  color: #ffffff;
+}
+
+.button--ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-strong);
+}
+
 .nav-item {
+  align-items: center;
   background: transparent;
   border-color: rgba(255, 255, 255, 0.16);
+  display: flex;
   justify-content: flex-start;
   text-align: left;
+  text-decoration: none;
 }
 
 .nav-item.active,
@@ -241,6 +281,26 @@ textarea {
   padding: 0 12px;
 }
 
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.field-hint,
+.field small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 textarea {
   min-height: 96px;
   padding: 12px;
@@ -254,8 +314,74 @@ textarea {
   gap: 12px;
 }
 
+.integration-action-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.integration-action-panel {
+  align-content: start;
+  margin-top: 0;
+}
+
 .table-section {
   margin-top: 24px;
+}
+
+.state-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-strong);
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 16px;
+}
+
+.state-box p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.state-box strong {
+  color: var(--text-strong);
+}
+
+.state-box--error {
+  border-color: #f4c7c3;
+  background: #fff7f6;
+}
+
+.state-box--error strong,
+.state-box--error p {
+  color: #9f2d23;
+}
+
+.state-box--loading {
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.state-actions {
+  margin-top: 4px;
+}
+
+.spinner {
+  border: 2px solid #dce3e8;
+  border-top-color: var(--button-bg);
+  border-radius: 999px;
+  height: 18px;
+  width: 18px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .data-table {
@@ -271,6 +397,29 @@ textarea {
   grid-template-columns: 1.2fr 1.4fr 1fr 0.8fr;
   min-height: 58px;
   padding: 14px 16px;
+}
+
+.module-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.module-tab {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.module-tab.active,
+.module-tab:hover {
+  background: #eef3f7;
 }
 
 .data-table--audit article {
@@ -303,6 +452,19 @@ textarea {
   grid-template-columns: 1.2fr 1fr 0.7fr;
 }
 
+.data-table--integrations article {
+  align-items: start;
+  grid-template-columns: 1.35fr 1.25fr 0.72fr 0.45fr 0.92fr 1.1fr;
+}
+
+.data-table--reconciliation article {
+  grid-template-columns: 0.9fr 1.2fr 0.7fr 1fr 0.45fr;
+}
+
+.data-table--webhooks article {
+  grid-template-columns: 1.1fr 1.8fr 0.6fr 0.9fr;
+}
+
 .data-table article > div {
   min-width: 0;
 }
@@ -328,14 +490,16 @@ textarea {
 .status-tag--RECEIVED,
 .status-tag--RECORDED,
 .status-tag--ACTIVE,
-.status-tag--EXPORTED {
+.status-tag--EXPORTED,
+.status-tag--COMPLETED {
   background: #e6f5ee;
   border-color: #b9dfcf;
   color: #176342;
 }
 
 .status-tag--REJECTED,
-.status-tag--error {
+.status-tag--error,
+.status-tag--FAILED {
   background: #fdeceb;
   border-color: #f4c7c3;
   color: #9f2d23;
@@ -356,7 +520,9 @@ textarea {
 .status-tag--PROFIT_LOSS_CALCULATED,
 .status-tag--PENDING,
 .status-tag--PENDING_SIGNATURE,
-.status-tag--EXECUTED {
+.status-tag--EXECUTED,
+.status-tag--PROCESSING,
+.status-tag--RETRYING {
   background: #fff4da;
   border-color: #efd58f;
   color: #765414;
@@ -377,6 +543,19 @@ textarea {
 .hash-text {
   font-family: var(--mono);
   overflow-wrap: anywhere;
+}
+
+.reviewer-preview {
+  background: #f8faf9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  line-height: 1.55;
+  max-height: 360px;
+  overflow: auto;
+  padding: 16px;
+  white-space: pre-wrap;
 }
 
 .lifecycle-track {
@@ -413,6 +592,176 @@ textarea {
   margin-top: 24px;
 }
 
+.graph-toolbar {
+  align-items: end;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+}
+
+.graph-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.graph-summary article {
+  min-height: 74px;
+}
+
+.graph-canvas {
+  background: #f8faf9;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 24px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.graph-canvas-inner {
+  background-image:
+    linear-gradient(#e4e9ed 1px, transparent 1px),
+    linear-gradient(90deg, #e4e9ed 1px, transparent 1px);
+  background-size: 40px 40px;
+  min-width: 100%;
+  position: relative;
+}
+
+.graph-edge-layer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.graph-edge {
+  stroke: #96a8b4;
+  stroke-width: 2;
+}
+
+.graph-edge-label {
+  fill: #51616c;
+  font-size: 11px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #f8faf9;
+  stroke-width: 5px;
+  text-anchor: middle;
+}
+
+.graph-node {
+  background: #ffffff;
+  border: 2px solid #d7e0e7;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(23, 32, 42, 0.12);
+  color: var(--text-strong);
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  position: absolute;
+  text-decoration: none;
+}
+
+.graph-node:hover {
+  transform: translateY(-1px);
+}
+
+.graph-node span,
+.graph-node em {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.graph-node strong {
+  color: var(--text-strong);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.graph-node .status-tag {
+  justify-self: start;
+}
+
+.graph-node--organization {
+  border-color: #9ec5a8;
+}
+
+.graph-node--party {
+  border-color: #e1b879;
+}
+
+.graph-node--procurement {
+  border-color: #8eb6d9;
+}
+
+.graph-node--evidence {
+  border-color: #b7a3d8;
+}
+
+.graph-node--finance {
+  border-color: #88c2bd;
+}
+
+.dialog-backdrop {
+  align-items: center;
+  background: rgba(23, 32, 42, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 20;
+}
+
+.confirm-dialog {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(23, 32, 42, 0.24);
+  display: grid;
+  gap: 14px;
+  max-width: 420px;
+  padding: 22px;
+  width: 100%;
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+}
+
+.confirm-dialog p {
+  color: var(--muted);
+}
+
+.toast-stack {
+  bottom: 18px;
+  display: grid;
+  gap: 10px;
+  max-width: min(380px, calc(100vw - 32px));
+  position: fixed;
+  right: 18px;
+  z-index: 30;
+}
+
+.toast {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--button-bg);
+  box-shadow: 0 12px 32px rgba(23, 32, 42, 0.14);
+  color: var(--text-strong);
+  justify-content: flex-start;
+  min-height: 44px;
+  text-align: left;
+}
+
+.toast--success {
+  border-left-color: var(--success);
+}
+
+.toast--error {
+  border-left-color: var(--danger);
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -439,7 +788,10 @@ textarea {
 
   .summary-band,
   .details-grid,
-  .split-grid {
+  .split-grid,
+  .graph-toolbar,
+  .graph-summary,
+  .integration-action-grid {
     grid-template-columns: 1fr;
   }
 
@@ -454,7 +806,10 @@ textarea {
   .data-table--finance article,
   .data-table--finance-lifecycle article,
   .data-table--checklist article,
-  .data-table--lifecycle article {
+  .data-table--lifecycle article,
+  .data-table--integrations article,
+  .data-table--reconciliation article,
+  .data-table--webhooks article {
     align-items: start;
     grid-template-columns: 1fr;
   }

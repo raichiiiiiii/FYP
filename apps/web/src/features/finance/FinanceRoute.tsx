@@ -1,13 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { NavLink, Route, Routes, useParams } from 'react-router-dom'
 
-type AppSession = {
-  organizationId: string | null
-  actorUserId: string | null
-}
+import { PageHeader as SharedPageHeader } from '../../layouts/PageHeader'
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog'
+import { EmptyState } from '../../shared/components/EmptyState'
+import { Field as SharedField } from '../../shared/components/Field'
+import { StatusBadge } from '../../shared/components/StatusBadge'
+import type { AppRoleCode, AppSession } from '../../shared/types'
+import { WorkflowStepper } from '../../shared/components/WorkflowStepper'
+import { formatCurrency, formatDateTime } from '../../shared/utils/formatting'
+import { useAuth } from '../auth/useAuth'
+import { useEvidencePacks } from '../evidence/api/useEvidencePacks'
+import { useProjects } from '../procurement/api/useProjects'
+import { usePurchaseOrders } from '../procurement/api/usePurchaseOrders'
+import { useApplications } from './api/useApplications'
+import { useClosures } from './api/useClosures'
+import { useContracts } from './api/useContracts'
+import { useDisbursements } from './api/useDisbursements'
+import { useLedgers } from './api/useLedgers'
+import { useOpportunities } from './api/useOpportunities'
+import { useProfitLoss } from './api/useProfitLoss'
 
 type FinanceRouteProps = {
-  path: string
   session: AppSession
   navigate: (path: string) => void
 }
@@ -145,6 +160,7 @@ type ProfitLossStatement = {
   revenue: number
   costs: number
   netProfit: number
+  status?: string
   createdAt: string
   distributions?: ProfitDistribution[]
   lossExceptions?: LossException[]
@@ -154,6 +170,7 @@ type ProfitLossStatement = {
 type ClosurePack = {
   id: string
   applicationId: string
+  status?: string
   evidencePack?: EvidencePack | null
   summary?: Record<string, unknown> | null
   exportedAt: string
@@ -182,13 +199,27 @@ type MudarabahApplication = {
   closurePacks?: ClosurePack[]
 }
 
+type GeneratedContractDocument = {
+  document: {
+    id: string
+    title: string
+  }
+  version: {
+    id: string
+    fileName: string
+    contentHash?: string | null
+  }
+  esignPackageRequest: {
+    id: string
+    status: string
+  }
+  mockSigningStatus: string
+}
+
 type LoadState<T> =
   | { status: 'loading' }
   | { status: 'ready'; data: T }
   | { status: 'error'; message: string }
-
-const apiBaseUrl =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1'
 
 const financeLifecycleStates = [
   'DRAFT',
@@ -205,29 +236,59 @@ const financeLifecycleStates = [
   'CLOSED',
 ]
 
-async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
+const financeWorkspaceTabs = [
+  ['overview', 'Overview'],
+  ['evidence', 'Evidence'],
+  ['due-diligence', 'Due Diligence'],
+  ['shariah-review', 'Shariah Review'],
+  ['contract', 'Contract'],
+  ['disbursement', 'Disbursement'],
+  ['ledger', 'Ledger'],
+  ['profit-loss', 'Profit/Loss'],
+  ['closure', 'Closure'],
+  ['audit', 'Audit'],
+] as const
 
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Request failed with ${response.status}`)
-  }
+type FinanceWorkspaceTab = (typeof financeWorkspaceTabs)[number][0]
 
-  return (await response.json()) as T
+type FinanceRoleScope = {
+  canSubmitEvidence: boolean
+  canReviewFinance: boolean
+  canReviewShariah: boolean
+  canCreateContract: boolean
+  canRecordDisbursement: boolean
+  canRecordLedger: boolean
+  canCalculateProfitLoss: boolean
+  canExportClosure: boolean
+  isAuditor: boolean
 }
 
-function organizationQuery(session: AppSession) {
-  if (!session.organizationId) {
-    throw new Error('Create an organization first')
-  }
+function buildFinanceRoleScope(roleCodes: AppRoleCode[]): FinanceRoleScope {
+  const hasRole = (roles: AppRoleCode[]) =>
+    roles.some((role) => roleCodes.includes(role))
+  const isFinanceOperator = hasRole(['ORG_ADMIN', 'FINANCIER_USER'])
 
-  return `organizationId=${encodeURIComponent(session.organizationId)}`
+  return {
+    canSubmitEvidence: hasRole([
+      'ORG_ADMIN',
+      'PROCUREMENT_OFFICER',
+      'FINANCIER_USER',
+    ]),
+    canReviewFinance: isFinanceOperator,
+    canReviewShariah: hasRole(['ORG_ADMIN', 'SHARIAH_REVIEWER']),
+    canCreateContract: isFinanceOperator,
+    canRecordDisbursement: isFinanceOperator,
+    canRecordLedger: isFinanceOperator,
+    canCalculateProfitLoss: isFinanceOperator,
+    canExportClosure: isFinanceOperator,
+    isAuditor: hasRole(['AUDITOR']),
+  }
+}
+
+function normalizeWorkspaceTab(tab?: string): FinanceWorkspaceTab {
+  return financeWorkspaceTabs.some(([value]) => value === tab)
+    ? (tab as FinanceWorkspaceTab)
+    : 'overview'
 }
 
 function scopedBody(session: AppSession, body: Record<string, unknown> = {}) {
@@ -246,14 +307,6 @@ function getQueryParam(name: string) {
   return new URLSearchParams(window.location.search).get(name) || ''
 }
 
-function formatMoney(value?: number | null, currency = 'MYR') {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0)
-}
-
 function PageHeader({
   eyebrow,
   title,
@@ -263,15 +316,7 @@ function PageHeader({
   title: string
   action?: ReactNode
 }) {
-  return (
-    <header className="page-header">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-      </div>
-      {action}
-    </header>
-  )
+  return <SharedPageHeader eyebrow={eyebrow} title={title} action={action} />
 }
 
 function Field({
@@ -290,42 +335,32 @@ function Field({
   onChange: (value: string) => void
 }) {
   return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+    <SharedField
+      label={label}
+      name={name}
+      type={type}
+      required={required}
+      value={value}
+      onChange={onChange}
+    />
   )
 }
 
 function EmptyNotice({ children }: { children: ReactNode }) {
-  return <p className="notice">{children}</p>
+  return <EmptyState>{children}</EmptyState>
 }
 
 function StatusTag({ status }: { status: string }) {
-  return <span className={`status-tag status-tag--${status}`}>{status}</span>
+  return <StatusBadge status={status} />
 }
 
 function FinanceLifecycleTrack({ status }: { status: string }) {
-  const currentIndex = financeLifecycleStates.indexOf(status)
-
   return (
-    <div className="lifecycle-track lifecycle-track--finance">
-      {currentIndex === -1 ? (
-        <span className="active">{status}</span>
-      ) : (
-        financeLifecycleStates.map((state, index) => (
-          <span key={state} className={index <= currentIndex ? 'active' : ''}>
-            {state}
-          </span>
-        ))
-      )}
-    </div>
+    <WorkflowStepper
+      steps={financeLifecycleStates}
+      current={status}
+      variant="finance"
+    />
   )
 }
 
@@ -392,6 +427,11 @@ function OpportunitiesScreen({
   session: AppSession
   navigate: (path: string) => void
 }) {
+  const { listProjects } = useProjects(session)
+  const { listPurchaseOrders } = usePurchaseOrders(session)
+  const { listEvidencePacks } = useEvidencePacks(session)
+  const { listOpportunities, createOpportunity: createOpportunityRecord } =
+    useOpportunities(session)
   const [projects, setProjects] = useState<Project[]>([])
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [evidencePacks, setEvidencePacks] = useState<EvidencePack[]>([])
@@ -405,17 +445,12 @@ function OpportunitiesScreen({
   const [message, setMessage] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { projects: [], purchaseOrders: [], evidencePacks: [], opportunities: [] }
-    }
-
-    const query = organizationQuery(session)
     const [projectRows, purchaseOrderRows, packRows, opportunityRows] =
       await Promise.all([
-        apiRequest<Project[]>(`/projects?${query}`),
-        apiRequest<PurchaseOrder[]>(`/purchase-orders?${query}`),
-        apiRequest<EvidencePack[]>(`/evidence-packs?${query}`),
-        apiRequest<Opportunity[]>(`/opportunities?${query}`),
+        listProjects<Project>(),
+        listPurchaseOrders<PurchaseOrder>(),
+        listEvidencePacks<EvidencePack>(),
+        listOpportunities<Opportunity>(),
       ])
 
     return {
@@ -424,7 +459,7 @@ function OpportunitiesScreen({
       evidencePacks: packRows,
       opportunities: opportunityRows,
     }
-  }, [session])
+  }, [listEvidencePacks, listOpportunities, listProjects, listPurchaseOrders])
 
   async function refresh() {
     const data = await loadData()
@@ -475,20 +510,17 @@ function OpportunitiesScreen({
     setMessage(null)
 
     try {
-      await apiRequest<Opportunity>('/opportunities', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            projectId,
-            purchaseOrderId: purchaseOrderId || undefined,
-            evidencePackId: evidencePackId || undefined,
-            title,
-            estimatedCapital,
-            expectedProfit,
-            currency: 'MYR',
-          }),
-        ),
-      })
+      await createOpportunityRecord<Opportunity>(
+        scopedBody(session, {
+          projectId,
+          purchaseOrderId: purchaseOrderId || undefined,
+          evidencePackId: evidencePackId || undefined,
+          title,
+          estimatedCapital,
+          expectedProfit,
+          currency: 'MYR',
+        }),
+      )
       await refresh()
       setMessage('Opportunity created')
     } catch (error) {
@@ -591,7 +623,7 @@ function OpportunitiesScreen({
                 <span>{opportunity.project?.name ?? 'No project'}</span>
                 <StatusTag status={opportunity.status} />
                 <span>
-                  {formatMoney(opportunity.estimatedCapital, opportunity.currency)}
+                  {formatCurrency(opportunity.estimatedCapital, opportunity.currency)}
                 </span>
               </article>
             ))}
@@ -607,10 +639,18 @@ function OpportunitiesScreen({
 function ApplicationsScreen({
   session,
   navigate,
+  roleCodes,
 }: {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }) {
+  const { listOpportunities } = useOpportunities(session)
+  const {
+    listApplications,
+    createApplication: createApplicationRecord,
+    submitApplication: submitApplicationRecord,
+  } = useApplications(session)
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
   const [opportunityId, setOpportunityId] = useState('')
@@ -618,20 +658,18 @@ function ApplicationsScreen({
   const [capitalProviderRatio, setCapitalProviderRatio] = useState('0.6')
   const [entrepreneurRatio, setEntrepreneurRatio] = useState('0.4')
   const [message, setMessage] = useState<string | null>(null)
+  const canCreateApplication = roleCodes.some((roleCode) =>
+    ['ORG_ADMIN', 'FINANCIER_USER'].includes(roleCode),
+  )
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { opportunities: [], applications: [] }
-    }
-
-    const query = organizationQuery(session)
     const [opportunityRows, applicationRows] = await Promise.all([
-      apiRequest<Opportunity[]>(`/opportunities?${query}`),
-      apiRequest<MudarabahApplication[]>(`/applications?${query}`),
+      listOpportunities<Opportunity>(),
+      listApplications<MudarabahApplication>(),
     ])
 
     return { opportunities: opportunityRows, applications: applicationRows }
-  }, [session])
+  }, [listApplications, listOpportunities])
 
   async function refresh() {
     const data = await loadData()
@@ -670,19 +708,16 @@ function ApplicationsScreen({
     setMessage(null)
 
     try {
-      const created = await apiRequest<MudarabahApplication>('/applications', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            opportunityId,
-            applicantUserId: session.actorUserId,
-            requestedCapital,
-            capitalProviderRatio,
-            entrepreneurRatio,
-            currency: 'MYR',
-          }),
-        ),
-      })
+      const created = await createApplicationRecord<MudarabahApplication>(
+        scopedBody(session, {
+          opportunityId,
+          applicantUserId: session.actorUserId,
+          requestedCapital,
+          capitalProviderRatio,
+          entrepreneurRatio,
+          currency: 'MYR',
+        }),
+      )
       await refresh()
       setMessage('Application created')
       navigate(`/finance/applications/${created.id}`)
@@ -697,9 +732,8 @@ function ApplicationsScreen({
     setMessage(null)
 
     try {
-      await apiRequest<MudarabahApplication>(`/applications/${id}/submit`, {
-        method: 'POST',
-        body: JSON.stringify({ actorUserId: session.actorUserId }),
+      await submitApplicationRecord<MudarabahApplication>(id, {
+        actorUserId: session.actorUserId,
       })
       await refresh()
       setMessage('Application submitted')
@@ -713,6 +747,13 @@ function ApplicationsScreen({
   return (
     <>
       <PageHeader eyebrow="Mudarabah finance" title="Capital applications" />
+      {!canCreateApplication ? (
+        <p className="notice">
+          This role can review application status, evidence, and assigned review
+          workspaces. Application creation is reserved for finance operators.
+        </p>
+      ) : null}
+      {canCreateApplication ? (
       <form
         className="form-grid"
         onSubmit={(event) => void createApplication(event)}
@@ -754,6 +795,9 @@ function ApplicationsScreen({
           {message ? <p className="notice">{message}</p> : null}
         </div>
       </form>
+      ) : message ? (
+        <p className="notice">{message}</p>
+      ) : null}
 
       <section className="table-section">
         <h2>Application records</h2>
@@ -764,7 +808,7 @@ function ApplicationsScreen({
                 <div>
                   <strong>{application.opportunity?.title ?? application.id}</strong>
                   <span>
-                    {formatMoney(application.requestedCapital, application.currency)}
+                    {formatCurrency(application.requestedCapital, application.currency)}
                   </span>
                 </div>
                 <StatusTag status={application.status} />
@@ -798,18 +842,53 @@ function ApplicationsScreen({
 function ApplicationDetailScreen({
   session,
   applicationId,
+  workspaceTab,
+  roleCodes,
 }: {
   session: AppSession
   applicationId: string
+  workspaceTab?: string
+  roleCodes: AppRoleCode[]
 }) {
+  const {
+    getApplication,
+    createEvidenceChecklist,
+    completeChecklistItem,
+    runApplicationAction,
+  } = useApplications(session)
+  const {
+    createContract: createContractRecord,
+    markContractSigned,
+    generateContractDocument,
+  } = useContracts(session)
+  const { createDisbursement } = useDisbursements(session)
+  const { createLedgerEntry } = useLedgers(session)
+  const { createProfitLossStatement } = useProfitLoss(session)
+  const { createClosure: createClosureRecord } = useClosures(session)
   const [state, setState] = useState<LoadState<MudarabahApplication>>({
     status: 'loading',
   })
+  const [restrictedUse, setRestrictedUse] = useState(
+    'Restricted to approved procurement project costs only',
+  )
+  const [signerEmail, setSignerEmail] = useState('')
+  const [disbursementAmount, setDisbursementAmount] = useState('')
+  const [disbursementReference, setDisbursementReference] = useState('')
+  const [ledgerEntryType, setLedgerEntryType] = useState('REVENUE')
+  const [ledgerDescription, setLedgerDescription] = useState(
+    'Project revenue recorded',
+  )
+  const [ledgerAmount, setLedgerAmount] = useState('14000')
+  const [profitRevenue, setProfitRevenue] = useState('')
+  const [profitCosts, setProfitCosts] = useState('')
+  const [confirmingClosure, setConfirmingClosure] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
+  const selectedTab = normalizeWorkspaceTab(workspaceTab)
+  const roleScope = useMemo(() => buildFinanceRoleScope(roleCodes), [roleCodes])
   const loadApplication = useCallback(
-    () => apiRequest<MudarabahApplication>(`/applications/${applicationId}`),
-    [applicationId],
+    () => getApplication<MudarabahApplication>(applicationId),
+    [applicationId, getApplication],
   )
 
   async function refresh() {
@@ -842,19 +921,23 @@ function ApplicationDetailScreen({
 
   async function runAction(
     label: string,
-    path: string,
+    action: 'evidence-checklist' | 'due-diligence' | 'shariah-review' | 'approve',
     body: Record<string, unknown> = {},
   ) {
     setMessage(null)
 
     try {
-      await apiRequest<unknown>(path, {
-        method: 'POST',
-        body: JSON.stringify({
+      if (action === 'evidence-checklist') {
+        await createEvidenceChecklist<unknown>(applicationId, {
           actorUserId: session.actorUserId,
           ...body,
-        }),
-      })
+        })
+      } else {
+        await runApplicationAction<unknown>(applicationId, action, {
+          actorUserId: session.actorUserId,
+          ...body,
+        })
+      }
       await refresh()
       setMessage(label)
     } catch (error) {
@@ -870,11 +953,8 @@ function ApplicationDetailScreen({
         items
           .filter((item) => item.status !== 'COMPLETED')
           .map((item) =>
-            apiRequest<ChecklistItem>(`/evidence-checklists/${item.id}/complete-item`, {
-              method: 'POST',
-              body: JSON.stringify({
-                actorUserId: session.actorUserId,
-              }),
+            completeChecklistItem<ChecklistItem>(item.id, applicationId, {
+              actorUserId: session.actorUserId,
             }),
           ),
       )
@@ -887,10 +967,165 @@ function ApplicationDetailScreen({
     }
   }
 
+  async function createContractForApplication(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage(null)
+
+    try {
+      await createContractRecord<Contract>(
+        scopedBody(session, {
+          applicationId,
+          restrictedUse,
+        }),
+      )
+      await refresh()
+      setMessage('Contract created')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to create contract',
+      )
+    }
+  }
+
+  async function requestContractDocument(contractId: string) {
+    setMessage(null)
+
+    try {
+      await generateContractDocument<GeneratedContractDocument>(contractId, {
+        actorUserId: session.actorUserId,
+        signerEmail: signerEmail || undefined,
+      })
+      await refresh()
+      setMessage('Mock e-signature package requested')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to request e-signature package',
+      )
+    }
+  }
+
+  async function markSigned(contractId: string) {
+    setMessage(null)
+
+    try {
+      await markContractSigned<Contract>(contractId, {
+        actorUserId: session.actorUserId,
+      })
+      await refresh()
+      setMessage('Contract signed')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to sign contract')
+    }
+  }
+
+  async function recordDisbursement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage(null)
+
+    try {
+      await createDisbursement<Disbursement>(
+        scopedBody(session, {
+          applicationId,
+          contractId: latestContract?.id,
+          amount: disbursementAmount || undefined,
+          reference: disbursementReference || undefined,
+          currency: 'MYR',
+        }),
+      )
+      await refresh()
+      setMessage('Disbursement recorded')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to record disbursement',
+      )
+    }
+  }
+
+  async function recordLedgerEntry(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage(null)
+
+    try {
+      await createLedgerEntry<LedgerEntry>(
+        scopedBody(session, {
+          applicationId,
+          entryType: ledgerEntryType,
+          description: ledgerDescription,
+          amount: ledgerAmount,
+          currency: 'MYR',
+        }),
+      )
+      await refresh()
+      setMessage('Ledger entry recorded')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to record ledger entry',
+      )
+    }
+  }
+
+  async function generateProfitLoss(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage(null)
+
+    try {
+      await createProfitLossStatement<ProfitLossStatement>(
+        scopedBody(session, {
+          applicationId,
+          revenue: profitRevenue || undefined,
+          costs: profitCosts || undefined,
+        }),
+      )
+      await refresh()
+      setMessage('Profit/loss statement generated')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to generate profit/loss statement',
+      )
+    }
+  }
+
+  async function createClosure() {
+    setConfirmingClosure(false)
+    setMessage(null)
+
+    try {
+      await createClosureRecord<ClosurePack>(
+        scopedBody(session, {
+          applicationId,
+        }),
+      )
+      await refresh()
+      setMessage('Closure pack exported')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to export closure pack',
+      )
+    }
+  }
+
   const application = state.status === 'ready' ? state.data : null
   const checklist = application?.evidenceChecklist
   const latestDueDiligence = application?.dueDiligenceReports?.[0]
   const latestShariahReview = application?.shariahReviews?.[0]
+  const latestContract = application?.contracts?.[0]
+  const latestDisbursement = application?.disbursements?.[0]
+  const latestProfitLoss = application?.profitLossStatements?.[0]
+  const latestClosure = application?.closurePacks?.[0]
+  const showOverview = selectedTab === 'overview'
+  const showEvidence = showOverview || selectedTab === 'evidence'
+  const showDueDiligence = showOverview || selectedTab === 'due-diligence'
+  const showShariah = showOverview || selectedTab === 'shariah-review'
+  const showContract = showOverview || selectedTab === 'contract'
+  const showDisbursement = showOverview || selectedTab === 'disbursement'
+  const showLedger = showOverview || selectedTab === 'ledger'
+  const showProfitLoss = showOverview || selectedTab === 'profit-loss'
+  const showClosure = showOverview || selectedTab === 'closure'
+  const showAudit = showOverview || selectedTab === 'audit'
 
   return (
     <>
@@ -904,6 +1139,21 @@ function ApplicationDetailScreen({
       {message ? <p className="notice">{message}</p> : null}
       {application ? (
         <>
+          <nav className="module-tabs" aria-label="Finance workspace tabs">
+            {financeWorkspaceTabs.map(([value, label]) => (
+              <NavLink
+                key={value}
+                className={({ isActive }) =>
+                  isActive || selectedTab === value
+                    ? 'module-tab active'
+                    : 'module-tab'
+                }
+                to={`/finance/applications/${applicationId}/${value}`}
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
           <section className="details-grid finance-details">
             <article>
               <span>Opportunity</span>
@@ -916,41 +1166,62 @@ function ApplicationDetailScreen({
             <article>
               <span>Capital</span>
               <strong>
-                {formatMoney(application.requestedCapital, application.currency)}
+                {formatCurrency(application.requestedCapital, application.currency)}
               </strong>
             </article>
             <article>
               <span>Evidence checklist</span>
               <strong>{checklist?.status ?? 'Not generated'}</strong>
             </article>
+            <article>
+              <span>Role context</span>
+              <strong>{roleCodes.join(', ') || 'No assigned role'}</strong>
+            </article>
           </section>
           <section className="table-section">
             <h2>Lifecycle</h2>
             <FinanceLifecycleTrack status={application.status} />
           </section>
+          {roleScope.isAuditor ? (
+            <p className="notice">
+              Auditor workspace is read-only: evidence, audit, hashes, and closure
+              state are visible, while finance mutations stay unavailable.
+            </p>
+          ) : null}
           <section className="split-grid">
+            {showEvidence ? (
             <form className="form-grid">
               <h2>Evidence</h2>
               <div className="form-actions">
-                <button
-                  type="button"
-                  disabled={!['SUBMITTED', 'EVIDENCE_PENDING'].includes(application.status)}
-                  onClick={() =>
-                    void runAction(
-                      'Checklist generated',
-                      `/applications/${application.id}/evidence-checklist`,
-                    )
-                  }
-                >
-                  Generate checklist
-                </button>
-                <button
-                  type="button"
-                  disabled={!checklist?.items?.length}
-                  onClick={() => void completeChecklist(checklist?.items ?? [])}
-                >
-                  Complete items
-                </button>
+                {roleScope.canSubmitEvidence ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={
+                        !['SUBMITTED', 'EVIDENCE_PENDING'].includes(
+                          application.status,
+                        )
+                      }
+                      onClick={() =>
+                        void runAction(
+                          'Checklist generated',
+                          'evidence-checklist',
+                        )
+                      }
+                    >
+                      Generate checklist
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!checklist?.items?.length}
+                      onClick={() => void completeChecklist(checklist?.items ?? [])}
+                    >
+                      Complete items
+                    </button>
+                  </>
+                ) : (
+                  <span>Read-only evidence review</span>
+                )}
               </div>
               {checklist?.items?.length ? (
                 <div className="data-table data-table--checklist">
@@ -966,67 +1237,75 @@ function ApplicationDetailScreen({
                 <EmptyNotice>No checklist generated.</EmptyNotice>
               )}
             </form>
+            ) : null}
+            {showDueDiligence || showShariah ? (
             <form className="form-grid">
               <h2>Reviews</h2>
               <div className="form-actions">
-                <button
-                  type="button"
-                  disabled={
-                    !['DUE_DILIGENCE_IN_REVIEW', 'SHARIAH_IN_REVIEW'].includes(
-                      application.status,
-                    ) || latestDueDiligence?.status === 'APPROVED'
-                  }
-                  onClick={() =>
-                    void runAction(
-                      'Due diligence approved',
-                      `/applications/${application.id}/due-diligence`,
-                      {
-                        reviewerUserId: session.actorUserId,
-                        status: 'APPROVED',
-                        riskRating: 'MEDIUM',
-                        decision: 'APPROVED',
-                      },
-                    )
-                  }
-                >
-                  Approve due diligence
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    latestDueDiligence?.status !== 'APPROVED' ||
-                    latestShariahReview?.status === 'APPROVED'
-                  }
-                  onClick={() =>
-                    void runAction(
-                      'Shariah review approved',
-                      `/applications/${application.id}/shariah-review`,
-                      {
-                        reviewerUserId: session.actorUserId,
-                        status: 'APPROVED',
-                        decision: 'APPROVED',
-                      },
-                    )
-                  }
-                >
-                  Approve Shariah
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    latestDueDiligence?.status !== 'APPROVED' ||
-                    latestShariahReview?.status !== 'APPROVED' ||
-                    application.status === 'APPROVED'
-                  }
-                  onClick={() =>
-                    void runAction(
-                      'Application approved',
-                      `/applications/${application.id}/approve`,
-                    )
-                  }
-                >
-                  Approve application
-                </button>
+                {roleScope.canReviewFinance ? (
+                  <button
+                    type="button"
+                    disabled={
+                      !['DUE_DILIGENCE_IN_REVIEW', 'SHARIAH_IN_REVIEW'].includes(
+                        application.status,
+                      ) || latestDueDiligence?.status === 'APPROVED'
+                    }
+                    onClick={() =>
+                      void runAction(
+                        'Due diligence approved',
+                        'due-diligence',
+                        {
+                          reviewerUserId: session.actorUserId,
+                          status: 'APPROVED',
+                          riskRating: 'MEDIUM',
+                          decision: 'APPROVED',
+                        },
+                      )
+                    }
+                  >
+                    Approve due diligence
+                  </button>
+                ) : null}
+                {roleScope.canReviewShariah ? (
+                  <button
+                    type="button"
+                    disabled={
+                      latestDueDiligence?.status !== 'APPROVED' ||
+                      latestShariahReview?.status === 'APPROVED'
+                    }
+                    onClick={() =>
+                      void runAction(
+                        'Shariah review approved',
+                        'shariah-review',
+                        {
+                          reviewerUserId: session.actorUserId,
+                          status: 'APPROVED',
+                          decision: 'APPROVED',
+                        },
+                      )
+                    }
+                  >
+                    Approve Shariah
+                  </button>
+                ) : null}
+                {roleScope.canReviewFinance ? (
+                  <button
+                    type="button"
+                    disabled={
+                      latestDueDiligence?.status !== 'APPROVED' ||
+                      latestShariahReview?.status !== 'APPROVED' ||
+                      application.status === 'APPROVED'
+                    }
+                    onClick={() =>
+                      void runAction(
+                        'Application approved',
+                        'approve',
+                      )
+                    }
+                  >
+                    Approve application
+                  </button>
+                ) : null}
               </div>
               <div className="data-table data-table--checklist">
                 <article>
@@ -1041,7 +1320,287 @@ function ApplicationDetailScreen({
                 </article>
               </div>
             </form>
+            ) : null}
+            {showContract ? (
+              <form
+                className="form-grid"
+                onSubmit={(event) => void createContractForApplication(event)}
+              >
+                <h2>Contract</h2>
+                <Field
+                  label="Restricted use"
+                  name="restrictedUse"
+                  required
+                  value={restrictedUse}
+                  onChange={setRestrictedUse}
+                />
+                <Field
+                  label="Signer email"
+                  name="signerEmail"
+                  type="email"
+                  value={signerEmail}
+                  onChange={setSignerEmail}
+                />
+                <div className="form-actions">
+                  {roleScope.canCreateContract ? (
+                    <>
+                      <button
+                        type="submit"
+                        disabled={application.status !== 'APPROVED'}
+                      >
+                        Create contract
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!latestContract}
+                        onClick={() =>
+                          latestContract
+                            ? void requestContractDocument(latestContract.id)
+                            : undefined
+                        }
+                      >
+                        Generate document
+                      </button>
+                      <button
+                        type="button"
+                        disabled={latestContract?.status !== 'PENDING_SIGNATURE'}
+                        onClick={() =>
+                          latestContract ? void markSigned(latestContract.id) : undefined
+                        }
+                      >
+                        Mark signed
+                      </button>
+                    </>
+                  ) : (
+                    <span>Contract terms are read-only for this role.</span>
+                  )}
+                </div>
+                <div className="data-table data-table--checklist">
+                  <article>
+                    <strong>{latestContract?.contractNumber ?? 'No contract'}</strong>
+                    <span>
+                      {latestContract?.restrictedUse ?? 'Contract not created'}
+                    </span>
+                    <StatusTag status={latestContract?.status ?? 'PENDING'} />
+                  </article>
+                </div>
+              </form>
+            ) : null}
+            {showDisbursement ? (
+              <form
+                className="form-grid"
+                onSubmit={(event) => void recordDisbursement(event)}
+              >
+                <h2>Disbursement</h2>
+                <Field
+                  label="Disbursement amount"
+                  name="disbursementAmount"
+                  type="number"
+                  value={disbursementAmount}
+                  onChange={setDisbursementAmount}
+                />
+                <Field
+                  label="Reference"
+                  name="disbursementReference"
+                  value={disbursementReference}
+                  onChange={setDisbursementReference}
+                />
+                <div className="form-actions">
+                  {roleScope.canRecordDisbursement ? (
+                    <button
+                      type="submit"
+                      disabled={latestContract?.status !== 'EXECUTED'}
+                    >
+                      Record disbursement
+                    </button>
+                  ) : (
+                    <span>Disbursement is read-only for this role.</span>
+                  )}
+                </div>
+                <div className="data-table data-table--checklist">
+                  <article>
+                    <strong>
+                      {latestDisbursement
+                        ? formatCurrency(
+                            latestDisbursement.amount,
+                            latestDisbursement.currency,
+                          )
+                        : 'No disbursement'}
+                    </strong>
+                    <span>{latestDisbursement?.reference ?? 'Pending execution'}</span>
+                    <StatusTag status={latestDisbursement ? 'RECORDED' : 'PENDING'} />
+                  </article>
+                </div>
+              </form>
+            ) : null}
+            {showLedger ? (
+              <form className="form-grid" onSubmit={(event) => void recordLedgerEntry(event)}>
+                <h2>Ledger</h2>
+                <label className="field">
+                  <span>Entry type</span>
+                  <select
+                    value={ledgerEntryType}
+                    onChange={(event) => setLedgerEntryType(event.target.value)}
+                  >
+                    <option value="REVENUE">Revenue</option>
+                    <option value="COST">Cost</option>
+                    <option value="EXPENSE">Expense</option>
+                  </select>
+                </label>
+                <Field
+                  label="Description"
+                  name="ledgerDescription"
+                  required
+                  value={ledgerDescription}
+                  onChange={setLedgerDescription}
+                />
+                <Field
+                  label="Amount"
+                  name="ledgerAmount"
+                  type="number"
+                  required
+                  value={ledgerAmount}
+                  onChange={setLedgerAmount}
+                />
+                <div className="form-actions">
+                  {roleScope.canRecordLedger ? (
+                    <button
+                      type="submit"
+                      disabled={
+                        !['DISBURSED', 'MONITORING'].includes(application.status)
+                      }
+                    >
+                      Record ledger entry
+                    </button>
+                  ) : (
+                    <span>Ledger is read-only for this role.</span>
+                  )}
+                </div>
+                {application.ledgerEntries?.length ? (
+                  <div className="data-table data-table--finance">
+                    {application.ledgerEntries.map((entry) => (
+                      <article key={entry.id}>
+                        <strong>{entry.entryType}</strong>
+                        <span>{entry.description}</span>
+                        <span>{formatCurrency(entry.amount, entry.currency)}</span>
+                        <span>{formatDateTime(entry.occurredAt)}</span>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyNotice>No ledger entries recorded.</EmptyNotice>
+                )}
+              </form>
+            ) : null}
+            {showProfitLoss ? (
+              <form
+                className="form-grid"
+                onSubmit={(event) => void generateProfitLoss(event)}
+              >
+                <h2>Profit/Loss</h2>
+                <Field
+                  label="Revenue override"
+                  name="profitRevenue"
+                  type="number"
+                  value={profitRevenue}
+                  onChange={setProfitRevenue}
+                />
+                <Field
+                  label="Cost override"
+                  name="profitCosts"
+                  type="number"
+                  value={profitCosts}
+                  onChange={setProfitCosts}
+                />
+                <div className="form-actions">
+                  {roleScope.canCalculateProfitLoss ? (
+                    <button
+                      type="submit"
+                      disabled={
+                        !['MONITORING', 'PROFIT_LOSS_CALCULATED'].includes(
+                          application.status,
+                        )
+                      }
+                    >
+                      Generate statement
+                    </button>
+                  ) : (
+                    <span>Profit/loss is read-only for this role.</span>
+                  )}
+                </div>
+                <div className="data-table data-table--checklist">
+                  <article>
+                    <strong>
+                      Net{' '}
+                      {latestProfitLoss
+                        ? formatCurrency(latestProfitLoss.netProfit)
+                        : 'pending'}
+                    </strong>
+                    <span>
+                      Ratio {application.capitalProviderRatio} /{' '}
+                      {application.entrepreneurRatio}
+                    </span>
+                    <StatusTag status={latestProfitLoss?.status ?? 'PENDING'} />
+                  </article>
+                </div>
+              </form>
+            ) : null}
+            {showClosure ? (
+              <section className="form-grid">
+                <h2>Closure</h2>
+                <div className="form-actions">
+                  {roleScope.canExportClosure ? (
+                    <button
+                      type="button"
+                      disabled={application.status !== 'PROFIT_LOSS_CALCULATED'}
+                      onClick={() => setConfirmingClosure(true)}
+                    >
+                      Export closure
+                    </button>
+                  ) : (
+                    <span>Closure pack is read-only for this role.</span>
+                  )}
+                </div>
+                <div className="data-table data-table--checklist">
+                  <article>
+                    <strong>{latestClosure?.id ?? 'No closure pack'}</strong>
+                    <span>
+                      {latestClosure
+                        ? formatDateTime(latestClosure.exportedAt)
+                        : 'Awaiting profit/loss statement'}
+                    </span>
+                    <StatusTag status={latestClosure ? 'CLOSED' : 'PENDING'} />
+                  </article>
+                </div>
+              </section>
+            ) : null}
+            {showAudit ? (
+              <section className="form-grid">
+                <h2>Audit</h2>
+                <p className="notice">
+                  Audit timeline links back to this application and the procurement
+                  opportunity. Reviewers can use it to verify approvals, contract
+                  state, ledger events, and closure export.
+                </p>
+                <div className="form-actions">
+                  <NavLink
+                    className="button button--secondary"
+                    to={`/audit/entity/MudarabahApplication/${application.id}`}
+                  >
+                    Open audit timeline
+                  </NavLink>
+                </div>
+              </section>
+            ) : null}
           </section>
+          <ConfirmDialog
+            open={confirmingClosure}
+            title="Export closure pack?"
+            message="This records the finance closure state after profit/loss calculation. Continue only when reviewer checks are complete."
+            confirmLabel="Confirm export"
+            onCancel={() => setConfirmingClosure(false)}
+            onConfirm={() => void createClosure()}
+          />
         </>
       ) : null}
     </>
@@ -1049,27 +1608,30 @@ function ApplicationDetailScreen({
 }
 
 function ContractsScreen({ session }: { session: AppSession }) {
+  const { listApplications } = useApplications(session)
+  const {
+    listContracts,
+    createContract: createContractRecord,
+    markContractSigned,
+    generateContractDocument,
+  } = useContracts(session)
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
   const [applicationId, setApplicationId] = useState(getQueryParam('applicationId'))
   const [restrictedUse, setRestrictedUse] = useState(
     'Restricted to approved procurement project costs only',
   )
+  const [signerEmail, setSignerEmail] = useState('')
   const [message, setMessage] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { applications: [], contracts: [] }
-    }
-
-    const query = organizationQuery(session)
     const [applicationRows, contractRows] = await Promise.all([
-      apiRequest<MudarabahApplication[]>(`/applications?${query}`),
-      apiRequest<Contract[]>(`/contracts?${query}`),
+      listApplications<MudarabahApplication>(),
+      listContracts<Contract>(),
     ])
 
     return { applications: applicationRows, contracts: contractRows }
-  }, [session])
+  }, [listApplications, listContracts])
 
   async function refresh() {
     const data = await loadData()
@@ -1111,15 +1673,12 @@ function ContractsScreen({ session }: { session: AppSession }) {
     setMessage(null)
 
     try {
-      await apiRequest<Contract>('/contracts', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            applicationId,
-            restrictedUse,
-          }),
-        ),
-      })
+      await createContractRecord<Contract>(
+        scopedBody(session, {
+          applicationId,
+          restrictedUse,
+        }),
+      )
       await refresh()
       setMessage('Contract created')
     } catch (error) {
@@ -1133,14 +1692,32 @@ function ContractsScreen({ session }: { session: AppSession }) {
     setMessage(null)
 
     try {
-      await apiRequest<Contract>(`/contracts/${id}/mark-signed`, {
-        method: 'POST',
-        body: JSON.stringify({ actorUserId: session.actorUserId }),
+      await markContractSigned<Contract>(id, {
+        actorUserId: session.actorUserId,
       })
       await refresh()
       setMessage('Contract signed')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to sign contract')
+    }
+  }
+
+  async function requestDocument(id: string) {
+    setMessage(null)
+
+    try {
+      await generateContractDocument<GeneratedContractDocument>(id, {
+        actorUserId: session.actorUserId,
+        signerEmail: signerEmail || undefined,
+      })
+      await refresh()
+      setMessage('Mock e-signature package requested')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to request e-signature package',
+      )
     }
   }
 
@@ -1163,6 +1740,13 @@ function ContractsScreen({ session }: { session: AppSession }) {
           required
           value={restrictedUse}
           onChange={setRestrictedUse}
+        />
+        <Field
+          label="Signer email"
+          name="signerEmail"
+          type="email"
+          value={signerEmail}
+          onChange={setSignerEmail}
         />
         <div className="form-actions">
           <button type="submit" disabled={!applications.length}>
@@ -1187,6 +1771,12 @@ function ContractsScreen({ session }: { session: AppSession }) {
                 <div className="inline-actions">
                   <button
                     type="button"
+                    onClick={() => void requestDocument(contract.id)}
+                  >
+                    Generate document
+                  </button>
+                  <button
+                    type="button"
                     disabled={contract.status !== 'PENDING_SIGNATURE'}
                     onClick={() => void markSigned(contract.id)}
                   >
@@ -1205,6 +1795,8 @@ function ContractsScreen({ session }: { session: AppSession }) {
 }
 
 function LedgersScreen({ session }: { session: AppSession }) {
+  const { listApplications } = useApplications(session)
+  const { listLedgerEntries, createLedgerEntry } = useLedgers(session)
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
   const [entries, setEntries] = useState<LedgerEntry[]>([])
   const [applicationId, setApplicationId] = useState(getQueryParam('applicationId'))
@@ -1214,18 +1806,13 @@ function LedgersScreen({ session }: { session: AppSession }) {
   const [message, setMessage] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { applications: [], entries: [] }
-    }
-
-    const query = organizationQuery(session)
     const [applicationRows, entryRows] = await Promise.all([
-      apiRequest<MudarabahApplication[]>(`/applications?${query}`),
-      apiRequest<LedgerEntry[]>(`/project-ledgers/entries?${query}`),
+      listApplications<MudarabahApplication>(),
+      listLedgerEntries<LedgerEntry>(),
     ])
 
     return { applications: applicationRows, entries: entryRows }
-  }, [session])
+  }, [listApplications, listLedgerEntries])
 
   async function refresh() {
     const data = await loadData()
@@ -1269,18 +1856,15 @@ function LedgersScreen({ session }: { session: AppSession }) {
     setMessage(null)
 
     try {
-      await apiRequest<LedgerEntry>('/project-ledgers/entries', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            applicationId,
-            entryType,
-            description,
-            amount,
-            currency: 'MYR',
-          }),
-        ),
-      })
+      await createLedgerEntry<LedgerEntry>(
+        scopedBody(session, {
+          applicationId,
+          entryType,
+          description,
+          amount,
+          currency: 'MYR',
+        }),
+      )
       await refresh()
       setMessage('Ledger entry recorded')
     } catch (error) {
@@ -1342,8 +1926,8 @@ function LedgersScreen({ session }: { session: AppSession }) {
               <article key={entry.id}>
                 <strong>{entry.entryType}</strong>
                 <span>{entry.description}</span>
-                <span>{formatMoney(entry.amount, entry.currency)}</span>
-                <span>{new Date(entry.occurredAt).toLocaleString()}</span>
+                <span>{formatCurrency(entry.amount, entry.currency)}</span>
+                <span>{formatDateTime(entry.occurredAt)}</span>
               </article>
             ))}
           </div>
@@ -1356,6 +1940,11 @@ function LedgersScreen({ session }: { session: AppSession }) {
 }
 
 function ProfitLossScreen({ session }: { session: AppSession }) {
+  const { listApplications } = useApplications(session)
+  const {
+    listProfitLossStatements,
+    createProfitLossStatement,
+  } = useProfitLoss(session)
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
   const [statements, setStatements] = useState<ProfitLossStatement[]>([])
   const [applicationId, setApplicationId] = useState(getQueryParam('applicationId'))
@@ -1364,18 +1953,13 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
   const [message, setMessage] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { applications: [], statements: [] }
-    }
-
-    const query = organizationQuery(session)
     const [applicationRows, statementRows] = await Promise.all([
-      apiRequest<MudarabahApplication[]>(`/applications?${query}`),
-      apiRequest<ProfitLossStatement[]>(`/profit-loss/statements?${query}`),
+      listApplications<MudarabahApplication>(),
+      listProfitLossStatements<ProfitLossStatement>(),
     ])
 
     return { applications: applicationRows, statements: statementRows }
-  }, [session])
+  }, [listApplications, listProfitLossStatements])
 
   async function refresh() {
     const data = await loadData()
@@ -1419,16 +2003,13 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
     setMessage(null)
 
     try {
-      await apiRequest<ProfitLossStatement>('/profit-loss/statements', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            applicationId,
-            revenue: revenue || undefined,
-            costs: costs || undefined,
-          }),
-        ),
-      })
+      await createProfitLossStatement<ProfitLossStatement>(
+        scopedBody(session, {
+          applicationId,
+          revenue: revenue || undefined,
+          costs: costs || undefined,
+        }),
+      )
       await refresh()
       setMessage('Profit/loss statement generated')
     } catch (error) {
@@ -1484,9 +2065,9 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
                 <strong>
                   {statement.application?.opportunity?.title ?? statement.applicationId}
                 </strong>
-                <span>Revenue {formatMoney(statement.revenue)}</span>
-                <span>Costs {formatMoney(statement.costs)}</span>
-                <span>Net {formatMoney(statement.netProfit)}</span>
+                <span>Revenue {formatCurrency(statement.revenue)}</span>
+                <span>Costs {formatCurrency(statement.costs)}</span>
+                <span>Net {formatCurrency(statement.netProfit)}</span>
               </article>
             ))}
           </div>
@@ -1499,24 +2080,23 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
 }
 
 function ClosuresScreen({ session }: { session: AppSession }) {
+  const { listApplications } = useApplications(session)
+  const { listClosures, createClosure: createClosureRecord } =
+    useClosures(session)
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
   const [closures, setClosures] = useState<ClosurePack[]>([])
   const [applicationId, setApplicationId] = useState(getQueryParam('applicationId'))
+  const [confirmingExport, setConfirmingExport] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    if (!session.organizationId) {
-      return { applications: [], closures: [] }
-    }
-
-    const query = organizationQuery(session)
     const [applicationRows, closureRows] = await Promise.all([
-      apiRequest<MudarabahApplication[]>(`/applications?${query}`),
-      apiRequest<ClosurePack[]>(`/closures?${query}`),
+      listApplications<MudarabahApplication>(),
+      listClosures<ClosurePack>(),
     ])
 
     return { applications: applicationRows, closures: closureRows }
-  }, [session])
+  }, [listApplications, listClosures])
 
   async function refresh() {
     const data = await loadData()
@@ -1555,19 +2135,21 @@ function ClosuresScreen({ session }: { session: AppSession }) {
     }
   }, [loadData])
 
-  async function createClosure(event: FormEvent<HTMLFormElement>) {
+  function requestClosureExport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setConfirmingExport(true)
+  }
+
+  async function createClosure() {
+    setConfirmingExport(false)
     setMessage(null)
 
     try {
-      await apiRequest<ClosurePack>('/closures', {
-        method: 'POST',
-        body: JSON.stringify(
-          scopedBody(session, {
-            applicationId,
-          }),
-        ),
-      })
+      await createClosureRecord<ClosurePack>(
+        scopedBody(session, {
+          applicationId,
+        }),
+      )
       await refresh()
       setMessage('Closure pack exported')
     } catch (error) {
@@ -1582,7 +2164,7 @@ function ClosuresScreen({ session }: { session: AppSession }) {
       <PageHeader eyebrow="Closure pack" title="Closures" />
       <form
         className="form-grid"
-        onSubmit={(event) => void createClosure(event)}
+        onSubmit={requestClosureExport}
       >
         <h2>Export closure</h2>
         <ApplicationSelector
@@ -1598,6 +2180,15 @@ function ClosuresScreen({ session }: { session: AppSession }) {
         </div>
       </form>
 
+      <ConfirmDialog
+        open={confirmingExport}
+        title="Export closure pack?"
+        message="This records the closure pack state for the application. Continue only when the finance record is ready to close."
+        confirmLabel="Confirm export"
+        onCancel={() => setConfirmingExport(false)}
+        onConfirm={() => void createClosure()}
+      />
+
       <section className="table-section">
         <h2>Closure records</h2>
         {closures.length ? (
@@ -1609,7 +2200,7 @@ function ClosuresScreen({ session }: { session: AppSession }) {
                 </strong>
                 <span>{closure.evidencePack?.title ?? 'No evidence pack'}</span>
                 <StatusTag status="CLOSED" />
-                <span>{new Date(closure.exportedAt).toLocaleString()}</span>
+                <span>{formatDateTime(closure.exportedAt)}</span>
               </article>
             ))}
           </div>
@@ -1622,58 +2213,79 @@ function ClosuresScreen({ session }: { session: AppSession }) {
 }
 
 function PickedApplicationRoute({
-  path,
   session,
+  roleCodes,
 }: {
-  path: string
   session: AppSession
+  roleCodes: AppRoleCode[]
 }) {
+  const { applicationId: routeApplicationId } = useParams()
+  const { workspaceTab } = useParams()
   const applicationId = useMemo(() => {
-    const [, , , routeApplicationId] = path.split('/')
     return routeApplicationId || getQueryParam('applicationId')
-  }, [path])
+  }, [routeApplicationId])
 
   if (!applicationId) {
     return <EmptyNotice>No application selected.</EmptyNotice>
   }
 
   return (
-    <ApplicationDetailScreen session={session} applicationId={applicationId} />
+    <ApplicationDetailScreen
+      session={session}
+      applicationId={applicationId}
+      workspaceTab={workspaceTab}
+      roleCodes={roleCodes}
+    />
   )
 }
 
 export function FinanceRoute({
-  path,
   session,
   navigate,
 }: FinanceRouteProps) {
-  if (path === '/finance/opportunities' || path === '/finance/opportunities/new') {
-    return <OpportunitiesScreen session={session} navigate={navigate} />
-  }
+  const { authorization } = useAuth()
+  const roleCodes = authorization.roleCodes
 
-  if (path === '/finance/applications') {
-    return <ApplicationsScreen session={session} navigate={navigate} />
-  }
-
-  if (path.startsWith('/finance/applications/')) {
-    return <PickedApplicationRoute path={path} session={session} />
-  }
-
-  if (path === '/finance/contracts') {
-    return <ContractsScreen session={session} />
-  }
-
-  if (path === '/finance/ledgers') {
-    return <LedgersScreen session={session} />
-  }
-
-  if (path === '/finance/profit-loss') {
-    return <ProfitLossScreen session={session} />
-  }
-
-  if (path === '/finance/closures') {
-    return <ClosuresScreen session={session} />
-  }
-
-  return null
+  return (
+    <Routes>
+      <Route
+        path="opportunities"
+        element={<OpportunitiesScreen session={session} navigate={navigate} />}
+      />
+      <Route
+        path="opportunities/new"
+        element={<OpportunitiesScreen session={session} navigate={navigate} />}
+      />
+      <Route
+        path="applications"
+        element={
+          <ApplicationsScreen
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
+      />
+      <Route
+        path="applications/:applicationId"
+        element={
+          <PickedApplicationRoute session={session} roleCodes={roleCodes} />
+        }
+      />
+      <Route
+        path="applications/:applicationId/:workspaceTab"
+        element={
+          <PickedApplicationRoute session={session} roleCodes={roleCodes} />
+        }
+      />
+      <Route path="contracts" element={<ContractsScreen session={session} />} />
+      <Route path="ledgers" element={<LedgersScreen session={session} />} />
+      <Route
+        path="profit-loss"
+        element={<ProfitLossScreen session={session} />}
+      />
+      <Route path="closures" element={<ClosuresScreen session={session} />} />
+      <Route path="*" element={null} />
+    </Routes>
+  )
 }

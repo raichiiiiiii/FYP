@@ -33,6 +33,18 @@ describe('Integration: audit', () => {
         )
         .expect(200)
     ).body as Array<{ eventType: string; entityId: string }>;
+    const searchResult = (
+      await request(context.app.getHttpServer())
+        .get(
+          `/api/v1/audit-events/search?organizationId=${fixture.organizationId}&eventType=PURCHASE_ORDER_ISSUED&page=1&pageSize=10`,
+        )
+        .expect(200)
+    ).body as {
+      items: Array<{ eventType: string; entityId: string }>;
+      total: number;
+      page: number;
+      pageSize: number;
+    };
 
     expect(organizationEvents.length).toBeGreaterThanOrEqual(12);
     expect(entityTimeline).toEqual(
@@ -41,6 +53,21 @@ describe('Integration: audit', () => {
           eventType: 'PURCHASE_ORDER_CREATED',
           entityId: fixture.purchaseOrder.id,
         }),
+        expect.objectContaining({
+          eventType: 'PURCHASE_ORDER_ISSUED',
+          entityId: fixture.purchaseOrder.id,
+        }),
+      ]),
+    );
+    expect(searchResult).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        page: 1,
+        pageSize: 10,
+      }),
+    );
+    expect(searchResult.items).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           eventType: 'PURCHASE_ORDER_ISSUED',
           entityId: fixture.purchaseOrder.id,

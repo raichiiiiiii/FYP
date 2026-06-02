@@ -25,6 +25,10 @@ test('SRS-FIN-002 contract, ledger, profit/loss, and closure pack flow reaches C
     .fill('Restricted to E2E procurement project costs only');
   await page.getByRole('button', { name: 'Create contract' }).click();
   await expect(page.getByText('Contract created')).toBeVisible();
+  await page.getByRole('button', { name: 'Generate document' }).click();
+  await expect(
+    page.getByText('Mock e-signature package requested'),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Sign' }).click();
   await expect(page.getByText('Contract signed')).toBeVisible();
 
@@ -62,6 +66,7 @@ test('SRS-FIN-002 contract, ledger, profit/loss, and closure pack flow reaches C
   await page.goto('/finance/closures');
   await page.getByLabel('Application').selectOption(String(fixture.application.id));
   await page.getByRole('button', { name: 'Export closure' }).click();
+  await page.getByRole('button', { name: 'Confirm export' }).click();
   await expect(page.getByText('Closure pack exported')).toBeVisible();
   await expect(
     page

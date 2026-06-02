@@ -49,6 +49,7 @@ model Organization {
   profitDistributions      ProfitDistribution[]
   lossExceptions           LossException[]
   closurePacks             ClosurePack[]
+  procurementApprovalRules ProcurementApprovalRule[]
 }
 
 model User {
@@ -268,6 +269,24 @@ model ApprovalRequest {
   @@index([requisitionId])
   @@index([approverUserId])
   @@index([status])
+}
+
+model ProcurementApprovalRule {
+  id                   String   @id @default(uuid())
+  organizationId       String
+  name                 String
+  minAmount            Float    @default(0)
+  maxAmount            Float?
+  approverRoleCode     String   @default("APPROVER")
+  requiresSegregation  Boolean  @default(true)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([isActive])
 }
 
 model RFQ {

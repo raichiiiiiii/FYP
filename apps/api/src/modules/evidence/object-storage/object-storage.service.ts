@@ -44,6 +44,10 @@ export class ObjectStorageService {
   }
 
   async getObjectText(bucket: string, objectName: string) {
+    return (await this.getObjectBuffer(bucket, objectName)).toString('utf8');
+  }
+
+  async getObjectBuffer(bucket: string, objectName: string) {
     const client = this.createClient();
     const stream = await client.getObject(bucket, objectName);
     const chunks: Uint8Array[] = [];
@@ -56,7 +60,7 @@ export class ObjectStorageService {
       );
     }
 
-    return Buffer.concat(chunks).toString('utf8');
+    return Buffer.concat(chunks);
   }
 
   async removeObject(bucket: string, objectName: string) {

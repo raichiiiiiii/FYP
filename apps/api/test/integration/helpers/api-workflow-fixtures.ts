@@ -56,6 +56,18 @@ export async function createProcurementFixture(app: INestApplication) {
       .expect(201)
   ).body as JsonRecord & { id: string };
 
+  const approver = (
+    await request(app.getHttpServer())
+      .post('/api/v1/users')
+      .send({
+        organizationId,
+        actorUserId,
+        email: `approver-${Date.now()}@example.test`,
+        displayName: 'Integration Approver',
+      })
+      .expect(201)
+  ).body as JsonRecord & { id: string };
+
   const requisition = (
     await request(app.getHttpServer())
       .post('/api/v1/requisitions')
@@ -80,13 +92,13 @@ export async function createProcurementFixture(app: INestApplication) {
 
   await request(app.getHttpServer())
     .post(`/api/v1/requisitions/${requisition.id}/submit`)
-    .send({ actorUserId, approverUserId: actorUserId })
+    .send({ actorUserId, approverUserId: approver.id })
     .expect(201);
 
   const approvedRequisition = (
     await request(app.getHttpServer())
       .post(`/api/v1/requisitions/${requisition.id}/approve`)
-      .send({ actorUserId, approverUserId: actorUserId })
+      .send({ actorUserId: approver.id, approverUserId: approver.id })
       .expect(201)
   ).body as JsonRecord & { id: string; status: string };
 
@@ -166,6 +178,7 @@ export async function createProcurementFixture(app: INestApplication) {
     actorUserId,
     project,
     supplier,
+    approver,
     requisition: approvedRequisition,
     rfq,
     quotation,

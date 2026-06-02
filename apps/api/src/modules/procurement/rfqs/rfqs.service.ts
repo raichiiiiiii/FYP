@@ -140,6 +140,19 @@ export class RFQsService {
     });
   }
 
+  async getById(id: string) {
+    const rfq = await this.prisma.rFQ.findUnique({
+      where: { id },
+      include: rfqInclude,
+    });
+
+    if (!rfq) {
+      throw new NotFoundException('RFQ not found');
+    }
+
+    return rfq;
+  }
+
   async publish(id: string, input: RFQTransitionInput) {
     const current = await this.prisma.rFQ.findUnique({
       where: { id },

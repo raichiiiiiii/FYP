@@ -22,18 +22,18 @@ test('SRS-ID-001 organization setup creates an admin session and audit event', a
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText(legalName)).toBeVisible();
 
-  const organizationId = await page.evaluate(() =>
-    window.localStorage.getItem('mepn.organizationId'),
+  const authSession = await page.evaluate(() =>
+    JSON.parse(window.localStorage.getItem('mepn.auth.session') || 'null') as {
+      organizationId?: string;
+      userId?: string;
+    } | null,
   );
-  const actorUserId = await page.evaluate(() =>
-    window.localStorage.getItem('mepn.actorUserId'),
-  );
-  expect(organizationId).toBeTruthy();
-  expect(actorUserId).toBeTruthy();
+  expect(authSession?.organizationId).toBeTruthy();
+  expect(authSession?.userId).toBeTruthy();
 
   const auditEvents = await apiGet<Array<{ eventType: string }>>(
     request,
-    `/audit-events?organizationId=${organizationId}`,
+    `/audit-events?organizationId=${authSession?.organizationId}`,
   );
   expect(auditEvents.some((event) => event.eventType === 'ORGANIZATION_CREATED'))
     .toBe(true);

@@ -18,6 +18,14 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
       },
     };
     const prisma = {
+      membership: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'membership-1',
+          role: {
+            code: 'ORG_ADMIN',
+          },
+        }),
+      },
       mudarabahApplication: {
         findUnique: jest.fn(),
         update: jest.fn(),
@@ -187,9 +195,9 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
       }),
     );
 
-    await expect(service.createDueDiligence('app-1', {})).rejects.toThrow(
-      'Due diligence requires a completed evidence checklist',
-    );
+    await expect(
+      service.createDueDiligence('app-1', { actorUserId: 'user-1' }),
+    ).rejects.toThrow('Due diligence requires a completed evidence checklist');
   });
 
   it('does not generate a contract before financier approval', async () => {
@@ -203,6 +211,7 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
     await expect(
       service.createContract({
         organizationId: 'org-1',
+        actorUserId: 'user-1',
         applicationId: 'app-1',
       }),
     ).rejects.toThrow(
@@ -221,6 +230,7 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
     await expect(
       service.createContract({
         organizationId: 'org-1',
+        actorUserId: 'user-1',
         applicationId: 'app-1',
       }),
     ).rejects.toThrow(
@@ -246,6 +256,7 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
 
     const statement = await service.createProfitLossStatement({
       organizationId: 'org-1',
+      actorUserId: 'user-1',
       applicationId: 'app-1',
       revenue: 10000,
       costs: 6000,
@@ -286,6 +297,7 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
 
     const statement = await service.createProfitLossStatement({
       organizationId: 'org-1',
+      actorUserId: 'user-1',
       applicationId: 'app-1',
       revenue: 3000,
       costs: 5000,

@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 
 export type EsignPackageInput = {
   organizationId?: string;
+  actorUserId?: string;
   aggregateType: string;
   aggregateId: string;
   signerEmail: string;

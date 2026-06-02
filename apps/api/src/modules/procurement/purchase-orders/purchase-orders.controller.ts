@@ -19,6 +19,11 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.list(organizationId);
   }
 
+  @Get(':id')
+  getPurchaseOrder(@Param('id') id: string) {
+    return this.purchaseOrdersService.getById(id);
+  }
+
   @Post(':id/issue')
   issuePurchaseOrder(
     @Param('id') id: string,

@@ -16,6 +16,11 @@ export class RFQsController {
     return this.rfqsService.list(organizationId);
   }
 
+  @Get(':id')
+  getRFQ(@Param('id') id: string) {
+    return this.rfqsService.getById(id);
+  }
+
   @Post(':id/publish')
   publishRFQ(@Param('id') id: string, @Body() body: RFQTransitionInput) {
     return this.rfqsService.publish(id, body);

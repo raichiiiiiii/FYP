@@ -122,4 +122,21 @@ describe('FR-09/FR-10 Procurement requisition state machine unit rules', () => {
     );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  it('prevents the requester from approving their own submitted requisition', async () => {
+    const { service, prisma } = createService();
+    jest.spyOn(service, 'getById').mockResolvedValue({
+      id: 'req-1',
+      requesterUserId: 'requester-1',
+      status: 'SUBMITTED',
+    } as never);
+
+    await expect(
+      service.approve('req-1', {
+        actorUserId: 'requester-1',
+        approverUserId: 'requester-1',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
 });

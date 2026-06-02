@@ -204,6 +204,19 @@ export class PurchaseOrdersService {
     });
   }
 
+  async getById(id: string) {
+    const purchaseOrder = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+      include: purchaseOrderInclude,
+    });
+
+    if (!purchaseOrder) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    return purchaseOrder;
+  }
+
   async issue(id: string, input: PurchaseOrderTransitionInput) {
     const current = await this.prisma.purchaseOrder.findUnique({
       where: { id },

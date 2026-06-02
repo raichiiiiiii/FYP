@@ -210,10 +210,22 @@ export class RequisitionsService {
 
   async approve(id: string, input: RequisitionTransitionInput) {
     const current = await this.getById(id);
+    const approverUserId =
+      optionalText(input.approverUserId) || optionalText(input.actorUserId);
 
     if (current.status !== 'SUBMITTED') {
       throw new BadRequestException(
         'Only submitted requisitions can be approved',
+      );
+    }
+
+    if (
+      approverUserId &&
+      current.requesterUserId &&
+      current.requesterUserId === approverUserId
+    ) {
+      throw new BadRequestException(
+        'Requester cannot approve their own requisition',
       );
     }
 
@@ -232,9 +244,7 @@ export class RequisitionsService {
         await tx.approvalRequest.update({
           where: { id: approvalRequest.id },
           data: {
-            approverUserId:
-              optionalText(input.approverUserId) ||
-              approvalRequest.approverUserId,
+            approverUserId: approverUserId || approvalRequest.approverUserId,
             status: 'APPROVED',
             decision: 'APPROVED',
             comment: optionalText(input.comment),
@@ -245,7 +255,7 @@ export class RequisitionsService {
         await tx.approvalRequest.create({
           data: {
             requisitionId: id,
-            approverUserId: optionalText(input.approverUserId),
+            approverUserId,
             status: 'APPROVED',
             decision: 'APPROVED',
             comment: optionalText(input.comment),

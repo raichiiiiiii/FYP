@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   createOrganizationViaApi,
+  createUserSessionWithRole,
   resetDatabase,
   setSession,
   uniqueSuffix,
@@ -24,6 +25,11 @@ test('SRS-PROC-001 user completes source-to-pay flow and sees audit events', asy
   const invoiceNumber = `INV-E2E-${suffix}`;
 
   await setSession(page, session);
+  const approverSession = await createUserSessionWithRole(
+    request,
+    session,
+    'APPROVER',
+  );
 
   await page.goto('/procurement/suppliers');
   await page.getByLabel('Name').fill(supplierName);
@@ -53,8 +59,17 @@ test('SRS-PROC-001 user completes source-to-pay flow and sees audit events', asy
   });
   await requisitionRow.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByText('Requisition submit complete')).toBeVisible();
-  await requisitionRow.getByRole('button', { name: 'Approve' }).click();
-  await expect(page.getByText('Requisition approve complete')).toBeVisible();
+
+  await setSession(page, approverSession);
+  await page.goto('/procurement/approvals');
+  await page
+    .locator('article')
+    .filter({ hasText: requisitionTitle })
+    .getByRole('button', { name: 'Approve' })
+    .click();
+  await expect(page.getByText('Approval approve complete')).toBeVisible();
+
+  await setSession(page, session);
 
   await page.goto('/procurement/rfqs');
   await page.getByLabel('Approved requisition').selectOption({

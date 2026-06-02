@@ -1,5 +1,6 @@
 export type FabricAnchorInput = {
   organizationId?: string;
+  actorUserId?: string;
   entityType: string;
   entityId: string;
   canonicalHash: string;

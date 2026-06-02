@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 
 export type FinanceApiNotificationInput = {
   organizationId?: string;
+  actorUserId?: string;
   aggregateType: string;
   aggregateId: string;
   notificationType: string;

@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 import {
+  createApprovedFinanceApplicationViaApi,
   createEvidencePackViaApi,
   createProcurementViaApi,
+  createUserSessionWithRole,
   resetDatabase,
   setSession,
   uniqueSuffix,
@@ -67,5 +69,54 @@ test('SRS-FIN-001 finance application moves through evidence, review, and approv
   await expect(page.getByText('Application approved')).toBeVisible();
   await expect(page.locator('article').filter({ hasText: 'Status' })).toContainText(
     'APPROVED',
+  );
+});
+
+test('SRS-FIN-003 finance application workspace exposes role-scoped tabs and actions', async ({
+  page,
+  request,
+}) => {
+  const fixture = await createApprovedFinanceApplicationViaApi(request);
+  const procurementOfficer = await createUserSessionWithRole(
+    request,
+    fixture,
+    'PROCUREMENT_OFFICER',
+  );
+  const shariahReviewer = await createUserSessionWithRole(
+    request,
+    fixture,
+    'SHARIAH_REVIEWER',
+  );
+  const auditor = await createUserSessionWithRole(request, fixture, 'AUDITOR');
+
+  await setSession(page, procurementOfficer);
+  await page.goto(`/finance/applications/${fixture.application.id}/evidence`);
+  await expect(
+    page.getByRole('heading', { name: 'Application workspace' }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Finance workspace tabs' })
+      .getByRole('link', { name: 'Evidence', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Approve due diligence' }),
+  ).toHaveCount(0);
+
+  await setSession(page, shariahReviewer);
+  await page.goto(
+    `/finance/applications/${fixture.application.id}/shariah-review`,
+  );
+  await expect(page.getByRole('button', { name: 'Approve Shariah' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Approve due diligence' }),
+  ).toHaveCount(0);
+
+  await setSession(page, auditor);
+  await page.goto(`/finance/applications/${fixture.application.id}/audit`);
+  await expect(page.getByText('Auditor workspace is read-only')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open audit timeline' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate statement' })).toHaveCount(
+    0,
   );
 });

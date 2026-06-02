@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditEventsModule } from '../../audit-events/audit-events.module';
 import { DatabaseModule } from '../../database/database.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { ErpSyncController } from './erp/erp-sync.controller';
@@ -13,20 +14,26 @@ import { MockFabricAnchorAdapter } from './fabric/mock-fabric-anchor.adapter';
 import { FinanceApiNotificationController } from './finance-api/finance-api-notification.controller';
 import { FinanceApiNotificationService } from './finance-api/finance-api-notification.service';
 import { MockFinanceApiAdapter } from './finance-api/mock-finance-api.adapter';
+import { IntegrationRequestAuditService } from './integration-request-audit.service';
+import { IntegrationStatusController } from './status/integration-status.controller';
+import { IntegrationStatusService } from './status/integration-status.service';
 import { WebhookDeliveryService } from './webhooks/webhook-delivery.service';
 import { WebhookSubscriptionService } from './webhooks/webhook-subscription.service';
 import { WebhooksController } from './webhooks/webhooks.controller';
 
 @Module({
-  imports: [DatabaseModule, OutboxModule],
+  imports: [DatabaseModule, OutboxModule, AuditEventsModule],
   controllers: [
     ErpSyncController,
     FabricAnchorController,
     FinanceApiNotificationController,
     EsignPackageController,
     WebhooksController,
+    IntegrationStatusController,
   ],
   providers: [
+    IntegrationRequestAuditService,
+    IntegrationStatusService,
     ErpSyncService,
     MockErpAdapter,
     FabricAnchorService,

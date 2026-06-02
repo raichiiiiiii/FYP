@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { AuditEventsService } from '../../audit-events/audit-events.service';
 import { PrismaService } from '../../database/prisma.service';
@@ -44,6 +46,12 @@ export type ActorInput = {
   actorUserId?: string;
 };
 
+type FinanceActorRole =
+  | 'ORG_ADMIN'
+  | 'PROCUREMENT_OFFICER'
+  | 'FINANCIER_USER'
+  | 'SHARIAH_REVIEWER';
+
 export type CreateEvidenceChecklistInput = ActorInput;
 
 export type CompleteChecklistItemInput = ActorInput & {
@@ -78,6 +86,10 @@ export type CreateContractInput = {
   documentId?: string;
   contractNumber?: string;
   restrictedUse?: string;
+};
+
+export type GenerateContractDocumentInput = ActorInput & {
+  signerEmail?: string;
 };
 
 export type CreateDisbursementInput = {
@@ -508,6 +520,12 @@ export class FinanceService {
     input: CreateEvidenceChecklistInput,
   ) {
     const application = await this.getApplication(applicationId);
+    await this.requireActorRole(
+      application.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'PROCUREMENT_OFFICER', 'FINANCIER_USER'],
+      'Evidence checklist generation',
+    );
 
     if (!['SUBMITTED', 'EVIDENCE_PENDING'].includes(application.status)) {
       throw new BadRequestException(
@@ -608,6 +626,12 @@ export class FinanceService {
     if (!current) {
       throw new NotFoundException('Checklist item not found');
     }
+    await this.requireActorRole(
+      current.checklist.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'PROCUREMENT_OFFICER', 'FINANCIER_USER'],
+      'Evidence checklist completion',
+    );
 
     const updatedItem = await this.prisma.evidenceChecklistItem.update({
       where: { id: checklistItemId },
@@ -642,6 +666,12 @@ export class FinanceService {
     input: CreateDueDiligenceInput,
   ) {
     const application = await this.getApplication(applicationId);
+    await this.requireActorRole(
+      application.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Due diligence review',
+    );
     this.requireChecklistComplete(application);
 
     const report = await this.prisma.dueDiligenceReport.create({
@@ -695,6 +725,12 @@ export class FinanceService {
     input: CreateShariahReviewInput,
   ) {
     const application = await this.getApplication(applicationId);
+    await this.requireActorRole(
+      application.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'SHARIAH_REVIEWER'],
+      'Shariah review',
+    );
 
     if (!this.hasApprovedDueDiligence(application)) {
       throw new BadRequestException(
@@ -748,6 +784,12 @@ export class FinanceService {
 
   async approveApplication(id: string, input: ActorInput) {
     const application = await this.getApplication(id);
+    await this.requireActorRole(
+      application.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Application approval',
+    );
 
     if (!this.hasApprovedDueDiligence(application)) {
       throw new BadRequestException(
@@ -785,6 +827,14 @@ export class FinanceService {
   }
 
   async rejectApplication(id: string, input: RejectApplicationInput) {
+    const application = await this.getApplication(id);
+    await this.requireActorRole(
+      application.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER', 'SHARIAH_REVIEWER'],
+      'Application rejection',
+    );
+
     const rejected = await this.prisma.mudarabahApplication.update({
       where: { id },
       data: {
@@ -819,6 +869,12 @@ export class FinanceService {
       );
     }
 
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Contract creation',
+    );
     this.requireApplicationApproved(application);
 
     const contract = await this.prisma.$transaction(async (tx) => {
@@ -887,6 +943,142 @@ export class FinanceService {
     });
   }
 
+  async generateContractDocument(
+    id: string,
+    input: GenerateContractDocumentInput,
+  ) {
+    const contract = await this.prisma.mudarabahContract.findUnique({
+      where: { id },
+      include: {
+        application: {
+          include: applicationInclude,
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found');
+    }
+
+    await this.requireActorRole(
+      contract.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Contract document generation',
+    );
+    this.requireApplicationApproved(contract.application);
+
+    const signerEmail =
+      optionalText(input.signerEmail) ||
+      contract.application.applicantUser?.email ||
+      'signer@example.test';
+    const generatedAt = new Date().toISOString();
+    const documentPayload = {
+      documentType: 'MUDARABAH_RESTRICTED_CONTRACT',
+      generatedAt,
+      contract: {
+        id: contract.id,
+        contractNumber: contract.contractNumber,
+        status: contract.status,
+        restrictedUse: contract.restrictedUse,
+      },
+      application: {
+        id: contract.applicationId,
+        status: contract.application.status,
+        requestedCapital: contract.application.requestedCapital,
+        currency: contract.application.currency,
+        capitalProviderRatio: contract.application.capitalProviderRatio,
+        entrepreneurRatio: contract.application.entrepreneurRatio,
+        opportunityTitle: contract.application.opportunity?.title ?? null,
+      },
+      signer: {
+        email: signerEmail,
+      },
+    } satisfies Prisma.InputJsonObject;
+    const serializedDocument = JSON.stringify(documentPayload);
+    const contentHash = createHash('sha256')
+      .update(serializedDocument)
+      .digest('hex');
+
+    const generated = await this.prisma.$transaction(async (tx) => {
+      const document = await tx.document.create({
+        data: {
+          organizationId: contract.organizationId,
+          title: `${contract.contractNumber} restricted mudarabah contract`,
+          documentType: 'MUDARABAH_CONTRACT',
+          description:
+            'Generated MVP contract record for mock e-signature package.',
+          linkedEntityType: 'MudarabahContract',
+          linkedEntityId: contract.id,
+        },
+      });
+      const version = await tx.documentVersion.create({
+        data: {
+          documentId: document.id,
+          versionNumber: 1,
+          fileName: `${contract.contractNumber}.json`,
+          mimeType: 'application/json',
+          storageUri: `generated://contracts/${contract.id}/document-v1`,
+          sizeBytes: Buffer.byteLength(serializedDocument),
+          contentHash,
+          metadata: documentPayload,
+          createdByUserId: optionalText(input.actorUserId),
+        },
+      });
+      const updatedContract = await tx.mudarabahContract.update({
+        where: { id: contract.id },
+        data: {
+          documentId: document.id,
+        },
+      });
+
+      return {
+        contract: updatedContract,
+        document,
+        version,
+      };
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: contract.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_CONTRACT_DOCUMENT_GENERATED',
+      entityType: 'MudarabahContract',
+      entityId: contract.id,
+      metadata: {
+        applicationId: contract.applicationId,
+        documentId: generated.document.id,
+        documentVersionId: generated.version.id,
+        contentHash,
+      },
+    });
+
+    const esignPackageRequest = await this.outbox.create({
+      organizationId: contract.organizationId,
+      eventType: 'ESIGNATURE_PACKAGE_REQUESTED',
+      aggregateType: 'MudarabahContract',
+      aggregateId: contract.id,
+      idempotencyKey: `esign:${contract.organizationId}:MudarabahContract:${contract.id}:${signerEmail}`,
+      payload: {
+        integrationType: 'ESIGN',
+        aggregateType: 'MudarabahContract',
+        aggregateId: contract.id,
+        signerEmail,
+        documentId: generated.document.id,
+        payload: {
+          contractNumber: contract.contractNumber,
+          contentHash,
+        },
+      },
+    });
+
+    return {
+      ...generated,
+      esignPackageRequest,
+      mockSigningStatus: 'PACKAGE_REQUESTED_MOCK',
+    };
+  }
+
   async markContractSigned(id: string, input: ActorInput) {
     const contract = await this.prisma.mudarabahContract.findUnique({
       where: { id },
@@ -901,6 +1093,12 @@ export class FinanceService {
       throw new NotFoundException('Contract not found');
     }
 
+    await this.requireActorRole(
+      contract.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Contract execution',
+    );
     this.requireApplicationApproved(contract.application);
 
     const signed = await this.prisma.$transaction(async (tx) => {
@@ -947,6 +1145,12 @@ export class FinanceService {
       );
     }
 
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Disbursement recording',
+    );
     const contract = input.contractId
       ? application.contracts.find((item) => item.id === input.contractId)
       : application.contracts.find((item) => item.status === 'EXECUTED');
@@ -1013,6 +1217,12 @@ export class FinanceService {
       );
     }
 
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Ledger entry recording',
+    );
     if (
       !['DISBURSED', 'MONITORING', 'PROFIT_LOSS_CALCULATED'].includes(
         application.status,
@@ -1103,6 +1313,12 @@ export class FinanceService {
       );
     }
 
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Profit/loss calculation',
+    );
     if (
       !['MONITORING', 'PROFIT_LOSS_CALCULATED'].includes(application.status)
     ) {
@@ -1246,6 +1462,12 @@ export class FinanceService {
       );
     }
 
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER'],
+      'Closure pack export',
+    );
     if (application.status !== 'PROFIT_LOSS_CALCULATED') {
       throw new BadRequestException(
         'Closure requires a calculated profit/loss statement',
@@ -1345,6 +1567,41 @@ export class FinanceService {
         createdAt: 'desc',
       },
     });
+  }
+
+  private async requireActorRole(
+    organizationId: string,
+    actorUserId: string | undefined,
+    allowedRoles: FinanceActorRole[],
+    actionLabel: string,
+  ) {
+    const userId = optionalText(actorUserId);
+
+    if (!userId) {
+      throw new ForbiddenException(`${actionLabel} requires an actor`);
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        organizationId,
+        userId,
+        status: 'active',
+        role: {
+          code: {
+            in: allowedRoles,
+          },
+        },
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        `${actionLabel} requires one of these roles: ${allowedRoles.join(', ')}`,
+      );
+    }
   }
 
   private async refreshChecklistStatus(checklistId: string) {

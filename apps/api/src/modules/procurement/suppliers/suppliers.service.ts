@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuditEventsService } from '../../../audit-events/audit-events.service';
 import { PrismaService } from '../../../database/prisma.service';
 import { optionalText, requireText } from '../procurement.service-utils';
@@ -88,5 +92,54 @@ export class SuppliersService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async getById(id: string) {
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id },
+      include: {
+        quotations: {
+          include: {
+            rfq: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+              },
+            },
+          },
+          orderBy: {
+            receivedAt: 'desc',
+          },
+        },
+        purchaseOrders: {
+          include: {
+            requisition: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+              },
+            },
+            receipts: true,
+            invoices: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        invoices: {
+          orderBy: {
+            issuedAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!supplier) {
+      throw new NotFoundException('Supplier not found');
+    }
+
+    return supplier;
   }
 }
