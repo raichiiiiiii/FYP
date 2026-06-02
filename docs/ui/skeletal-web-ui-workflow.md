@@ -1,209 +1,418 @@
-# Skeletal App UI State Documentation
+# Current MEPN Prototype UI Workflow Walkthrough
 
 ## Purpose
-This walkthrough documents the current UI states of the skeletal MEPN web application. The app is still unfinished, but these screenshots show the working navigation flow, visible UI states, current behavior, and areas that are mocked or deferred for the final version.
+This walkthrough documents the current UI states of the MEPN prototype after the
+application shell, role-aware navigation, dev authentication flow, procurement
+operations, evidence/audit review surfaces, finance workspaces, graph view,
+integrations panel, and UAT preparation have been added.
 
-Screens were captured from the local development app on June 2, 2026 using a seeded demo organization:
+The app is still not production-ready. Some external integrations remain mocked,
+the deployment is still prototype/staging oriented, and OIDC/Fabric/ERP/e-sign
+providers are not connected as real providers yet. The screenshots show what is
+currently visible, what works now, and what should happen in the final version.
 
-- Organization: `Workflow Demo SME 1780401944025-ujiq2`
-- Flow covered: dashboard, organization setup, procurement, evidence/audit, mudarabah finance, and closure.
+Screens were captured from the local E2E prototype on June 3, 2026 using seeded
+demo data generated through API-backed test fixtures.
 
 ## Main User Journey
-1. User opens the dashboard and confirms system health.
-2. User can access local organization setup.
-3. User reviews a procurement requisition created through the source-to-pay path.
-4. User generates and exports an evidence pack.
-5. User reviews audit events created by the workflow.
-6. User opens a mudarabah application workspace and verifies evidence/review status.
-7. User confirms the closure pack state after profit/loss and closure export.
+The primary walkthrough follows a seeded SME administrator and auditor through
+the current prototype:
+
+1. User opens the dev login/session page.
+2. User reaches the dashboard and confirms system health.
+3. User reviews organization setup and admin context.
+4. User inspects procurement records and purchase order detail.
+5. User reviews evidence pack detail and export status.
+6. User searches audit events.
+7. User opens a mudarabah finance application workspace.
+8. User verifies closure pack state.
+9. User inspects the project graph visualization.
+10. User requests or reviews integration outbox actions.
+11. Auditor confirms read-only integration behavior.
+12. Unauthorized direct access shows access denied.
 
 ## Transition Summary
-Dashboard health confirms the local API, PostgreSQL, and Redis are reachable. From there, the sidebar navigation moves the user into setup, procurement, evidence, audit, finance, and closure screens. The captured demo flow uses seeded backend records so the screenshots show meaningful working states rather than empty pages.
+The current prototype now behaves more like an application shell than a simple
+page-switching demo. Navigation is generated from route metadata, direct URL
+access is guarded, sessions are loaded through the dev auth provider, and most
+screens use centralized API helpers. Core workflows still use local prototype
+data and mock adapters where appropriate.
 
-## Screen 01 - Dashboard
+## Screen 01 - Dev Login Session
 
-![Screen 01 - Dashboard](assets/screen-01-dashboard.png)
+![Screen 01 - Dev Login Session](assets/current-screen-01-login.png)
+
+Status: Working for local/dev authentication
+
+The user sees the dev login screen. It accepts either user and organization IDs
+or an email-based development login, depending on the available seeded data.
+
+Action that caused this state: The user opens `/login`.
+
+What currently works:
+- Session state is loaded through `AuthProvider`.
+- Role codes, permission codes, organization ID, and user ID become frontend
+  session claims.
+- Protected routes depend on the session rather than direct feature-level
+  `localStorage` reads.
+
+Unfinished or mocked:
+- Authentication is still a dev flow.
+- Password login and production OIDC are not active yet.
+
+Final intended behavior:
+- OIDC or another verified provider should issue claims.
+- The dev login page should remain available only for local testing.
+
+## Screen 02 - Dashboard
+
+![Screen 02 - Dashboard](assets/current-screen-02-dashboard.png)
 
 Status: Working
 
-The user sees the MEPN local node dashboard with API, PostgreSQL, and Redis health indicators. The dashboard also shows the current organization, deployment mode, workspace count, and backend timestamp.
+The dashboard shows API, PostgreSQL, and Redis health. It also displays the
+active organization context and system environment.
 
-Action that caused this state: The user opens `/dashboard` with an active organization context.
+Action that caused this state: The user logs in or opens `/dashboard`.
 
 What currently works:
-- Health endpoint is called from the frontend.
+- The frontend calls `GET /api/v1/health`.
 - API, database, and Redis status are displayed.
-- Organization context is shown when an organization/session is available.
+- Organization context is visible when a session exists.
+- Role-aware sidebar navigation is visible.
 
 Unfinished or mocked:
-- Authentication is still local/dev style.
-- Real OAuth/OIDC identity is not integrated yet.
+- The dashboard is still operationally simple.
+- It does not yet show deep alerts, deployment status, or worker backlog.
 
 Final intended behavior:
-- The dashboard should use real authenticated user claims and organization scope.
-- Health details should remain available for local/admin diagnostics.
+- Keep dashboard health for operators.
+- Add workflow metrics and integration backlog once UAT feedback confirms the
+  most useful summary fields.
 
-## Screen 02 - Organization Setup
+## Screen 03 - Organization Setup
 
-![Screen 02 - Organization Setup](assets/screen-02-organization-setup.png)
+![Screen 03 - Organization Setup](assets/current-screen-03-organization-setup.png)
 
-Status: Working for local/dev setup
+Status: Working for prototype onboarding
 
-The user sees the local organization setup form. It collects legal name, registration number, admin display name, and admin email.
+The organization setup screen creates or confirms the SME organization, admin
+user, admin role, membership, workspace, and initial audit event.
 
-Action that caused this state: The user opens `/org/setup`.
+Action that caused this state: The user opens `/org/setup` as an SME admin.
 
 What currently works:
-- The form can create an organization.
-- The backend creates an admin user, role, membership, workspace, and audit event.
-- The frontend stores local session identifiers after setup.
+- Organization creation persists to PostgreSQL.
+- Admin user, role, membership, workspace, and audit event are created.
+- Required fields show validation before submission.
 
 Unfinished or mocked:
-- Password handling and full login are not implemented.
-- OIDC/OAuth integration is deferred.
+- The onboarding flow is still simple and local/dev oriented.
+- Real identity verification and invited-user onboarding are deferred.
 
 Final intended behavior:
-- Setup should be guarded by an onboarding/auth flow.
-- Admin identity should come from verified authentication instead of local-only session storage.
+- Setup should be tied to authenticated onboarding.
+- Invitations, API clients, and workspace-scoped claims should become part of
+  the production identity flow.
 
-## Screen 03 - Procurement Requisition State
+## Screen 04 - Procurement Requisitions
 
-![Screen 03 - Procurement Requisition State](assets/screen-03-procurement-requisitions.png)
+![Screen 04 - Procurement Requisitions](assets/current-screen-04-procurement-requisitions.png)
 
-Status: Working skeletal procurement lifecycle
+Status: Working operational prototype
 
-The user sees a requisition that has passed through the source-to-pay workflow. The requisition lifecycle track shows progress through draft, submission, approval, sourcing, purchase order, receiving, invoicing, and closure.
+The requisitions screen shows procurement records scoped to the active
+organization. The current source-to-pay journey can reach approved, sourced,
+purchase-order, receipt, invoice, and closed states.
 
-Action that caused this state: The user opens `/procurement/requisitions` after a seeded procurement workflow has been completed.
+Action that caused this state: The user opens `/procurement/requisitions` after
+seeded procurement records have been created.
 
 What currently works:
-- Requisition records are scoped to organization.
-- State transitions are persisted.
-- Submit and approve actions work when the requisition is in the right state.
-- Audit events are created for major transitions.
+- Requisitions are created and listed.
+- Submit, approve, and reject transitions are backed by API calls.
+- Major procurement actions create audit events.
+- Navigation includes projects, suppliers, approvals, approval rules, RFQs,
+  quotations, purchase orders, receipt/invoice matching, receipts, and invoices.
 
 Unfinished or mocked:
-- Role enforcement is not fully wired into every UI action.
-- Supplier-facing quotation entry is represented as an internal screen.
-- Advanced approval routing is not implemented yet.
+- Supplier-facing submission is still internal/mock.
+- Approval rules exist at prototype level, not as a complete enterprise approval
+  matrix.
 
 Final intended behavior:
-- Procurement screens should enforce permissions and workspace scope.
-- Approvals should support richer reviewer assignment and segregation rules.
-- Supplier interaction should be connected to a portal or integration path.
+- Procurement should support richer approval routing, supplier collaboration,
+  and reviewer-friendly timelines.
 
-## Screen 04 - Evidence Pack Exported
+## Screen 05 - Purchase Order Detail
 
-![Screen 04 - Evidence Pack Exported](assets/screen-04-evidence-pack-exported.png)
+![Screen 05 - Purchase Order Detail](assets/current-screen-05-purchase-order-detail.png)
 
-Status: Working local evidence pack generation
+Status: Working detail page
 
-The user sees a generated project evidence pack. The pack aggregates procurement records such as project summary, requisition, approval, RFQ, quotation, purchase order, receipt, invoice, supplier profile, and document-related evidence where available.
+The purchase order detail page shows the selected PO, linked supplier,
+requisition/quotation context, items, receipt/invoice state, and action status.
 
-Action that caused this state: The user opens `/evidence/packs` after the evidence pack has been generated and exported.
+Action that caused this state: The user opens
+`/procurement/purchase-orders/:id`.
 
 What currently works:
-- Evidence pack records are created from procurement data.
-- Export updates the pack status.
-- Local hash records and outbox events can be created during export.
+- Users can inspect individual records, not only list screens.
+- The page links procurement state to related receipt and invoice information.
+- Invalid workflow transitions are blocked by backend rules.
 
 Unfinished or mocked:
-- Fabric anchoring is not part of the core UI flow yet.
-- Evidence export is local/system-level rather than a polished downloadable bundle.
-- Real object storage UX is still minimal.
+- Downloadable PO document output is still minimal.
+- Supplier delivery collaboration is not a separate portal yet.
 
 Final intended behavior:
-- Export should produce a reviewer-friendly evidence bundle.
-- Hashes should be anchorable through the integration adapter flow.
-- Documents should use full MinIO/S3-backed upload and retrieval.
+- PO detail should become the operational source for PO evidence, matching,
+  supplier documents, and audit timeline links.
 
-## Screen 05 - Audit Events
+## Screen 06 - Evidence Pack Detail
 
-![Screen 05 - Audit Events](assets/screen-05-audit-events.png)
+![Screen 06 - Evidence Pack Detail](assets/current-screen-06-evidence-pack-detail.png)
 
-Status: Working audit timeline list
+Status: Working reviewer-grade prototype
 
-The user sees audit events generated by the organization, procurement, evidence, and finance workflows. This demonstrates that major state changes are recorded.
+The evidence pack detail page shows the evidence pack generated from procurement
+records. It links the project, procurement evidence, export state, and evidence
+items.
 
-Action that caused this state: The user opens `/audit` after the workflow has created records.
+Action that caused this state: The user opens `/evidence/packs/:id` after
+creating and exporting the pack.
 
 What currently works:
-- Audit events are persisted.
-- Event type, entity type, entity ID, actor, and timestamp are visible.
-- Events are scoped by organization context.
+- Evidence packs are generated from real procurement records.
+- Export status updates.
+- Evidence items and hashes are persisted.
+- Evidence exports can be downloaded through the API.
 
 Unfinished or mocked:
-- Filtering, search, and pagination are basic.
-- Audit anchoring is local/mock-ready but not fully exposed in this screen.
+- The downloadable bundle is still prototype-grade.
+- Fabric anchoring remains a mock adapter behind outbox.
 
 Final intended behavior:
-- Reviewers should be able to filter by entity, actor, event type, and date.
-- Audit timelines should link directly back to source records and evidence packs.
+- Evidence packs should be reviewer-friendly dossiers containing procurement
+  records, documents, hashes, audit timeline, and external anchor references.
 
-## Screen 06 - Finance Application Workspace
+## Screen 07 - Audit Search
 
-![Screen 06 - Finance Application Workspace](assets/screen-06-finance-application-approved.png)
+![Screen 07 - Audit Search](assets/current-screen-07-audit-search.png)
 
-Status: Working skeletal mudarabah workflow
+Status: Working
 
-The user sees the finance application workspace after the application has moved through checklist generation, due diligence, Shariah review, contract execution, disbursement, monitoring, profit/loss calculation, and closure.
+The audit search page exposes audit filtering for reviewers. Users can search by
+organization scope, event type, entity type, entity ID, actor, and date range.
 
-Action that caused this state: The user opens `/finance/applications/:id` for the seeded mudarabah application.
+Action that caused this state: The user opens `/audit/search`.
 
 What currently works:
-- Application status is displayed.
-- Evidence checklist status is visible.
-- Lifecycle track shows the expected finance states.
-- Due diligence and Shariah review gates exist in the workflow.
+- Audit events are persisted for organization, procurement, evidence, finance,
+  and integration actions.
+- Filtering and pagination are available.
+- Entity timelines are exposed through `/audit/entity/:entityType/:entityId`.
 
 Unfinished or mocked:
-- Contract document generation is represented as a record, not a full generated PDF/document workflow.
-- Financing provider integrations are mocked/deferred.
-- The UI does not yet separate financier, Shariah reviewer, procurement officer, and auditor views.
+- Audit anchoring is still local/mock.
+- Reviewer export/report formatting can be improved.
 
 Final intended behavior:
-- Contract generation should be connected to document/e-signature workflows.
-- Review decisions should use role-scoped screens.
-- Financing actions should produce clear audit and outbox side effects.
+- Auditors should move from a filtered event to the source record, evidence
+  item, hash verification result, and anchor status without losing context.
 
-## Screen 07 - Closure Pack
+## Screen 08 - Finance Application Workspace
 
-![Screen 07 - Closure Pack](assets/screen-07-closure-pack.png)
+![Screen 08 - Finance Application Workspace](assets/current-screen-08-finance-workspace.png)
 
-Status: Working skeletal closure state
+Status: Working multi-role prototype
 
-The user sees a closure pack record linked back to the finance opportunity and evidence pack. The status shows the workflow has reached `CLOSED`.
+The finance application workspace shows mudarabah application status,
+opportunity context, evidence checklist, due diligence, Shariah review,
+contract, disbursement, ledger, profit/loss, closure, and audit tabs.
 
-Action that caused this state: The user opens `/finance/closures` after profit/loss statement generation and closure export.
+Action that caused this state: The user opens `/finance/applications/:id`.
 
 What currently works:
-- Closure records can be created after profit/loss calculation.
-- Closure links back to the application opportunity and evidence pack.
-- The UI shows the closed state.
+- Application creation starts from procurement opportunity/evidence.
+- Evidence checklist generation works.
+- Due diligence and Shariah review decisions are stored.
+- Contract creation is blocked until the application is approved.
+- Role-specific tabs and actions are visible or hidden by session claims.
 
 Unfinished or mocked:
-- Closure export is not yet a complete downloadable dossier.
-- Detailed reviewer sign-off and final archive behavior are not implemented.
+- Contract document generation uses a prototype document/e-signature flow.
+- Real provider integration is not connected.
 
 Final intended behavior:
-- Closure should export a complete pack containing procurement evidence, finance records, audit timeline, hashes, and reviewer decisions.
-- The pack should be suitable for supervisor, auditor, or financier review.
+- Financier, Shariah reviewer, procurement officer, and auditor views should be
+  tuned through UAT feedback and backed by stricter backend permissions.
 
-## Developer and Reviewer Notes
-- API calls are real local REST calls against the NestJS backend.
+## Screen 09 - Closure Pack
+
+![Screen 09 - Closure Pack](assets/current-screen-09-closure-pack.png)
+
+Status: Working closure prototype
+
+The closure pack screen shows finance closure state after contract execution,
+disbursement, ledger entry, profit/loss statement, and closure export.
+
+Action that caused this state: The user opens `/finance/closures`.
+
+What currently works:
+- Closure creation requires prior finance workflow state.
+- Closure links back to the application, opportunity, and evidence pack.
+- Closed state is visible to finance and auditor roles.
+
+Unfinished or mocked:
+- Closure export is not yet a polished final dossier.
+- Supervisor sign-off and archival policy are not fully implemented.
+
+Final intended behavior:
+- Closure pack should become the final review artifact for procurement,
+  mudarabah finance, evidence, audit, hash verification, and reviewer decisions.
+
+## Screen 10 - Project Graph
+
+![Screen 10 - Project Graph](assets/current-screen-10-project-graph.png)
+
+Status: Working read-only visualization
+
+The graph/canvas screen visualizes the seeded project/opportunity network. It
+shows nodes and edges for organization, supplier, procurement, evidence, and
+finance records where the active role is allowed to see them.
+
+Action that caused this state: The user opens `/graph/projects`.
+
+What currently works:
+- Graph data comes from a backend read model.
+- Nodes link back to source record screens.
+- Finance nodes are hidden for roles without finance/audit visibility.
+
+Unfinished or mocked:
+- Graph is read-only.
+- Canvas annotations, risk overlays, filters, and advanced layout are deferred.
+
+Final intended behavior:
+- Graph should remain a visualization layer over real records, not a second
+  source of truth.
+
+## Screen 11 - Integrations Outbox Control
+
+![Screen 11 - Integrations Outbox Control](assets/current-screen-11-integrations.png)
+
+Status: Working mock integration control surface
+
+The integrations screen lets an organization admin request mock Fabric anchors,
+mock e-signature packages, mock ERP sync, mock finance API notifications, and
+webhook actions. The same screen lists outbox and reconciliation status.
+
+Action that caused this state: The user opens `/integrations` as an organization
+admin after a Fabric anchor request has been queued.
+
+What currently works:
+- Integration requests create `OutboxEvent` records.
+- Duplicate integration actions use idempotency keys.
+- Request actions create audit events.
+- Status displays `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, or
+  `RETRYING`.
+- Reconciliation records are exposed after worker processing.
+
+Unfinished or mocked:
+- Fabric, ERP, finance API, e-signature, and webhook providers are mock adapters.
+- Real MinIO storage exists, but external-provider integrations remain deferred.
+
+Final intended behavior:
+- Core workflows should keep working even when integrations fail.
+- Real adapters should replace mocks only after evidence/audit behavior is stable.
+
+## Screen 12 - Auditor Read-Only Integrations
+
+![Screen 12 - Auditor Read-Only Integrations](assets/current-screen-12-auditor-read-only-integrations.png)
+
+Status: Working role-scoped read-only state
+
+The auditor sees the integrations page as a read-only review surface. Request
+forms are hidden, while status and reconciliation information remain visible.
+
+Action that caused this state: The user opens `/integrations` with an auditor
+session.
+
+What currently works:
+- Role-aware navigation allows auditors to inspect integrations.
+- Admin-only request actions are hidden from auditor sessions.
+- Direct route access still passes through the same route guard.
+
+Unfinished or mocked:
+- Backend permission checks should be expanded as real providers are added.
+
+Final intended behavior:
+- Auditors should be able to review external effect history without being able
+  to trigger external effects.
+
+## Screen 13 - Access Denied
+
+![Screen 13 - Access Denied](assets/current-screen-13-access-denied.png)
+
+Status: Working route guard
+
+The access denied state appears when a role opens a route that requires
+permissions it does not have.
+
+Action that caused this state: An auditor directly opens a procurement write
+route such as `/procurement/projects`.
+
+What currently works:
+- Route metadata drives frontend access decisions.
+- Users see only relevant sidebar navigation.
+- Direct URL access without permission shows `Access denied`.
+
+Unfinished or mocked:
+- Backend permission checks exist for key workflows but should be expanded to
+  every mutation before production.
+
+Final intended behavior:
+- Frontend route guards should improve usability, while backend permission
+  checks remain the source of truth.
+
+## Developer And Reviewer Notes
+- The app now uses a React Router application shell under `apps/web/src/app`.
+- Sidebar navigation comes from route metadata in `navigation.ts`.
+- Session state is loaded through `AuthProvider` and dev auth endpoints.
+- Feature screens use shared API helpers and TanStack Query cache invalidation.
+- Core procurement, evidence, finance, graph, and integration calls are real
+  REST calls against the NestJS API.
 - PostgreSQL, Redis, and MinIO run through Docker Compose.
-- The screenshots use seeded development data, not production data.
-- Local/dev auth is still used; final OIDC integration is pending.
-- Fabric, ERP, e-signature, finance API, and webhook integrations should stay behind adapters and outbox events.
-- Some integration side effects are mock-based by design at this stage.
+- Fabric, ERP, e-signature, finance API, and webhook providers remain mock
+  adapters behind outbox.
+- Screenshots use seeded development/E2E data, not production data.
+- Formal UAT documentation now exists under `docs/test`.
 
 ## Current Status
-The skeletal app has a working UI shell, navigation, health dashboard, organization setup, procurement path, evidence/audit surfaces, mudarabah finance workflow, and closure state. Core records persist through the backend and database.
+The current MEPN prototype has moved beyond a basic skeletal shell. It now has:
 
-## Next Steps
-1. Add role-specific navigation and permission-based screen access.
-2. Improve form validation and empty/error states across all modules.
-3. Add richer evidence document upload and downloadable pack export.
-4. Expose audit timeline filtering per entity and workflow.
-5. Replace local/dev auth with OIDC.
-6. Keep Fabric, ERP, finance API, e-signature, and webhook functionality adapter-driven until the internal workflow is stable.
+- Dev login/session flow.
+- Role-aware sidebar navigation and route guards.
+- Shared frontend structure, components, validation, loading, empty, error, and
+  toast patterns.
+- Typed API/data-layer helpers.
+- Procurement list and detail workflows.
+- Evidence pack detail/export/hash surfaces.
+- Audit filtering and entity timeline routes.
+- Role-scoped mudarabah finance workspaces.
+- Closure pack state.
+- Read-only graph/canvas visualization.
+- Integration outbox control and reviewer views.
+- UAT readiness documents and repeatable seed command.
+
+## Remaining Work
+1. Replace dev auth with real OIDC when the provider is ready.
+2. Expand backend permission checks across all mutations.
+3. Polish evidence and closure exports into final reviewer dossiers.
+4. Replace mock integration adapters with real providers only after local
+   evidence/audit behavior is stable.
+5. Add reverse proxy/HTTPS and harden the Azure deployment.
+6. Run formal UAT with SME admin, procurement officer, approver, finance user,
+   financier reviewer, Shariah reviewer, and auditor groups.
+7. Use UAT findings to refine screen wording, workflow gates, and reviewer
+   evidence presentation.
