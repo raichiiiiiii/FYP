@@ -93,6 +93,16 @@ Default ports:
 - MinIO API: http://localhost:9000
 - MinIO console: http://localhost:9001
 
+## Deployment
+
+The student-budget prototype deployment runbook is documented here:
+
+- [Azure Student VM Deployment Guide](docs/deployment/azure-student-vm-deployment.md)
+
+The guide covers Azure VM setup, environment configuration, Docker Compose
+infrastructure, tmux process startup, verification, UAT/demo seeding, backups,
+cost controls, and handover.
+
 ## Walking Skeleton
 
 The first vertical slice proves the browser, React frontend, NestJS API, PostgreSQL, and Redis can run end to end.
