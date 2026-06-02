@@ -1,0 +1,1515 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
+import { AuditEventsService } from '../../audit-events/audit-events.service';
+import { PrismaService } from '../../database/prisma.service';
+import { OutboxService } from '../outbox/outbox.service';
+import {
+  numericValue,
+  optionalText,
+  positiveNumber,
+  requireText,
+} from './finance.service-utils';
+
+export type CreateOpportunityInput = {
+  organizationId: string;
+  actorUserId?: string;
+  projectId: string;
+  requisitionId?: string;
+  purchaseOrderId?: string;
+  evidencePackId?: string;
+  title?: string;
+  description?: string;
+  estimatedCapital?: number | string;
+  expectedProfit?: number | string;
+  currency?: string;
+};
+
+export type CreateApplicationInput = {
+  organizationId: string;
+  actorUserId?: string;
+  opportunityId: string;
+  applicantUserId?: string;
+  requestedCapital?: number | string;
+  capitalProviderRatio?: number | string;
+  entrepreneurRatio?: number | string;
+  currency?: string;
+  purpose?: string;
+};
+
+export type ActorInput = {
+  actorUserId?: string;
+};
+
+export type CreateEvidenceChecklistInput = ActorInput;
+
+export type CompleteChecklistItemInput = ActorInput & {
+  evidenceItemId?: string;
+  metadata?: Prisma.InputJsonObject;
+};
+
+export type CreateDueDiligenceInput = ActorInput & {
+  reviewerUserId?: string;
+  status?: string;
+  riskRating?: string;
+  decision?: string;
+  notes?: string;
+};
+
+export type CreateShariahReviewInput = ActorInput & {
+  reviewerUserId?: string;
+  status?: string;
+  decision?: string;
+  opinion?: string;
+  notes?: string;
+};
+
+export type RejectApplicationInput = ActorInput & {
+  reason?: string;
+};
+
+export type CreateContractInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  documentId?: string;
+  contractNumber?: string;
+  restrictedUse?: string;
+};
+
+export type CreateDisbursementInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  contractId?: string;
+  amount?: number | string;
+  currency?: string;
+  reference?: string;
+  disbursedAt?: string;
+};
+
+export type CreateLedgerEntryInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  entryType: string;
+  description: string;
+  amount: number | string;
+  currency?: string;
+  occurredAt?: string;
+};
+
+export type CreateProfitLossStatementInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  revenue?: number | string;
+  costs?: number | string;
+  periodStart?: string;
+  periodEnd?: string;
+};
+
+export type CreateClosureInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  evidencePackId?: string;
+};
+
+const opportunityInclude = {
+  project: true,
+  requisition: true,
+  purchaseOrder: {
+    include: {
+      supplier: true,
+      receipts: true,
+      invoices: true,
+    },
+  },
+  evidencePack: {
+    include: {
+      items: true,
+    },
+  },
+  applications: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+} satisfies Prisma.ProcurementOpportunityInclude;
+
+const applicationInclude = {
+  opportunity: {
+    include: {
+      project: true,
+      evidencePack: {
+        include: {
+          items: true,
+        },
+      },
+      purchaseOrder: {
+        include: {
+          supplier: true,
+          receipts: true,
+          invoices: true,
+        },
+      },
+    },
+  },
+  applicantUser: {
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+    },
+  },
+  evidenceChecklist: {
+    include: {
+      items: {
+        include: {
+          evidenceItem: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
+  },
+  dueDiligenceReports: {
+    include: {
+      reviewerUser: {
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+  shariahReviews: {
+    include: {
+      reviewerUser: {
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+  contracts: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+  disbursements: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+  ledgerEntries: {
+    orderBy: {
+      occurredAt: 'asc',
+    },
+  },
+  profitLossStatements: {
+    include: {
+      distributions: true,
+      lossExceptions: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+  closurePacks: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
+} satisfies Prisma.MudarabahApplicationInclude;
+
+const REQUIRED_CHECKLIST_ITEMS = [
+  ['PROJECT_SUMMARY', 'Project summary'],
+  ['SUPPLIER_PROFILE', 'Supplier profile'],
+  ['REQUISITION', 'Approved requisition'],
+  ['APPROVAL', 'Approval evidence'],
+  ['RFQ', 'RFQ evidence'],
+  ['QUOTATION', 'Quotation evidence'],
+  ['PURCHASE_ORDER', 'Purchase order evidence'],
+  ['RECEIPT', 'Receipt evidence'],
+  ['INVOICE', 'Invoice evidence'],
+] as const;
+
+@Injectable()
+export class FinanceService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditEvents: AuditEventsService,
+    private readonly outbox: OutboxService,
+  ) {}
+
+  async createOpportunity(input: CreateOpportunityInput) {
+    const organizationId = requireText(input.organizationId, 'organizationId');
+    const projectId = requireText(input.projectId, 'projectId');
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Project does not belong to the organization',
+      );
+    }
+
+    const [requisition, purchaseOrder, evidencePack] = await Promise.all([
+      input.requisitionId
+        ? this.prisma.requisition.findUnique({
+            where: { id: input.requisitionId },
+          })
+        : Promise.resolve(null),
+      input.purchaseOrderId
+        ? this.prisma.purchaseOrder.findUnique({
+            where: { id: input.purchaseOrderId },
+          })
+        : Promise.resolve(null),
+      input.evidencePackId
+        ? this.prisma.evidencePack.findUnique({
+            where: { id: input.evidencePackId },
+          })
+        : this.prisma.evidencePack.findFirst({
+            where: {
+              organizationId,
+              projectId,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          }),
+    ]);
+
+    this.assertOptionalOrgRecord(
+      organizationId,
+      requisition?.organizationId,
+      'Requisition',
+    );
+    this.assertOptionalOrgRecord(
+      organizationId,
+      purchaseOrder?.organizationId,
+      'Purchase order',
+    );
+    this.assertOptionalOrgRecord(
+      organizationId,
+      evidencePack?.organizationId,
+      'Evidence pack',
+    );
+
+    const opportunity = await this.prisma.procurementOpportunity.create({
+      data: {
+        organizationId,
+        projectId,
+        requisitionId: input.requisitionId,
+        purchaseOrderId: input.purchaseOrderId,
+        evidencePackId: evidencePack?.id,
+        title:
+          optionalText(input.title) || `${project.name} finance opportunity`,
+        description: optionalText(input.description),
+        estimatedCapital: numericValue(
+          input.estimatedCapital,
+          'estimatedCapital',
+          project.budget || purchaseOrder?.totalAmount || 0,
+        ),
+        expectedProfit:
+          input.expectedProfit === undefined
+            ? undefined
+            : numericValue(input.expectedProfit, 'expectedProfit'),
+        currency: optionalText(input.currency) || 'MYR',
+      },
+      include: opportunityInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'PROCUREMENT_OPPORTUNITY_CREATED',
+      entityType: 'ProcurementOpportunity',
+      entityId: opportunity.id,
+      metadata: {
+        projectId,
+        evidencePackId: opportunity.evidencePackId,
+        estimatedCapital: opportunity.estimatedCapital,
+      },
+    });
+
+    return opportunity;
+  }
+
+  listOpportunities(organizationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.procurementOpportunity.findMany({
+      where: { organizationId },
+      include: opportunityInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getOpportunity(id: string) {
+    const opportunity = await this.prisma.procurementOpportunity.findUnique({
+      where: { id },
+      include: opportunityInclude,
+    });
+
+    if (!opportunity) {
+      throw new NotFoundException('Opportunity not found');
+    }
+
+    return opportunity;
+  }
+
+  async createApplication(input: CreateApplicationInput) {
+    const organizationId = requireText(input.organizationId, 'organizationId');
+    const opportunity = await this.getOpportunity(input.opportunityId);
+
+    if (opportunity.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Opportunity does not belong to the organization',
+      );
+    }
+
+    const requestedCapital = positiveNumber(
+      input.requestedCapital,
+      'requestedCapital',
+      opportunity.estimatedCapital,
+    );
+    const capitalProviderRatio = numericValue(
+      input.capitalProviderRatio,
+      'capitalProviderRatio',
+      0.6,
+    );
+    const entrepreneurRatio = numericValue(
+      input.entrepreneurRatio,
+      'entrepreneurRatio',
+      1 - capitalProviderRatio,
+    );
+
+    if (capitalProviderRatio + entrepreneurRatio <= 0) {
+      throw new BadRequestException('Profit share ratios must be positive');
+    }
+
+    const application = await this.prisma.mudarabahApplication.create({
+      data: {
+        organizationId,
+        opportunityId: opportunity.id,
+        applicantUserId:
+          optionalText(input.applicantUserId) ||
+          optionalText(input.actorUserId),
+        requestedCapital,
+        capitalProviderRatio,
+        entrepreneurRatio,
+        currency: optionalText(input.currency) || opportunity.currency,
+        purpose:
+          optionalText(input.purpose) ||
+          `Restricted mudarabah capital for ${opportunity.title}`,
+      },
+      include: applicationInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_APPLICATION_CREATED',
+      entityType: 'MudarabahApplication',
+      entityId: application.id,
+      metadata: {
+        opportunityId: opportunity.id,
+        requestedCapital,
+      },
+    });
+
+    return application;
+  }
+
+  async getApplication(id: string) {
+    const application = await this.prisma.mudarabahApplication.findUnique({
+      where: { id },
+      include: applicationInclude,
+    });
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    return application;
+  }
+
+  listApplications(organizationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.mudarabahApplication.findMany({
+      where: { organizationId },
+      include: applicationInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async submitApplication(id: string, input: ActorInput) {
+    const application = await this.getApplication(id);
+
+    if (application.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft applications can be submitted');
+    }
+
+    const submitted = await this.prisma.mudarabahApplication.update({
+      where: { id },
+      data: {
+        status: 'SUBMITTED',
+        submittedAt: new Date(),
+      },
+      include: applicationInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: submitted.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_APPLICATION_SUBMITTED',
+      entityType: 'MudarabahApplication',
+      entityId: submitted.id,
+      metadata: {
+        status: submitted.status,
+      },
+    });
+
+    return submitted;
+  }
+
+  async createEvidenceChecklist(
+    applicationId: string,
+    input: CreateEvidenceChecklistInput,
+  ) {
+    const application = await this.getApplication(applicationId);
+
+    if (!['SUBMITTED', 'EVIDENCE_PENDING'].includes(application.status)) {
+      throw new BadRequestException(
+        'Evidence checklist requires a submitted application',
+      );
+    }
+
+    if (application.evidenceChecklist) {
+      return application.evidenceChecklist;
+    }
+
+    const evidenceItems = application.opportunity.evidencePack?.items || [];
+    const checklistItems = REQUIRED_CHECKLIST_ITEMS.map(
+      ([requiredCode, label]) => {
+        const matchingEvidence = evidenceItems.find(
+          (item) => item.evidenceType === requiredCode,
+        );
+
+        return {
+          requiredCode,
+          label,
+          evidenceItemId: matchingEvidence?.id,
+          status: matchingEvidence ? 'COMPLETED' : 'PENDING',
+          completedAt: matchingEvidence ? new Date() : undefined,
+          metadata: matchingEvidence
+            ? {
+                evidenceItemId: matchingEvidence.id,
+                sourceEvidencePackId: application.opportunity.evidencePackId,
+              }
+            : undefined,
+        };
+      },
+    );
+    const allItemsInitiallyComplete = checklistItems.every(
+      (item) => item.status === 'COMPLETED',
+    );
+    const checklist = await this.prisma.evidenceChecklist.create({
+      data: {
+        organizationId: application.organizationId,
+        applicationId: application.id,
+        status: allItemsInitiallyComplete ? 'COMPLETED' : 'PENDING',
+        items: {
+          create: checklistItems,
+        },
+      },
+      include: {
+        items: {
+          include: {
+            evidenceItem: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    const allComplete = checklist.items.every(
+      (item) => item.status === 'COMPLETED',
+    );
+    const updated = await this.prisma.mudarabahApplication.update({
+      where: { id: application.id },
+      data: {
+        status: allComplete ? 'DUE_DILIGENCE_IN_REVIEW' : 'EVIDENCE_PENDING',
+      },
+      include: applicationInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: application.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'EVIDENCE_CHECKLIST_GENERATED',
+      entityType: 'EvidenceChecklist',
+      entityId: checklist.id,
+      metadata: {
+        applicationId: application.id,
+        completedItems: checklist.items.filter(
+          (item) => item.status === 'COMPLETED',
+        ).length,
+        requiredItems: checklist.items.length,
+      },
+    });
+
+    return updated.evidenceChecklist;
+  }
+
+  async completeChecklistItem(
+    checklistItemId: string,
+    input: CompleteChecklistItemInput,
+  ) {
+    const current = await this.prisma.evidenceChecklistItem.findUnique({
+      where: { id: checklistItemId },
+      include: {
+        checklist: true,
+      },
+    });
+
+    if (!current) {
+      throw new NotFoundException('Checklist item not found');
+    }
+
+    const updatedItem = await this.prisma.evidenceChecklistItem.update({
+      where: { id: checklistItemId },
+      data: {
+        evidenceItemId:
+          optionalText(input.evidenceItemId) || current.evidenceItemId,
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        metadata: input.metadata,
+      },
+    });
+
+    await this.refreshChecklistStatus(current.checklistId);
+
+    await this.recordFinanceEvent({
+      organizationId: current.checklist.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'EVIDENCE_CHECKLIST_ITEM_COMPLETED',
+      entityType: 'EvidenceChecklistItem',
+      entityId: updatedItem.id,
+      metadata: {
+        checklistId: current.checklistId,
+        requiredCode: updatedItem.requiredCode,
+      },
+    });
+
+    return updatedItem;
+  }
+
+  async createDueDiligence(
+    applicationId: string,
+    input: CreateDueDiligenceInput,
+  ) {
+    const application = await this.getApplication(applicationId);
+    this.requireChecklistComplete(application);
+
+    const report = await this.prisma.dueDiligenceReport.create({
+      data: {
+        organizationId: application.organizationId,
+        applicationId: application.id,
+        reviewerUserId:
+          optionalText(input.reviewerUserId) || optionalText(input.actorUserId),
+        status: optionalText(input.status) || 'APPROVED',
+        riskRating: optionalText(input.riskRating) || 'MEDIUM',
+        decision:
+          optionalText(input.decision) ||
+          optionalText(input.status) ||
+          'APPROVED',
+        notes: optionalText(input.notes),
+      },
+    });
+
+    const nextStatus =
+      report.status === 'APPROVED' ? 'SHARIAH_IN_REVIEW' : 'REJECTED';
+    await this.prisma.mudarabahApplication.update({
+      where: { id: application.id },
+      data: {
+        status: nextStatus,
+        rejectedAt: nextStatus === 'REJECTED' ? new Date() : undefined,
+        rejectionReason:
+          nextStatus === 'REJECTED'
+            ? report.notes || 'Due diligence rejected'
+            : undefined,
+      },
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: application.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'DUE_DILIGENCE_RECORDED',
+      entityType: 'DueDiligenceReport',
+      entityId: report.id,
+      metadata: {
+        applicationId: application.id,
+        status: report.status,
+        riskRating: report.riskRating,
+      },
+    });
+
+    return this.getApplication(application.id);
+  }
+
+  async createShariahReview(
+    applicationId: string,
+    input: CreateShariahReviewInput,
+  ) {
+    const application = await this.getApplication(applicationId);
+
+    if (!this.hasApprovedDueDiligence(application)) {
+      throw new BadRequestException(
+        'Shariah review requires approved due diligence',
+      );
+    }
+
+    const review = await this.prisma.shariahReview.create({
+      data: {
+        organizationId: application.organizationId,
+        applicationId: application.id,
+        reviewerUserId:
+          optionalText(input.reviewerUserId) || optionalText(input.actorUserId),
+        status: optionalText(input.status) || 'APPROVED',
+        decision:
+          optionalText(input.decision) ||
+          optionalText(input.status) ||
+          'APPROVED',
+        opinion:
+          optionalText(input.opinion) ||
+          'Restricted mudarabah structure reviewed for MVP compliance.',
+        notes: optionalText(input.notes),
+      },
+    });
+
+    if (review.status !== 'APPROVED') {
+      await this.prisma.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'REJECTED',
+          rejectedAt: new Date(),
+          rejectionReason: review.notes || 'Shariah review rejected',
+        },
+      });
+    }
+
+    await this.recordFinanceEvent({
+      organizationId: application.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'SHARIAH_REVIEW_RECORDED',
+      entityType: 'ShariahReview',
+      entityId: review.id,
+      metadata: {
+        applicationId: application.id,
+        status: review.status,
+      },
+    });
+
+    return this.getApplication(application.id);
+  }
+
+  async approveApplication(id: string, input: ActorInput) {
+    const application = await this.getApplication(id);
+
+    if (!this.hasApprovedDueDiligence(application)) {
+      throw new BadRequestException(
+        'Application cannot be approved without approved due diligence',
+      );
+    }
+
+    if (!this.hasApprovedShariahReview(application)) {
+      throw new BadRequestException(
+        'Application cannot be approved without approved Shariah review',
+      );
+    }
+
+    const approved = await this.prisma.mudarabahApplication.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+      },
+      include: applicationInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: approved.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_APPLICATION_APPROVED',
+      entityType: 'MudarabahApplication',
+      entityId: approved.id,
+      metadata: {
+        requestedCapital: approved.requestedCapital,
+      },
+    });
+
+    return approved;
+  }
+
+  async rejectApplication(id: string, input: RejectApplicationInput) {
+    const rejected = await this.prisma.mudarabahApplication.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        rejectedAt: new Date(),
+        rejectionReason: optionalText(input.reason) || 'Rejected by reviewer',
+      },
+      include: applicationInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: rejected.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_APPLICATION_REJECTED',
+      entityType: 'MudarabahApplication',
+      entityId: rejected.id,
+      metadata: {
+        reason: rejected.rejectionReason,
+      },
+    });
+
+    return rejected;
+  }
+
+  async createContract(input: CreateContractInput) {
+    const application = await this.getApplication(input.applicationId);
+    const organizationId = requireText(input.organizationId, 'organizationId');
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    this.requireApplicationApproved(application);
+
+    const contract = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.mudarabahContract.create({
+        data: {
+          organizationId,
+          applicationId: application.id,
+          documentId: optionalText(input.documentId),
+          contractNumber:
+            optionalText(input.contractNumber) || this.createContractNumber(),
+          restrictedUse:
+            optionalText(input.restrictedUse) ||
+            application.purpose ||
+            'Restricted procurement working capital only.',
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'CONTRACT_PENDING_SIGNATURE',
+        },
+      });
+
+      return created;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_CONTRACT_CREATED',
+      entityType: 'MudarabahContract',
+      entityId: contract.id,
+      metadata: {
+        applicationId: application.id,
+        contractNumber: contract.contractNumber,
+      },
+    });
+
+    return contract;
+  }
+
+  listContracts(organizationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.mudarabahContract.findMany({
+      where: { organizationId },
+      include: {
+        application: {
+          include: {
+            opportunity: {
+              include: {
+                project: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async markContractSigned(id: string, input: ActorInput) {
+    const contract = await this.prisma.mudarabahContract.findUnique({
+      where: { id },
+      include: {
+        application: {
+          include: applicationInclude,
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found');
+    }
+
+    this.requireApplicationApproved(contract.application);
+
+    const signed = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.mudarabahContract.update({
+        where: { id },
+        data: {
+          status: 'EXECUTED',
+          signedAt: new Date(),
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: contract.applicationId },
+        data: {
+          status: 'CONTRACT_EXECUTED',
+        },
+      });
+
+      return updated;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: signed.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'MUDARABAH_CONTRACT_SIGNED',
+      entityType: 'MudarabahContract',
+      entityId: signed.id,
+      metadata: {
+        applicationId: signed.applicationId,
+        contractNumber: signed.contractNumber,
+      },
+    });
+
+    return signed;
+  }
+
+  async createDisbursement(input: CreateDisbursementInput) {
+    const application = await this.getApplication(input.applicationId);
+    const organizationId = requireText(input.organizationId, 'organizationId');
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    const contract = input.contractId
+      ? application.contracts.find((item) => item.id === input.contractId)
+      : application.contracts.find((item) => item.status === 'EXECUTED');
+
+    if (!contract || contract.status !== 'EXECUTED') {
+      throw new BadRequestException(
+        'Disbursement requires an executed contract',
+      );
+    }
+
+    const disbursedAt = input.disbursedAt
+      ? this.parseDate(input.disbursedAt, 'disbursedAt')
+      : new Date();
+
+    const disbursement = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.disbursement.create({
+        data: {
+          organizationId,
+          applicationId: application.id,
+          contractId: contract.id,
+          amount: positiveNumber(
+            input.amount,
+            'amount',
+            application.requestedCapital,
+          ),
+          currency: optionalText(input.currency) || application.currency,
+          reference: optionalText(input.reference),
+          disbursedAt,
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'DISBURSED',
+        },
+      });
+
+      return created;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'DISBURSEMENT_RECORDED',
+      entityType: 'Disbursement',
+      entityId: disbursement.id,
+      metadata: {
+        applicationId: application.id,
+        amount: disbursement.amount,
+      },
+    });
+
+    return disbursement;
+  }
+
+  async createLedgerEntry(input: CreateLedgerEntryInput) {
+    const application = await this.getApplication(input.applicationId);
+    const organizationId = requireText(input.organizationId, 'organizationId');
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    if (
+      !['DISBURSED', 'MONITORING', 'PROFIT_LOSS_CALCULATED'].includes(
+        application.status,
+      )
+    ) {
+      throw new BadRequestException(
+        'Ledger entries require a disbursed application',
+      );
+    }
+
+    const entry = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.projectLedgerEntry.create({
+        data: {
+          organizationId,
+          applicationId: application.id,
+          entryType: requireText(input.entryType, 'entryType'),
+          description: requireText(input.description, 'description'),
+          amount: numericValue(input.amount, 'amount'),
+          currency: optionalText(input.currency) || application.currency,
+          occurredAt: input.occurredAt
+            ? this.parseDate(input.occurredAt, 'occurredAt')
+            : new Date(),
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'MONITORING',
+        },
+      });
+
+      return created;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'PROJECT_LEDGER_ENTRY_RECORDED',
+      entityType: 'ProjectLedgerEntry',
+      entityId: entry.id,
+      metadata: {
+        applicationId: application.id,
+        entryType: entry.entryType,
+        amount: entry.amount,
+      },
+    });
+
+    return entry;
+  }
+
+  listLedgerEntries(organizationId?: string, applicationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.projectLedgerEntry.findMany({
+      where: {
+        organizationId,
+        applicationId,
+      },
+      include: {
+        application: {
+          include: {
+            opportunity: {
+              include: {
+                project: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        occurredAt: 'desc',
+      },
+    });
+  }
+
+  async createProfitLossStatement(input: CreateProfitLossStatementInput) {
+    const application = await this.getApplication(input.applicationId);
+    const organizationId = requireText(input.organizationId, 'organizationId');
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    if (
+      !['MONITORING', 'PROFIT_LOSS_CALCULATED'].includes(application.status)
+    ) {
+      throw new BadRequestException(
+        'Profit/loss requires ledger monitoring entries first',
+      );
+    }
+
+    const revenue =
+      input.revenue === undefined
+        ? this.sumLedger(application.ledgerEntries, ['REVENUE', 'INCOME'])
+        : numericValue(input.revenue, 'revenue');
+    const costs =
+      input.costs === undefined
+        ? Math.abs(
+            this.sumLedger(application.ledgerEntries, ['COST', 'EXPENSE']),
+          )
+        : numericValue(input.costs, 'costs');
+    const netProfit = revenue - costs;
+    const providerRatio = application.capitalProviderRatio;
+    const entrepreneurRatio = application.entrepreneurRatio;
+    const totalRatio = providerRatio + entrepreneurRatio;
+
+    const statement = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.profitLossStatement.create({
+        data: {
+          organizationId,
+          applicationId: application.id,
+          revenue,
+          costs,
+          netProfit,
+          periodStart: input.periodStart
+            ? this.parseDate(input.periodStart, 'periodStart')
+            : undefined,
+          periodEnd: input.periodEnd
+            ? this.parseDate(input.periodEnd, 'periodEnd')
+            : undefined,
+          distributions:
+            netProfit >= 0
+              ? {
+                  create: [
+                    {
+                      organizationId,
+                      party: 'CAPITAL_PROVIDER',
+                      ratio: providerRatio,
+                      amount: (netProfit * providerRatio) / totalRatio,
+                    },
+                    {
+                      organizationId,
+                      party: 'ENTREPRENEUR',
+                      ratio: entrepreneurRatio,
+                      amount: (netProfit * entrepreneurRatio) / totalRatio,
+                    },
+                  ],
+                }
+              : undefined,
+          lossExceptions:
+            netProfit < 0
+              ? {
+                  create: {
+                    organizationId,
+                    applicationId: application.id,
+                    exceptionType: 'BUSINESS_LOSS',
+                    amount: Math.abs(netProfit),
+                    notes: 'MVP records local loss exception for review.',
+                  },
+                }
+              : undefined,
+        },
+        include: {
+          distributions: true,
+          lossExceptions: true,
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'PROFIT_LOSS_CALCULATED',
+        },
+      });
+
+      return created;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'PROFIT_LOSS_STATEMENT_CREATED',
+      entityType: 'ProfitLossStatement',
+      entityId: statement.id,
+      metadata: {
+        applicationId: application.id,
+        revenue,
+        costs,
+        netProfit,
+      },
+    });
+
+    return statement;
+  }
+
+  listProfitLossStatements(organizationId?: string, applicationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.profitLossStatement.findMany({
+      where: {
+        organizationId,
+        applicationId,
+      },
+      include: {
+        distributions: true,
+        lossExceptions: true,
+        application: {
+          include: {
+            opportunity: {
+              include: {
+                project: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async createClosure(input: CreateClosureInput) {
+    const application = await this.getApplication(input.applicationId);
+    const organizationId = requireText(input.organizationId, 'organizationId');
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    if (application.status !== 'PROFIT_LOSS_CALCULATED') {
+      throw new BadRequestException(
+        'Closure requires a calculated profit/loss statement',
+      );
+    }
+
+    const evidencePackId =
+      optionalText(input.evidencePackId) ||
+      application.opportunity.evidencePackId;
+    const auditTimeline = await this.prisma.auditEvent.findMany({
+      where: {
+        organizationId,
+        OR: [
+          {
+            entityType: 'MudarabahApplication',
+            entityId: application.id,
+          },
+          {
+            entityType: 'ProcurementOpportunity',
+            entityId: application.opportunityId,
+          },
+        ],
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      take: 200,
+    });
+
+    const closure = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.closurePack.create({
+        data: {
+          organizationId,
+          applicationId: application.id,
+          evidencePackId,
+          summary: {
+            procurementEvidencePackId: evidencePackId,
+            auditEventCount: auditTimeline.length,
+            latestProfitLossStatementId:
+              application.profitLossStatements[0]?.id || null,
+            contractId: application.contracts[0]?.id || null,
+          },
+        },
+      });
+
+      await tx.mudarabahApplication.update({
+        where: { id: application.id },
+        data: {
+          status: 'CLOSED',
+        },
+      });
+
+      return created;
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'CLOSURE_PACK_EXPORTED',
+      entityType: 'ClosurePack',
+      entityId: closure.id,
+      metadata: {
+        applicationId: application.id,
+        evidencePackId,
+        auditEventCount: auditTimeline.length,
+      },
+    });
+
+    return closure;
+  }
+
+  listClosures(organizationId?: string, applicationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.closurePack.findMany({
+      where: {
+        organizationId,
+        applicationId,
+      },
+      include: {
+        evidencePack: true,
+        application: {
+          include: {
+            opportunity: {
+              include: {
+                project: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  private async refreshChecklistStatus(checklistId: string) {
+    const checklist = await this.prisma.evidenceChecklist.findUnique({
+      where: { id: checklistId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!checklist) {
+      return;
+    }
+
+    const allComplete = checklist.items.every(
+      (item) => item.status === 'COMPLETED',
+    );
+
+    await this.prisma.evidenceChecklist.update({
+      where: { id: checklist.id },
+      data: {
+        status: allComplete ? 'COMPLETED' : 'PENDING',
+      },
+    });
+
+    if (allComplete) {
+      await this.prisma.mudarabahApplication.update({
+        where: { id: checklist.applicationId },
+        data: {
+          status: 'DUE_DILIGENCE_IN_REVIEW',
+        },
+      });
+    }
+  }
+
+  private requireChecklistComplete(
+    application: Prisma.MudarabahApplicationGetPayload<{
+      include: typeof applicationInclude;
+    }>,
+  ) {
+    const checklist = application.evidenceChecklist;
+
+    if (
+      !checklist ||
+      !checklist.items.length ||
+      checklist.items.some((item) => item.status !== 'COMPLETED')
+    ) {
+      throw new BadRequestException(
+        'Due diligence requires a completed evidence checklist',
+      );
+    }
+  }
+
+  private hasApprovedDueDiligence(
+    application: Prisma.MudarabahApplicationGetPayload<{
+      include: typeof applicationInclude;
+    }>,
+  ) {
+    return application.dueDiligenceReports.some(
+      (report) =>
+        report.status === 'APPROVED' || report.decision === 'APPROVED',
+    );
+  }
+
+  private hasApprovedShariahReview(
+    application: Prisma.MudarabahApplicationGetPayload<{
+      include: typeof applicationInclude;
+    }>,
+  ) {
+    return application.shariahReviews.some(
+      (review) =>
+        review.status === 'APPROVED' || review.decision === 'APPROVED',
+    );
+  }
+
+  private requireApplicationApproved(
+    application: Prisma.MudarabahApplicationGetPayload<{
+      include: typeof applicationInclude;
+    }>,
+  ) {
+    if (
+      application.status !== 'APPROVED' &&
+      application.status !== 'CONTRACT_PENDING_SIGNATURE'
+    ) {
+      throw new BadRequestException(
+        'Contract work requires an approved application',
+      );
+    }
+
+    if (!this.hasApprovedDueDiligence(application)) {
+      throw new BadRequestException(
+        'Contract cannot be generated without approved due diligence',
+      );
+    }
+
+    if (!this.hasApprovedShariahReview(application)) {
+      throw new BadRequestException(
+        'Contract cannot be generated without approved Shariah review',
+      );
+    }
+  }
+
+  private assertOptionalOrgRecord(
+    organizationId: string,
+    recordOrganizationId: string | undefined,
+    label: string,
+  ) {
+    if (recordOrganizationId && recordOrganizationId !== organizationId) {
+      throw new BadRequestException(
+        `${label} does not belong to the organization`,
+      );
+    }
+  }
+
+  private sumLedger(
+    entries: Array<{ entryType: string; amount: number }>,
+    entryTypes: string[],
+  ) {
+    const types = new Set(entryTypes);
+
+    return entries.reduce(
+      (total, entry) =>
+        types.has(entry.entryType.toUpperCase()) ? total + entry.amount : total,
+      0,
+    );
+  }
+
+  private parseDate(value: string, field: string) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException(`${field} must be a valid date`);
+    }
+
+    return date;
+  }
+
+  private createContractNumber() {
+    const date = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+    const suffix = Math.floor(Math.random() * 100000)
+      .toString()
+      .padStart(5, '0');
+
+    return `MUD-${date}-${suffix}`;
+  }
+
+  private async recordFinanceEvent(input: {
+    organizationId: string;
+    actorUserId?: string;
+    eventType: string;
+    entityType: string;
+    entityId: string;
+    metadata?: Prisma.InputJsonObject;
+  }) {
+    await this.auditEvents.create(input);
+    await this.outbox.create({
+      organizationId: input.organizationId,
+      eventType: input.eventType,
+      aggregateType: input.entityType,
+      aggregateId: input.entityId,
+      payload: {
+        entityType: input.entityType,
+        entityId: input.entityId,
+        metadata: input.metadata || {},
+      },
+    });
+  }
+}

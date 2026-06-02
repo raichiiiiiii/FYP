@@ -1,0 +1,931 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id                 String   @id @default(uuid())
+  legalName          String
+  registrationNumber String?
+  taxIdentifier      String?
+  shariahProfile     String?
+  deploymentMode     String   @default("standalone_sme")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  memberships        Membership[]
+  workspaces         Workspace[]
+  invitations        Invitation[]
+  auditEvents        AuditEvent[]
+  projects           Project[]
+  suppliers          Supplier[]
+  requisitions       Requisition[]
+  rfqs               RFQ[]
+  quotations         Quotation[]
+  purchaseOrders     PurchaseOrder[]
+  receipts           Receipt[]
+  invoices           Invoice[]
+  documents          Document[]
+  evidenceItems      EvidenceItem[]
+  evidencePacks      EvidencePack[]
+  hashRecords        HashRecord[]
+  auditAnchors       AuditAnchor[]
+  outboxEvents       OutboxEvent[]
+  integrationReconciliationRecords IntegrationReconciliationRecord[]
+  webhookSubscriptions WebhookSubscription[]
+  webhookDeliveries WebhookDelivery[]
+  procurementOpportunities ProcurementOpportunity[]
+  mudarabahApplications    MudarabahApplication[]
+  financeEvidenceChecklists EvidenceChecklist[]
+  dueDiligenceReports      DueDiligenceReport[]
+  shariahReviews           ShariahReview[]
+  mudarabahContracts       MudarabahContract[]
+  disbursements            Disbursement[]
+  projectLedgerEntries     ProjectLedgerEntry[]
+  profitLossStatements     ProfitLossStatement[]
+  profitDistributions      ProfitDistribution[]
+  lossExceptions           LossException[]
+  closurePacks             ClosurePack[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  displayName  String
+  passwordHash String?
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships        Membership[]
+  sentInvitations    Invitation[] @relation("InvitationInvitedBy")
+  acceptedInvitations Invitation[] @relation("InvitationAcceptedBy")
+  auditEvents        AuditEvent[]
+  requestedRequisitions Requisition[] @relation("RequisitionRequester")
+  approvalRequests      ApprovalRequest[] @relation("ApprovalApprover")
+  documentVersions      DocumentVersion[] @relation("DocumentVersionCreatedBy")
+  mudarabahApplications MudarabahApplication[] @relation("MudarabahApplicant")
+  dueDiligenceReports   DueDiligenceReport[] @relation("DueDiligenceReviewer")
+  shariahReviews        ShariahReview[] @relation("ShariahReviewer")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  memberships Membership[]
+  permissions Permission[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles Role[]
+}
+
+model Membership {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  roleId         String
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model Workspace {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  type           String   @default("general")
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invitations  Invitation[]
+
+  @@index([organizationId])
+}
+
+model Invitation {
+  id             String   @id @default(uuid())
+  organizationId String
+  workspaceId    String?
+  email          String
+  roleCode       String?
+  token          String   @unique @default(uuid())
+  status         String   @default("pending")
+  invitedById    String?
+  acceptedById   String?
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  acceptedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  workspace    Workspace?   @relation(fields: [workspaceId], references: [id])
+  invitedBy    User?        @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+  acceptedBy   User?        @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id])
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid())
+  organizationId String?
+  actorUserId    String?
+  eventType      String
+  entityType     String?
+  entityId       String?
+  correlationId  String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  actorUser    User?         @relation(fields: [actorUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([actorUserId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  code           String?
+  description    String?
+  status         String   @default("active")
+  budget         Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  requisitions Requisition[]
+  evidencePacks EvidencePack[]
+  financeOpportunities ProcurementOpportunity[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Supplier {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  quotations     Quotation[]
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Requisition {
+  id              String    @id @default(uuid())
+  organizationId  String
+  projectId       String?
+  requesterUserId String?
+  title           String
+  justification   String?
+  status          String    @default("DRAFT")
+  totalAmount     Float     @default(0)
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  project          Project?          @relation(fields: [projectId], references: [id])
+  requesterUser    User?             @relation("RequisitionRequester", fields: [requesterUserId], references: [id])
+  items            RequisitionItem[]
+  approvalRequests ApprovalRequest[]
+  rfqs             RFQ[]
+  purchaseOrders   PurchaseOrder[]
+  financeOpportunities ProcurementOpportunity[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([requesterUserId])
+  @@index([status])
+}
+
+model RequisitionItem {
+  id            String   @id @default(uuid())
+  requisitionId String
+  description   String
+  category      String?
+  quantity      Float
+  unitPrice     Float
+  createdAt     DateTime @default(now())
+
+  requisition Requisition @relation(fields: [requisitionId], references: [id])
+  rfqItems    RFQItem[]
+
+  @@index([requisitionId])
+}
+
+model ApprovalRequest {
+  id             String    @id @default(uuid())
+  requisitionId  String
+  approverUserId String?
+  status         String    @default("PENDING")
+  decision       String?
+  comment        String?
+  decidedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  requisition  Requisition @relation(fields: [requisitionId], references: [id])
+  approverUser User?       @relation("ApprovalApprover", fields: [approverUserId], references: [id])
+
+  @@index([requisitionId])
+  @@index([approverUserId])
+  @@index([status])
+}
+
+model RFQ {
+  id             String    @id @default(uuid())
+  organizationId String
+  requisitionId  String
+  title          String
+  status         String    @default("DRAFT")
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  requisition  Requisition     @relation(fields: [requisitionId], references: [id])
+  items        RFQItem[]
+  quotations   Quotation[]
+
+  @@index([organizationId])
+  @@index([requisitionId])
+  @@index([status])
+}
+
+model RFQItem {
+  id                String  @id @default(uuid())
+  rfqId             String
+  requisitionItemId String?
+  description       String
+  quantity          Float
+  targetPrice       Float?
+
+  rfq             RFQ              @relation(fields: [rfqId], references: [id])
+  requisitionItem RequisitionItem? @relation(fields: [requisitionItemId], references: [id])
+  quotationItems  QuotationItem[]
+
+  @@index([rfqId])
+  @@index([requisitionItemId])
+}
+
+model Quotation {
+  id             String   @id @default(uuid())
+  organizationId String
+  rfqId          String
+  supplierId     String
+  status         String   @default("RECEIVED")
+  totalAmount    Float    @default(0)
+  receivedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  rfq            RFQ             @relation(fields: [rfqId], references: [id])
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  items          QuotationItem[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([organizationId])
+  @@index([rfqId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model QuotationItem {
+  id          String   @id @default(uuid())
+  quotationId String
+  rfqItemId   String?
+  description String
+  quantity    Float
+  unitPrice   Float
+  createdAt   DateTime @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  rfqItem   RFQItem?  @relation(fields: [rfqItemId], references: [id])
+
+  @@index([quotationId])
+  @@index([rfqItemId])
+}
+
+model PurchaseOrder {
+  id             String    @id @default(uuid())
+  organizationId String
+  requisitionId  String
+  quotationId    String?
+  supplierId     String
+  poNumber       String
+  status         String    @default("DRAFT")
+  totalAmount    Float     @default(0)
+  issuedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  requisition  Requisition         @relation(fields: [requisitionId], references: [id])
+  quotation    Quotation?          @relation(fields: [quotationId], references: [id])
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  items        PurchaseOrderItem[]
+  receipts     Receipt[]
+  invoices     Invoice[]
+  financeOpportunities ProcurementOpportunity[]
+
+  @@unique([organizationId, poNumber])
+  @@index([requisitionId])
+  @@index([quotationId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(uuid())
+  purchaseOrderId String
+  description     String
+  quantity        Float
+  unitPrice       Float
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  @@index([purchaseOrderId])
+}
+
+model Receipt {
+  id              String   @id @default(uuid())
+  organizationId  String
+  purchaseOrderId String
+  status          String   @default("RECORDED")
+  receivedAt      DateTime @default(now())
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  @@index([organizationId])
+  @@index([purchaseOrderId])
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+  organizationId  String
+  purchaseOrderId String
+  supplierId      String
+  invoiceNumber   String
+  amount          Float
+  status          String   @default("RECORDED")
+  issuedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  supplier      Supplier      @relation(fields: [supplierId], references: [id])
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+}
+
+model Document {
+  id               String   @id @default(uuid())
+  organizationId   String
+  title            String
+  documentType     String
+  description      String?
+  linkedEntityType String?
+  linkedEntityId   String?
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  versions     DocumentVersion[]
+  evidenceItems EvidenceItem[]
+
+  @@index([organizationId])
+  @@index([linkedEntityType, linkedEntityId])
+  @@index([status])
+}
+
+model DocumentVersion {
+  id              String   @id @default(uuid())
+  documentId      String
+  versionNumber   Int
+  fileName        String
+  mimeType        String?
+  storageUri      String?
+  sizeBytes       Int?
+  hashAlgorithm   String   @default("SHA-256")
+  contentHash     String?
+  metadata        Json?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  document      Document @relation(fields: [documentId], references: [id])
+  createdByUser User?    @relation("DocumentVersionCreatedBy", fields: [createdByUserId], references: [id])
+  evidenceItems EvidenceItem[]
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@index([createdByUserId])
+  @@index([contentHash])
+}
+
+model EvidenceItem {
+  id                String   @id @default(uuid())
+  organizationId    String
+  evidencePackId    String?
+  documentId        String?
+  documentVersionId String?
+  entityType        String
+  entityId          String
+  label             String
+  evidenceType      String
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  evidencePack    EvidencePack?    @relation(fields: [evidencePackId], references: [id])
+  document        Document?        @relation(fields: [documentId], references: [id])
+  documentVersion DocumentVersion? @relation(fields: [documentVersionId], references: [id])
+  financeChecklistItems EvidenceChecklistItem[]
+
+  @@index([organizationId])
+  @@index([evidencePackId])
+  @@index([documentId])
+  @@index([documentVersionId])
+  @@index([entityType, entityId])
+}
+
+model EvidencePack {
+  id             String    @id @default(uuid())
+  organizationId String
+  projectId      String?
+  title          String
+  status         String    @default("DRAFT")
+  summary        Json?
+  exportedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id])
+  project      Project?       @relation(fields: [projectId], references: [id])
+  items        EvidenceItem[]
+  financeOpportunities ProcurementOpportunity[]
+  closurePacks ClosurePack[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model HashRecord {
+  id             String   @id @default(uuid())
+  organizationId String?
+  entityType     String
+  entityId       String
+  hashAlgorithm  String   @default("SHA-256")
+  canonicalHash  String
+  canonicalJson  Json
+  canonicalText  String
+  createdAt      DateTime @default(now())
+  verifiedAt     DateTime?
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([canonicalHash])
+}
+
+model AuditAnchor {
+  id               String    @id @default(uuid())
+  organizationId   String?
+  anchorType       String    @default("LOCAL")
+  status           String    @default("PENDING")
+  fromAuditEventId String?
+  toAuditEventId   String?
+  rootHash         String
+  metadata         Json?
+  anchoredAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OutboxEvent {
+  id             String    @id @default(uuid())
+  organizationId String?
+  eventType      String
+  aggregateType  String
+  aggregateId    String
+  payload        Json
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  nextRunAt      DateTime  @default(now())
+  availableAt    DateTime?
+  lastError      String?
+  idempotencyKey String?   @unique
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime? @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  reconciliationRecord IntegrationReconciliationRecord?
+  webhookDeliveries WebhookDelivery[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([aggregateType, aggregateId])
+  @@index([nextRunAt])
+}
+
+model IntegrationReconciliationRecord {
+  id                String   @id @default(uuid())
+  organizationId    String?
+  outboxEventId     String?  @unique
+  integrationType   String
+  aggregateType     String
+  aggregateId       String
+  externalReference String?
+  status            String   @default("PENDING")
+  requestPayload    Json
+  responsePayload   Json?
+  lastError         String?
+  attempts          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  outboxEvent  OutboxEvent?  @relation(fields: [outboxEventId], references: [id])
+
+  @@index([organizationId])
+  @@index([integrationType])
+  @@index([status])
+  @@index([aggregateType, aggregateId])
+}
+
+model WebhookSubscription {
+  id             String   @id @default(uuid())
+  organizationId String?
+  eventType      String
+  targetUrl      String
+  secret         String?
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  deliveries   WebhookDelivery[]
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([status])
+}
+
+model WebhookDelivery {
+  id             String    @id @default(uuid())
+  organizationId String?
+  subscriptionId String?
+  outboxEventId  String?
+  eventType      String
+  targetUrl      String
+  payload        Json
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  organization Organization?        @relation(fields: [organizationId], references: [id])
+  subscription WebhookSubscription? @relation(fields: [subscriptionId], references: [id])
+  outboxEvent  OutboxEvent?         @relation(fields: [outboxEventId], references: [id])
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([status])
+  @@index([outboxEventId])
+}
+
+model ProcurementOpportunity {
+  id              String   @id @default(uuid())
+  organizationId  String
+  projectId       String
+  requisitionId   String?
+  purchaseOrderId String?
+  evidencePackId  String?
+  title           String
+  description     String?
+  status          String   @default("OPEN")
+  estimatedCapital Float   @default(0)
+  expectedProfit   Float?
+  currency        String   @default("MYR")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  project       Project      @relation(fields: [projectId], references: [id])
+  requisition   Requisition? @relation(fields: [requisitionId], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  evidencePack  EvidencePack? @relation(fields: [evidencePackId], references: [id])
+  applications  MudarabahApplication[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([requisitionId])
+  @@index([purchaseOrderId])
+  @@index([evidencePackId])
+  @@index([status])
+}
+
+model MudarabahApplication {
+  id                String    @id @default(uuid())
+  organizationId    String
+  opportunityId     String
+  applicantUserId   String?
+  status            String    @default("DRAFT")
+  requestedCapital  Float
+  capitalProviderRatio Float   @default(0.6)
+  entrepreneurRatio Float      @default(0.4)
+  currency          String    @default("MYR")
+  purpose           String?
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  rejectionReason   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  opportunity  ProcurementOpportunity @relation(fields: [opportunityId], references: [id])
+  applicantUser User? @relation("MudarabahApplicant", fields: [applicantUserId], references: [id])
+  evidenceChecklist EvidenceChecklist?
+  dueDiligenceReports DueDiligenceReport[]
+  shariahReviews ShariahReview[]
+  contracts MudarabahContract[]
+  disbursements Disbursement[]
+  ledgerEntries ProjectLedgerEntry[]
+  profitLossStatements ProfitLossStatement[]
+  lossExceptions LossException[]
+  closurePacks ClosurePack[]
+
+  @@index([organizationId])
+  @@index([opportunityId])
+  @@index([applicantUserId])
+  @@index([status])
+}
+
+model EvidenceChecklist {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String   @unique
+  status         String   @default("PENDING")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  items EvidenceChecklistItem[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model EvidenceChecklistItem {
+  id             String    @id @default(uuid())
+  checklistId    String
+  evidenceItemId String?
+  requiredCode   String
+  label          String
+  status         String    @default("PENDING")
+  completedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+
+  checklist EvidenceChecklist @relation(fields: [checklistId], references: [id])
+  evidenceItem EvidenceItem? @relation(fields: [evidenceItemId], references: [id])
+
+  @@index([checklistId])
+  @@index([evidenceItemId])
+  @@index([status])
+}
+
+model DueDiligenceReport {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  reviewerUserId String?
+  status         String   @default("PENDING")
+  riskRating     String?
+  decision       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  reviewerUser User? @relation("DueDiligenceReviewer", fields: [reviewerUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([reviewerUserId])
+  @@index([status])
+}
+
+model ShariahReview {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  reviewerUserId String?
+  status         String   @default("PENDING")
+  decision       String?
+  opinion        String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  reviewerUser User? @relation("ShariahReviewer", fields: [reviewerUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([reviewerUserId])
+  @@index([status])
+}
+
+model MudarabahContract {
+  id             String    @id @default(uuid())
+  organizationId String
+  applicationId  String
+  documentId     String?
+  contractNumber String
+  status         String    @default("PENDING_SIGNATURE")
+  restrictedUse  String?
+  signedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+
+  @@unique([organizationId, contractNumber])
+  @@index([applicationId])
+  @@index([status])
+}
+
+model Disbursement {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  contractId     String?
+  amount         Float
+  currency       String   @default("MYR")
+  disbursedAt    DateTime @default(now())
+  reference      String?
+  status         String   @default("RECORDED")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([contractId])
+}
+
+model ProjectLedgerEntry {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  entryType      String
+  description    String
+  amount         Float
+  currency       String   @default("MYR")
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([entryType])
+}
+
+model ProfitLossStatement {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  revenue        Float
+  costs          Float
+  netProfit      Float
+  status         String   @default("CALCULATED")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  distributions ProfitDistribution[]
+  lossExceptions LossException[]
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([status])
+}
+
+model ProfitDistribution {
+  id             String   @id @default(uuid())
+  organizationId String
+  statementId    String
+  party          String
+  ratio          Float
+  amount         Float
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  statement ProfitLossStatement @relation(fields: [statementId], references: [id])
+
+  @@index([organizationId])
+  @@index([statementId])
+}
+
+model LossException {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  statementId    String?
+  exceptionType  String
+  amount         Float
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  statement ProfitLossStatement? @relation(fields: [statementId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([statementId])
+}
+
+model ClosurePack {
+  id             String   @id @default(uuid())
+  organizationId String
+  applicationId  String
+  evidencePackId String?
+  status         String   @default("EXPORTED")
+  summary        Json?
+  exportedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application MudarabahApplication @relation(fields: [applicationId], references: [id])
+  evidencePack EvidencePack? @relation(fields: [evidencePackId], references: [id])
+
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([evidencePackId])
+  @@index([status])
+}

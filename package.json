@@ -1,0 +1,16 @@
+{
+  "name": "mepn",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "postinstall": "corepack pnpm --dir apps/api exec prisma generate --schema prisma/schema.prisma",
+    "dev:web": "corepack pnpm --dir apps/web dev",
+    "dev:api": "corepack pnpm --dir apps/api start:dev",
+    "dev:worker": "corepack pnpm --dir apps/worker start:dev",
+    "dev": "corepack pnpm -r --parallel dev",
+    "lint": "corepack pnpm -r lint",
+    "prisma:generate": "corepack pnpm --dir apps/api exec prisma generate --schema prisma/schema.prisma",
+    "test": "corepack pnpm -r test"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
