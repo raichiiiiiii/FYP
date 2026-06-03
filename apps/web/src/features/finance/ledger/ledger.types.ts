@@ -108,3 +108,10 @@ export type LedgerEvidenceLink = {
   role: 'revenue' | 'allowed_cost' | 'capital' | 'other'
   entryId: string
 }
+
+export type LedgerEntryGroup = {
+  id: 'revenue' | 'allowed_cost' | 'capital' | 'other'
+  title: string
+  description: string
+  entries: ProjectLedgerEntry[]
+}

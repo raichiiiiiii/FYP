@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calculateProfitLossSummary,
+  formatProfitShareRatio,
+  getLossTreatmentExplanation,
+  groupLedgerEntriesByReviewRole,
   hasGuaranteedFixedReturnPattern,
   mapLedgerEntry,
   mapProfitLossStatement,
@@ -50,6 +53,8 @@ describe('mudarabah ledger and profit/loss model', () => {
       'revenue',
       'allowed_cost',
     ])
+    expect(formatProfitShareRatio(0.6)).toBe('60%')
+    expect(formatProfitShareRatio(40)).toBe('40%')
   })
 
   it('shows genuine loss without calculating a profit distribution', () => {
@@ -82,6 +87,9 @@ describe('mudarabah ledger and profit/loss model', () => {
     expect(summary.netProfitOrLoss).toBe(-22000)
     expect(summary.distribution).toBeUndefined()
     expect(summary.status).toBe('review_required')
+    expect(getLossTreatmentExplanation(summary)).toContain(
+      'No profit distribution is calculated',
+    )
   })
 
   it('maps backend loss exception statements into loss exception status', () => {
@@ -107,6 +115,9 @@ describe('mudarabah ledger and profit/loss model', () => {
     })
 
     expect(summary.status).toBe('loss_exception')
+    expect(getLossTreatmentExplanation(summary)).toContain(
+      'classify genuine commercial loss separately',
+    )
     expect(summary.lossExceptions).toEqual([
       {
         id: 'loss-001',
@@ -151,5 +162,45 @@ describe('mudarabah ledger and profit/loss model', () => {
         fixedReturnRate: 0.1,
       }),
     ).toBe(true)
+  })
+
+  it('groups ledger entries by reviewer evidence role', () => {
+    const groups = groupLedgerEntriesByReviewRole([
+      mapLedgerEntry({
+        id: 'capital',
+        applicationId: 'app-grouped',
+        entryType: 'CAPITAL',
+        amount: 10000,
+        description: 'Capital disbursed',
+      }),
+      mapLedgerEntry({
+        id: 'revenue',
+        applicationId: 'app-grouped',
+        entryType: 'REVENUE',
+        amount: 15000,
+        description: 'Buyer receipt',
+      }),
+      mapLedgerEntry({
+        id: 'cost',
+        applicationId: 'app-grouped',
+        entryType: 'COST',
+        amount: 8000,
+        description: 'Supplier payment',
+      }),
+      mapLedgerEntry({
+        id: 'loss',
+        applicationId: 'app-grouped',
+        entryType: 'LOSS_RECOGNITION',
+        amount: 1000,
+        description: 'Loss recognition',
+      }),
+    ])
+
+    expect(groups.map((group) => [group.id, group.entries.length])).toEqual([
+      ['revenue', 1],
+      ['allowed_cost', 1],
+      ['capital', 1],
+      ['other', 1],
+    ])
   })
 })

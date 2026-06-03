@@ -2583,6 +2583,12 @@ textarea {
   grid-template-columns: 1.4fr 0.7fr 0.8fr 1fr;
 }
 
+.data-table--ledger article > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .data-table--closure article {
   align-items: start;
   grid-template-columns: 1.4fr 0.75fr 1fr 0.8fr;
@@ -3059,10 +3065,78 @@ textarea {
   margin-top: 24px;
 }
 
+.finance-review-hero {
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+  margin-top: 24px;
+  padding: 18px;
+}
+
+.finance-review-hero span,
+.finance-pl-panel-header span,
+.finance-ratio-strip span,
+.finance-ledger-group__header span,
+.finance-pl-create p,
+.section-heading-row p {
+  color: var(--muted);
+}
+
+.finance-review-hero span,
+.finance-pl-panel-header span,
+.finance-ratio-strip span,
+.finance-ledger-group__header span {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.finance-review-hero h2,
+.finance-pl-panel-header h2,
+.finance-ledger-group__header h3 {
+  color: var(--text-strong);
+  margin: 4px 0 0;
+}
+
+.finance-review-hero h2 {
+  font-size: 24px;
+}
+
+.finance-review-hero p,
+.finance-review-hero__callout span,
+.finance-pl-create p,
+.finance-ledger-group__header p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.finance-review-hero__callout {
+  align-content: center;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #9a4a05;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.finance-review-hero__callout strong {
+  color: #7c2d12;
+  font-size: 18px;
+}
+
 .finance-ledger-summary article,
 .finance-pl-panel,
 .finance-pl-list > article,
-.finance-distribution-grid article {
+.finance-distribution-grid article,
+.finance-ratio-strip article,
+.finance-ledger-group {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -3108,11 +3182,20 @@ textarea {
   gap: 14px;
 }
 
+.finance-pl-create {
+  margin-top: 24px;
+}
+
 .finance-pl-panel h2,
 .finance-evidence-list h3 {
   color: var(--text-strong);
   font-size: 18px;
   margin: 0;
+}
+
+.finance-pl-panel-header {
+  display: grid;
+  gap: 4px;
 }
 
 .finance-pl-panel dl {
@@ -3148,6 +3231,35 @@ textarea {
 .finance-pl-list > article {
   display: grid;
   gap: 14px;
+}
+
+.finance-ratio-strip {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.finance-ratio-strip strong {
+  color: var(--text-strong);
+  display: block;
+  font-size: 18px;
+  margin-top: 6px;
+}
+
+.finance-ledger-groups {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.finance-ledger-group {
+  display: grid;
+  gap: 12px;
+}
+
+.finance-ledger-group__header {
+  display: grid;
+  gap: 4px;
 }
 
 .finance-pl-header {
@@ -3507,12 +3619,14 @@ textarea {
   .finance-workspace-summary,
   .finance-workspace-mini-grid,
   .finance-review-grid,
+  .finance-review-hero,
   .application-review-meta,
   .graph-toolbar,
   .graph-summary,
   .finance-ledger-summary,
   .finance-ledger-grid,
   .finance-distribution-grid,
+  .finance-ratio-strip,
   .integration-action-grid,
   .status-card-grid,
   .status-card-grid--operations,

@@ -21,7 +21,10 @@ import { ApplicationsPage } from './applications/ApplicationsPage'
 import {
   calculateProfitLossSummary,
   displayLedgerEntryType,
+  formatProfitShareRatio,
+  getLossTreatmentExplanation,
   getProfitLossFinding,
+  groupLedgerEntriesByReviewRole,
   hasGuaranteedFixedReturnPattern,
   mapLedgerEntry,
   mapProfitLossStatement,
@@ -1914,11 +1917,40 @@ function LedgersScreen({
       mudarib: selectedApplication?.entrepreneurRatio ?? 0.4,
     },
   })
+  const groupedLedgerEntries = groupLedgerEntriesByReviewRole(selectedEntries)
+  const positiveDistributionReady = Boolean(preliminarySummary.distribution)
+  const ledgerFinding = getProfitLossFinding(preliminarySummary)
+  const lossTreatment = getLossTreatmentExplanation(preliminarySummary)
 
   return (
     <>
-      <PageHeader eyebrow="Project ledger" title="Ledger entries" />
-      <section className="finance-ledger-summary" aria-label="Preliminary profit and loss">
+      <PageHeader
+        eyebrow="Project ledger"
+        title="Ledger and profit/loss review"
+      />
+      <section className="finance-review-hero">
+        <div>
+          <span>Reviewer scope</span>
+          <h2>Project accounting evidence before closure</h2>
+          <p>
+            Ledger records separate buyer revenue, allowable project costs,
+            capital monitoring, and exception entries. Profit is shared only from
+            realized positive net profit using the approved ratio.
+          </p>
+        </div>
+        <div className="finance-review-hero__callout">
+          <strong>No guaranteed fixed return</strong>
+          <span>
+            Capital records support monitoring and audit. They are not used to
+            calculate a fixed financier return.
+          </span>
+        </div>
+      </section>
+
+      <section
+        className="finance-ledger-summary"
+        aria-label="Preliminary profit and loss"
+      >
         <article>
           <span>Total revenue</span>
           <strong>
@@ -2005,16 +2037,30 @@ function LedgersScreen({
         </form>
 
         <aside className="finance-pl-panel">
-          <h2>Distribution preview</h2>
-          <p>{getProfitLossFinding(preliminarySummary)}</p>
+          <div className="finance-pl-panel-header">
+            <span>Reviewer explanation</span>
+            <h2>Distribution preview</h2>
+          </div>
+          <p>{ledgerFinding}</p>
+          <p className={positiveDistributionReady ? 'finance-safe-note' : 'finance-blocked-note'}>
+            {lossTreatment}
+          </p>
           <dl>
             <div>
               <dt>Rabb-ul-Mal ratio</dt>
-              <dd>{preliminarySummary.profitShareRatio.rabbUlMal}</dd>
+              <dd>
+                {formatProfitShareRatio(
+                  preliminarySummary.profitShareRatio.rabbUlMal,
+                )}
+              </dd>
             </div>
             <div>
               <dt>Mudarib ratio</dt>
-              <dd>{preliminarySummary.profitShareRatio.mudarib}</dd>
+              <dd>
+                {formatProfitShareRatio(
+                  preliminarySummary.profitShareRatio.mudarib,
+                )}
+              </dd>
             </div>
             <div>
               <dt>Rabb-ul-Mal share</dt>
@@ -2036,8 +2082,9 @@ function LedgersScreen({
             </div>
           </dl>
           <p className="notice">
-            No fixed return is calculated. Distribution appears only when
-            realized project profit is positive.
+            Distribution appears only when realized project profit is positive.
+            A genuine commercial loss does not produce a profit distribution or
+            guaranteed capital return.
           </p>
           {preliminarySummary.evidenceLineage.length ? (
             <div className="finance-evidence-list">
@@ -2055,23 +2102,48 @@ function LedgersScreen({
       </section>
 
       <section className="table-section">
-        <h2>Ledger records</h2>
+        <div className="section-heading-row">
+          <div>
+            <h2>Ledger records</h2>
+            <p>
+              Entries are grouped by reviewer purpose so revenue, costs, capital,
+              and exceptions can be checked separately.
+            </p>
+          </div>
+        </div>
         {selectedEntries.length ? (
-          <div className="data-table data-table--ledger">
-            {selectedEntries.map((entry) => (
-              <article key={entry.id}>
-                <div>
-                  <strong>{displayLedgerEntryType(entry.type)}</strong>
-                  <span>{entry.description}</span>
+          <div className="finance-ledger-groups">
+            {groupedLedgerEntries.map((group) => (
+              <section className="finance-ledger-group" key={group.id}>
+                <div className="finance-ledger-group__header">
+                  <div>
+                    <span>{group.entries.length} record(s)</span>
+                    <h3>{group.title}</h3>
+                    <p>{group.description}</p>
+                  </div>
                 </div>
-                <span>{formatCurrency(entry.amount, entry.currency)}</span>
-                <span>{formatDateTime(entry.occurredAt)}</span>
-                <span>
-                  {entry.sourceDocumentLabel ||
-                    entry.sourceDocumentId ||
-                    'No linked evidence'}
-                </span>
-              </article>
+                {group.entries.length ? (
+                  <div className="data-table data-table--ledger">
+                    {group.entries.map((entry) => (
+                      <article key={entry.id}>
+                        <div>
+                          <strong>{displayLedgerEntryType(entry.type)}</strong>
+                          <span>{entry.description}</span>
+                        </div>
+                        <span>{formatCurrency(entry.amount, entry.currency)}</span>
+                        <span>{formatDateTime(entry.occurredAt)}</span>
+                        <span>
+                          {entry.sourceDocumentLabel ||
+                            entry.sourceDocumentId ||
+                            'No linked evidence'}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyNotice>No records in this group yet.</EmptyNotice>
+                )}
+              </section>
             ))}
           </div>
         ) : (
@@ -2181,11 +2253,37 @@ function ProfitLossScreen({
   return (
     <>
       <PageHeader eyebrow="Profit and loss" title="Profit/loss statements" />
+      <section className="finance-review-hero">
+        <div>
+          <span>Reviewer basis</span>
+          <h2>Ratio-based distribution, loss-classification aware</h2>
+          <p>
+            Profit/loss statements should be read as auditable project
+            calculations. Positive realized profit may be distributed by the
+            approved ratio; genuine loss and breach-related loss remain separate
+            review outcomes.
+          </p>
+        </div>
+        <div className="finance-review-hero__callout">
+          <strong>FR-38 control</strong>
+          <span>
+            This screen must never calculate a guaranteed fixed return on
+            capital. Any fixed-return-like term should be blocked for review.
+          </span>
+        </div>
+      </section>
       <form
-        className="form-grid"
+        className="form-grid finance-pl-create"
         onSubmit={(event) => void createStatement(event)}
       >
-        <h2>Generate statement</h2>
+        <div>
+          <h2>Generate statement</h2>
+          <p>
+            Use backend ledger totals by default. Overrides are for controlled
+            review scenarios and should match linked evidence or authorized
+            waiver decisions.
+          </p>
+        </div>
         <ApplicationSelector
           applications={applications}
           value={applicationId}
@@ -2228,6 +2326,12 @@ function ProfitLossScreen({
               const fixedReturnDetected = hasGuaranteedFixedReturnPattern({
                 summary,
               })
+              const lossExplanation = getLossTreatmentExplanation(summary)
+              const statusTone =
+                summary.status === 'loss_exception' ||
+                summary.status === 'review_required'
+                  ? 'finance-blocked-note'
+                  : 'finance-safe-note'
 
               return (
                 <article key={sourceStatement.id || summary.applicationId}>
@@ -2241,6 +2345,7 @@ function ProfitLossScreen({
                     </div>
                     <StatusTag status={summary.status.toUpperCase()} />
                   </div>
+                  <p className={statusTone}>{lossExplanation}</p>
                   <div className="finance-ledger-summary">
                     <article>
                       <span>Revenue</span>
@@ -2270,8 +2375,36 @@ function ProfitLossScreen({
                       </strong>
                     </article>
                     <article>
-                      <span>Fixed return check</span>
-                      <strong>{fixedReturnDetected ? 'Blocked' : 'Clear'}</strong>
+                      <span>Guaranteed return check</span>
+                      <strong>
+                        {fixedReturnDetected ? 'Blocked' : 'None detected'}
+                      </strong>
+                    </article>
+                  </div>
+                  <div className="finance-ratio-strip">
+                    <article>
+                      <span>Rabb-ul-Mal ratio</span>
+                      <strong>
+                        {formatProfitShareRatio(
+                          summary.profitShareRatio.rabbUlMal,
+                        )}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Mudarib ratio</span>
+                      <strong>
+                        {formatProfitShareRatio(
+                          summary.profitShareRatio.mudarib,
+                        )}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Loss treatment</span>
+                      <strong>
+                        {summary.netProfitOrLoss < 0
+                          ? 'Exception review'
+                          : 'Not triggered'}
+                      </strong>
                     </article>
                   </div>
                   {summary.distribution ? (
@@ -2298,7 +2431,8 @@ function ProfitLossScreen({
                   ) : (
                     <p className="notice">
                       No profit distribution is shown because realized profit is
-                      not positive.
+                      not positive. This avoids treating loss or break-even
+                      outcomes as guaranteed financier return.
                     </p>
                   )}
                   {summary.lossExceptions.length ? (
@@ -2310,6 +2444,14 @@ function ProfitLossScreen({
                           {formatCurrency(exception.amount, summary.currency)}
                         </span>
                       ))}
+                    </div>
+                  ) : summary.netProfitOrLoss < 0 ? (
+                    <div className="finance-evidence-list">
+                      <h3>Loss exception path</h3>
+                      <span>
+                        Pending classification: genuine commercial loss must be
+                        separated from negligence, misconduct, fraud, or breach.
+                      </span>
                     </div>
                   ) : null}
                 </article>
