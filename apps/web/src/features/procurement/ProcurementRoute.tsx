@@ -11,6 +11,7 @@ import { WorkflowStepper } from '../../shared/components/WorkflowStepper'
 import type { AppRoleCode } from '../../shared/types'
 import { formatCurrency, formatDateTime } from '../../shared/utils/formatting'
 import { useAuditTimeline } from '../evidence/api/useAuditTimeline'
+import { ProcurementHubPage } from './ProcurementHubPage'
 import { ProcurementPage } from './ProcurementPage'
 import { useApprovalRules } from './api/useApprovalRules'
 import { useApprovalTasks } from './api/useApprovalTasks'
@@ -2345,11 +2346,7 @@ export function ProcurementRoute({
       <Route
         index
         element={
-          <ProcurementPage
-            session={session}
-            navigate={navigate}
-            roleCodes={roleCodes}
-          />
+          <ProcurementHubPage session={session} navigate={navigate} />
         }
       />
       <Route path="projects" element={<ProjectsScreen session={session} />} />
