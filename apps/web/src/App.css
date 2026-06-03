@@ -3295,9 +3295,70 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.graph-hero {
+  align-items: stretch;
+  background:
+    linear-gradient(135deg, rgba(33, 92, 84, 0.1), rgba(64, 111, 159, 0.08)),
+    #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  margin-bottom: 18px;
+  padding: 22px;
+}
+
+.graph-hero span,
+.graph-inspector-card > span,
+.graph-canvas-meta span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.graph-hero h2,
+.graph-hero p,
+.graph-inspector-card h2,
+.graph-inspector-card p {
+  margin: 0;
+}
+
+.graph-hero h2 {
+  color: var(--text-strong);
+  font-size: 22px;
+  margin-top: 8px;
+}
+
+.graph-hero p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 8px;
+  max-width: 760px;
+}
+
+.graph-hero-note {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(150, 168, 180, 0.38);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.graph-hero-note strong {
+  color: var(--text-strong);
+}
+
 .graph-toolbar {
   align-items: end;
-  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+}
+
+.graph-toolbar .button {
+  min-height: 42px;
 }
 
 .graph-toggle {
@@ -3320,7 +3381,7 @@ textarea {
 
 .graph-summary {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin-top: 0;
 }
 
@@ -3328,13 +3389,51 @@ textarea {
   min-height: 74px;
 }
 
+.graph-workspace {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  margin-top: 24px;
+}
+
+.graph-canvas-panel {
+  min-width: 0;
+}
+
+.graph-canvas-meta {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.graph-canvas-meta div {
+  display: grid;
+  gap: 4px;
+}
+
+.graph-canvas-meta strong {
+  color: var(--text-strong);
+}
+
 .graph-canvas {
   background: #f8faf9;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-top: 24px;
+  border-radius: 0 0 8px 8px;
+  margin-top: 0;
   overflow: auto;
   padding: 18px;
+}
+
+.graph-canvas-zoom-frame {
+  min-width: 100%;
+  position: relative;
 }
 
 .graph-canvas-inner {
@@ -3344,6 +3443,7 @@ textarea {
   background-size: 40px 40px;
   min-width: 100%;
   position: relative;
+  transform-origin: top left;
 }
 
 .graph-edge-layer {
@@ -3397,9 +3497,17 @@ textarea {
   padding: 10px;
   position: absolute;
   text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
-.graph-node:hover {
+.graph-node:hover,
+.graph-node:focus-visible,
+.graph-node.is-selected {
+  border-color: var(--button-bg);
+  box-shadow: 0 12px 30px rgba(33, 92, 84, 0.2);
   transform: translateY(-1px);
 }
 
@@ -3494,16 +3602,20 @@ textarea {
   text-transform: uppercase;
 }
 
+.graph-risk--low,
 .graph-node .graph-risk--low {
   background: #e6f5ee;
   color: #176342;
 }
 
+.graph-risk--medium,
 .graph-node .graph-risk--medium {
   background: #fff4da;
   color: #765414;
 }
 
+.graph-risk--high,
+.graph-risk--critical,
 .graph-node .graph-risk--high,
 .graph-node .graph-risk--critical {
   background: #fdeceb;
@@ -3530,6 +3642,171 @@ textarea {
 .graph-node--opportunity,
 .graph-node--application {
   border-color: #88c2bd;
+}
+
+.graph-inspector {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.graph-inspector-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(23, 32, 42, 0.08);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.graph-inspector-card h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+}
+
+.graph-inspector-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.graph-detail-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.graph-detail-list div {
+  background: #f8faf9;
+  border: 1px solid #e2e8ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.graph-detail-list dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.graph-detail-list dd {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.graph-permission-note {
+  border-left: 5px solid #406f9f;
+}
+
+.graph-legend-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.graph-legend-grid article,
+.graph-relationship-list article {
+  align-items: start;
+  display: grid;
+  gap: 8px;
+}
+
+.graph-legend-grid article {
+  grid-template-columns: 14px minmax(0, 1fr);
+}
+
+.graph-legend-grid strong,
+.graph-relationship-list strong {
+  color: var(--text-strong);
+  font-size: 13px;
+}
+
+.graph-legend-grid p {
+  grid-column: 2;
+}
+
+.graph-legend-grid .is-muted,
+.graph-relationship-list .is-muted {
+  opacity: 0.55;
+}
+
+.graph-node-swatch {
+  border: 2px solid #d7e0e7;
+  border-radius: 5px;
+  display: inline-block;
+  height: 14px;
+  margin-top: 2px;
+  width: 14px;
+}
+
+.graph-node-swatch--organization {
+  border-color: #9ec5a8;
+}
+
+.graph-node-swatch--supplier {
+  border-color: #e1b879;
+}
+
+.graph-node-swatch--buyer {
+  border-color: #8eb6d9;
+}
+
+.graph-node-swatch--document {
+  border-color: #b7a3d8;
+}
+
+.graph-node-swatch--financier,
+.graph-node-swatch--opportunity,
+.graph-node-swatch--application {
+  border-color: #88c2bd;
+}
+
+.graph-relationship-list {
+  display: grid;
+  gap: 10px;
+}
+
+.graph-relationship-list article {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+
+.graph-edge-swatch {
+  border-top: 3px solid #96a8b4;
+  display: inline-block;
+  margin-top: 9px;
+  width: 32px;
+}
+
+.graph-edge-swatch--supplies {
+  border-color: #3b7c72;
+}
+
+.graph-edge-swatch--buys_from {
+  border-color: #406f9f;
+}
+
+.graph-edge-swatch--finances {
+  border-color: #8a5a9e;
+  border-top-style: dashed;
+}
+
+.graph-edge-swatch--evidences,
+.graph-edge-swatch--anchors {
+  border-color: #7d7a3d;
+  border-top-style: dashed;
+}
+
+.graph-risk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .dialog-backdrop {
@@ -3641,8 +3918,10 @@ textarea {
   .finance-review-grid,
   .finance-review-hero,
   .application-review-meta,
+  .graph-hero,
   .graph-toolbar,
   .graph-summary,
+  .graph-workspace,
   .finance-ledger-summary,
   .finance-ledger-grid,
   .finance-distribution-grid,
@@ -3752,5 +4031,9 @@ textarea {
 
   .setup-grid .field:first-child {
     grid-column: auto;
+  }
+
+  .graph-detail-list {
+    grid-template-columns: 1fr;
   }
 }
