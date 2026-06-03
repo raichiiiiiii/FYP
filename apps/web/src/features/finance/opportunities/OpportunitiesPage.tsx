@@ -23,12 +23,16 @@ import type {
   PurchaseOrderOption,
 } from './opportunities.types'
 import {
+  buildOpportunityMetrics,
   buildDraftApplicationPayload,
   buildOpportunityCreatePayload,
   canCreateDraftApplication,
   canCreateOpportunity,
   canViewOpportunities,
   mapOpportunities,
+  opportunityBlockedReason,
+  opportunityProjectedMargin,
+  opportunityReadinessPercent,
   opportunitySourceLabels,
 } from './opportunities.validation'
 
@@ -68,6 +72,10 @@ export function OpportunitiesPage({
         ? mapOpportunities(state.data.opportunities)
         : [],
     [state],
+  )
+  const opportunityMetrics = useMemo(
+    () => buildOpportunityMetrics(opportunities),
+    [opportunities],
   )
 
   const loadData = useCallback(async (): Promise<OpportunityLoadData> => {
@@ -218,81 +226,145 @@ export function OpportunitiesPage({
       {message ? <p className="notice">{message}</p> : null}
 
       {state.status === 'ready' ? (
-        <>
-          <CreateOpportunityForm
-            projects={state.data.projects}
-            purchaseOrders={state.data.purchaseOrders}
-            evidencePacks={state.data.evidencePacks}
-            canCreate={canCreate}
-            isSubmitting={isSubmitting}
-            onSubmit={createOpportunity}
-          />
+        <div className="finance-opportunity-shell">
+          <section className="finance-metric-grid" aria-label="Opportunity summary">
+            {opportunityMetrics.map((metric) => (
+              <article
+                className={`finance-metric-card finance-metric-card--${metric.tone}`}
+                key={metric.label}
+              >
+                <span>{metric.label}</span>
+                <strong>
+                  {metric.format === 'currency'
+                    ? formatCurrency(metric.value)
+                    : metric.value}
+                </strong>
+                <small>{metric.detail}</small>
+              </article>
+            ))}
+          </section>
 
-          <section className="table-section">
-            <h2>Opportunity records</h2>
+          <section className="finance-two-column">
+            <article className="finance-guidance-panel">
+              <span className="eyebrow">Eligibility guard</span>
+              <h2>Revenue evidence first</h2>
+              <p>
+                Mudarabah applications must start from buyer demand that can
+                produce separately measurable project revenue. Internal
+                consumption remains a procurement record, not a finance
+                opportunity.
+              </p>
+              <div className="finance-rule-list" aria-label="Opportunity rules">
+                <span>Buyer PO, contract award, sales order, tender result, or equivalent document</span>
+                <span>Expected revenue must exceed expected cost</span>
+                <span>Application drafts are blocked once one already exists</span>
+              </div>
+            </article>
+
+            <CreateOpportunityForm
+              projects={state.data.projects}
+              purchaseOrders={state.data.purchaseOrders}
+              evidencePacks={state.data.evidencePacks}
+              canCreate={canCreate}
+              isSubmitting={isSubmitting}
+              onSubmit={createOpportunity}
+            />
+          </section>
+
+          <section className="finance-panel">
+            <div className="finance-panel-header">
+              <div>
+                <span className="eyebrow">Pipeline source</span>
+                <h2>Opportunity records</h2>
+              </div>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => navigate('/finance/applications')}
+              >
+                View applications
+              </button>
+            </div>
             {opportunities.length ? (
               <div className="opportunity-list">
-                {opportunities.map((opportunity) => (
-                  <article
-                    className={
-                      opportunity.isRevenueGenerating
-                        ? 'opportunity-card'
-                        : 'opportunity-card opportunity-card--blocked'
-                    }
-                    key={opportunity.id}
-                  >
-                    <div>
-                      <strong>{opportunity.title}</strong>
-                      <span>{opportunity.projectName ?? 'No project'}</span>
-                      <small>
-                        {opportunitySourceLabels[opportunity.sourceType]} -{' '}
-                        {opportunity.sourceDocumentId}
-                      </small>
-                    </div>
-                    <StatusBadge status={opportunity.status.toUpperCase()} />
-                    <div>
-                      <strong>
-                        {formatCurrency(
-                          opportunity.requestedCapitalAmount,
-                          opportunity.currency,
-                        )}
-                      </strong>
-                      <span>Requested capital</span>
-                    </div>
-                    <div>
-                      <strong>{opportunity.buyerName}</strong>
-                      <span>Buyer</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {formatCurrency(
-                          opportunity.expectedRevenueAmount -
-                            opportunity.expectedCostAmount,
-                          opportunity.currency,
-                        )}
-                      </strong>
-                      <span>Projected margin</span>
-                    </div>
-                    <div className="inline-actions">
-                      <button
-                        type="button"
-                        disabled={
-                          !canCreateDraftApplication(opportunity) ||
-                          isSubmitting
-                        }
-                        onClick={() => void createApplicationDraft(opportunity)}
-                      >
-                        Create draft application
-                      </button>
-                    </div>
-                    {!opportunity.isRevenueGenerating ? (
-                      <p className="error-text">
-                        Blocked: routine internal consumption cannot proceed to
-                        mudarabah financing.
-                      </p>
-                    ) : null}
-                  </article>
-                ))}
+                {opportunities.map((opportunity) => {
+                  const readiness = opportunityReadinessPercent(opportunity)
+                  const blockedReason = opportunityBlockedReason(opportunity)
+
+                  return (
+                    <article
+                      className={
+                        opportunity.isRevenueGenerating
+                          ? 'opportunity-card'
+                          : 'opportunity-card opportunity-card--blocked'
+                      }
+                      key={opportunity.id}
+                    >
+                      <div className="opportunity-card-main">
+                        <div className="opportunity-card-title">
+                          <strong>{opportunity.title}</strong>
+                          <StatusBadge status={opportunity.status.toUpperCase()} />
+                        </div>
+                        <span>{opportunity.projectName ?? 'No project linked'}</span>
+                        <small>
+                          {opportunitySourceLabels[opportunity.sourceType]} -{' '}
+                          {opportunity.sourceDocumentId}
+                        </small>
+                      </div>
+
+                      <div className="opportunity-readiness">
+                        <div>
+                          <strong>{readiness}%</strong>
+                          <span>Readiness</span>
+                        </div>
+                        <div
+                          className="finance-readiness-bar"
+                          aria-label={`Opportunity readiness ${readiness}%`}
+                        >
+                          <span style={{ width: `${readiness}%` }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <strong>
+                          {formatCurrency(
+                            opportunity.requestedCapitalAmount,
+                            opportunity.currency,
+                          )}
+                        </strong>
+                        <span>Requested capital</span>
+                      </div>
+                      <div>
+                        <strong>{opportunity.buyerName}</strong>
+                        <span>Buyer</span>
+                      </div>
+                      <div>
+                        <strong>
+                          {formatCurrency(
+                            opportunityProjectedMargin(opportunity),
+                            opportunity.currency,
+                          )}
+                        </strong>
+                        <span>Projected margin</span>
+                      </div>
+                      <div className="inline-actions">
+                        <button
+                          type="button"
+                          disabled={
+                            !canCreateDraftApplication(opportunity) ||
+                            isSubmitting
+                          }
+                          onClick={() => void createApplicationDraft(opportunity)}
+                        >
+                          Create draft application
+                        </button>
+                      </div>
+                      {blockedReason ? (
+                        <p className="error-text">Blocked: {blockedReason}</p>
+                      ) : null}
+                    </article>
+                  )
+                })}
               </div>
             ) : (
               <EmptyState title="No finance opportunities yet">
@@ -301,7 +373,7 @@ export function OpportunitiesPage({
               </EmptyState>
             )}
           </section>
-        </>
+        </div>
       ) : null}
     </>
   )

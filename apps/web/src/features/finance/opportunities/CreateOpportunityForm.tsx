@@ -36,6 +36,9 @@ export function CreateOpportunityForm({
   const [errors, setErrors] = useState<
     CreateOpportunityValidationResult['errors']
   >({})
+  const selectedPurchaseOrder = purchaseOrders.find(
+    (order) => order.id === values.purchaseOrderId,
+  )
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,8 +76,18 @@ export function CreateOpportunityForm({
   }
 
   return (
-    <form className="form-grid opportunity-form" onSubmit={(event) => void submit(event)}>
-      <h2>Create eligible opportunity</h2>
+    <form
+      className="form-grid opportunity-form"
+      onSubmit={(event) => void submit(event)}
+    >
+      <div className="opportunity-form-header">
+        <span className="eyebrow">Create opportunity</span>
+        <h2>Source-backed finance intake</h2>
+        <p>
+          Select a procurement project and external buyer evidence before
+          requesting restricted mudarabah capital.
+        </p>
+      </div>
       {!canCreate ? (
         <p className="notice">
           Your current role can view opportunities, but only SME admins can
@@ -128,6 +141,15 @@ export function CreateOpportunityForm({
         ) : null}
       </label>
 
+      <div className="opportunity-source-help">
+        <strong>Accepted revenue evidence</strong>
+        <p>
+          Buyer purchase order, contract award, sales order, tender result, or
+          equivalent document. Free-text capital requests and internal
+          consumption remain blocked.
+        </p>
+      </div>
+
       <label className="field">
         <span>Linked purchase order</span>
         <select
@@ -147,6 +169,17 @@ export function CreateOpportunityForm({
           external buyer document reference.
         </small>
       </label>
+
+      {selectedPurchaseOrder ? (
+        <div className="opportunity-prefill-preview">
+          <strong>PO prefill preview</strong>
+          <span>{selectedPurchaseOrder.poNumber}</span>
+          <small>
+            Cost and capital fields are prefilled from the internal PO. Confirm
+            the external buyer document before submitting.
+          </small>
+        </div>
+      ) : null}
 
       <label className="field">
         <span>Evidence pack</span>
@@ -217,6 +250,7 @@ export function CreateOpportunityForm({
       />
 
       <div className="opportunity-checks">
+        <strong>Eligibility confirmation</strong>
         <label>
           <input
             type="checkbox"

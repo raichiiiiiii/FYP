@@ -29,6 +29,14 @@ export type ProcurementOpportunity = {
   applicationCount: number
 }
 
+export type OpportunitySummaryMetric = {
+  label: string
+  value: number
+  detail: string
+  tone: 'neutral' | 'success' | 'warning' | 'danger'
+  format?: 'number' | 'currency'
+}
+
 export type CreateOpportunityFormValues = {
   projectId: string
   purchaseOrderId: string

@@ -36,6 +36,17 @@ export type ApplicationSummary = {
   dueAt?: string | null
   submittedAt?: string | null
   updatedAt?: string | null
+  gateSummary: readonly ApplicationGateSummary[]
+  readinessPercent: number
+  blockedReason?: string | null
+}
+
+export type ApplicationGateState = 'complete' | 'current' | 'blocked' | 'pending'
+
+export type ApplicationGateSummary = {
+  key: 'evidence' | 'due_diligence' | 'shariah' | 'contract' | 'closure'
+  label: string
+  state: ApplicationGateState
 }
 
 export type ApplicationFiltersState = {

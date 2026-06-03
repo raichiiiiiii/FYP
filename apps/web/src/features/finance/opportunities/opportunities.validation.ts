@@ -3,6 +3,7 @@ import type {
   CreateOpportunityValidationResult,
   OpportunityRawDto,
   OpportunitySourceType,
+  OpportunitySummaryMetric,
   ProcurementOpportunity,
 } from './opportunities.types'
 import type { AppRoleCode } from '../../../shared/types'
@@ -174,6 +175,88 @@ export function canCreateDraftApplication(opportunity: ProcurementOpportunity) {
     opportunity.isRevenueGenerating &&
     opportunity.applicationCount === 0
   )
+}
+
+export function opportunityProjectedMargin(opportunity: ProcurementOpportunity) {
+  return opportunity.expectedRevenueAmount - opportunity.expectedCostAmount
+}
+
+export function opportunityReadinessPercent(opportunity: ProcurementOpportunity) {
+  const checks = [
+    Boolean(opportunity.projectName),
+    Boolean(opportunity.sourceDocumentId),
+    Boolean(opportunity.buyerName),
+    opportunity.isRevenueGenerating,
+    opportunityProjectedMargin(opportunity) > 0,
+    Boolean(opportunity.evidencePackTitle),
+  ]
+
+  return Math.round(
+    (checks.filter(Boolean).length / checks.length) * 100,
+  )
+}
+
+export function opportunityBlockedReason(opportunity: ProcurementOpportunity) {
+  if (!opportunity.isRevenueGenerating) {
+    return 'Routine internal consumption or missing buyer revenue evidence cannot proceed to mudarabah financing.'
+  }
+
+  if (opportunityProjectedMargin(opportunity) <= 0) {
+    return 'Expected revenue must exceed expected cost before an application can be drafted.'
+  }
+
+  if (opportunity.applicationCount > 0) {
+    return 'An application already exists for this opportunity.'
+  }
+
+  if (opportunity.status !== 'ready_for_application') {
+    return 'This opportunity is not in a draft-ready state.'
+  }
+
+  return null
+}
+
+export function buildOpportunityMetrics(
+  opportunities: readonly ProcurementOpportunity[],
+): OpportunitySummaryMetric[] {
+  const eligible = opportunities.filter((opportunity) =>
+    opportunity.isRevenueGenerating,
+  )
+  const activePipeline = opportunities.filter(
+    (opportunity) => opportunity.status !== 'cancelled',
+  )
+
+  return [
+    {
+      label: 'Eligible opportunities',
+      value: eligible.length,
+      detail: 'Revenue-backed records',
+      tone: 'success',
+    },
+    {
+      label: 'Draft-ready',
+      value: opportunities.filter(canCreateDraftApplication).length,
+      detail: 'No application yet',
+      tone: 'warning',
+    },
+    {
+      label: 'Pipeline capital',
+      value: activePipeline.reduce(
+        (total, opportunity) => total + opportunity.requestedCapitalAmount,
+        0,
+      ),
+      detail: 'Requested capital',
+      tone: 'neutral',
+      format: 'currency',
+    },
+    {
+      label: 'Blocked',
+      value: opportunities.filter((opportunity) => !opportunity.isRevenueGenerating)
+        .length,
+      detail: 'Eligibility guard active',
+      tone: 'danger',
+    },
+  ]
 }
 
 export function defaultOpportunityValues(): CreateOpportunityFormValues {

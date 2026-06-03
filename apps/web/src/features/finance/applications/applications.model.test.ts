@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applicationWorkspaceRoute,
+  buildApplicationBlockedReason,
+  buildApplicationGateSummary,
+  buildApplicationReadinessPercent,
   filterApplications,
   normalizeApplicationStatus,
   sortApplications,
@@ -101,5 +104,28 @@ describe('applications model', () => {
     expect(applicationWorkspaceRoute('app 001')).toBe(
       '/finance/applications/app%20001',
     )
+  })
+
+  it('derives reviewer gate summaries and readiness without approving anything', () => {
+    const gates = buildApplicationGateSummary('shariah_review', 0)
+
+    expect(gates.find((gate) => gate.key === 'evidence')?.state).toBe(
+      'complete',
+    )
+    expect(gates.find((gate) => gate.key === 'due_diligence')?.state).toBe(
+      'complete',
+    )
+    expect(gates.find((gate) => gate.key === 'shariah')?.state).toBe('current')
+    expect(buildApplicationReadinessPercent(gates)).toBe(40)
+  })
+
+  it('explains blocked application states for evidence and reviews', () => {
+    expect(buildApplicationBlockedReason('evidence_required', 2)).toContain(
+      '2 evidence gaps',
+    )
+    expect(buildApplicationBlockedReason('due_diligence', 0)).toContain(
+      'Financier due diligence',
+    )
+    expect(buildApplicationBlockedReason('approved', 0)).toBeNull()
   })
 })

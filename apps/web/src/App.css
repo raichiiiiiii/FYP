@@ -1165,11 +1165,149 @@ select:focus-visible {
   border-left-color: #8da2b1;
 }
 
-.applications-summary,
+.finance-opportunity-shell,
 .applications-toolbar {
   display: grid;
   gap: 12px;
   margin-top: 24px;
+}
+
+.finance-opportunity-shell {
+  gap: 18px;
+}
+
+.finance-metric-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.finance-metric-card,
+.finance-guidance-panel,
+.finance-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.finance-metric-card {
+  border-top: 4px solid #8da2b1;
+  display: grid;
+  gap: 7px;
+  min-height: 118px;
+  padding: 18px;
+}
+
+.finance-metric-card--neutral {
+  border-top-color: #3b82f6;
+}
+
+.finance-metric-card--success {
+  border-top-color: var(--success);
+}
+
+.finance-metric-card--warning {
+  border-top-color: #d08a00;
+}
+
+.finance-metric-card--danger {
+  border-top-color: var(--danger);
+}
+
+.finance-metric-card span,
+.finance-metric-card small,
+.finance-guidance-panel span,
+.finance-rule-list span,
+.application-gate {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.finance-metric-card strong {
+  color: var(--text-strong);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.finance-metric-card small {
+  font-weight: 700;
+  text-transform: none;
+}
+
+.finance-two-column {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1fr);
+}
+
+.finance-guidance-panel,
+.finance-panel {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.finance-guidance-panel--compact {
+  margin-top: 18px;
+}
+
+.finance-guidance-panel h2,
+.finance-panel h2,
+.opportunity-form-header h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 0;
+}
+
+.finance-guidance-panel p,
+.opportunity-form-header p,
+.opportunity-source-help p,
+.opportunity-prefill-preview small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.finance-rule-list {
+  display: grid;
+  gap: 8px;
+}
+
+.finance-rule-list span {
+  background: #eef8f3;
+  border: 1px solid #cce8dc;
+  border-radius: 8px;
+  color: #176342;
+  padding: 10px;
+  text-transform: none;
+}
+
+.finance-panel-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.finance-readiness-bar {
+  background: #e5edf2;
+  border-radius: 999px;
+  height: 8px;
+  min-width: 96px;
+  overflow: hidden;
+}
+
+.finance-readiness-bar span {
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  display: block;
+  height: 100%;
 }
 
 .applications-summary {
@@ -1252,6 +1390,90 @@ select:focus-visible {
     minmax(90px, 0.6fr) auto;
   min-height: 74px;
   padding: 14px 16px;
+}
+
+.applications-table .application-pipeline-card {
+  align-items: stretch;
+  border-radius: 14px;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(120px, 0.55fr) minmax(150px, 0.65fr) minmax(210px, 0.95fr) minmax(180px, 0.85fr) auto;
+  padding: 16px;
+}
+
+.application-pipeline-title,
+.opportunity-card-title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.application-readiness,
+.application-review-meta,
+.application-pipeline-money {
+  display: grid;
+  gap: 7px;
+}
+
+.application-readiness strong,
+.application-pipeline-money strong,
+.opportunity-readiness strong {
+  color: var(--text-strong);
+}
+
+.application-review-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.application-gate-list {
+  align-content: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.application-gate {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 8px;
+  text-transform: none;
+}
+
+.application-gate--complete {
+  background: #eef8f3;
+  border-color: #cce8dc;
+  color: #176342;
+}
+
+.application-gate--current {
+  background: #fff4da;
+  border-color: #efd58f;
+  color: #765414;
+}
+
+.application-gate--blocked {
+  background: #fdeceb;
+  border-color: #f4c7c3;
+  color: #9f2d23;
+}
+
+.application-pipeline-actions {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-width: 132px;
+}
+
+.application-blocked-note {
+  background: #fff7f6;
+  border: 1px solid #f4c7c3;
+  border-radius: 8px;
+  color: #9f2d23;
+  font-size: 12px;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .access-denied-panel {
@@ -1531,17 +1753,55 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.opportunity-form h2,
+.opportunity-form-header,
 .opportunity-form .notice,
 .opportunity-form .error-text,
+.opportunity-source-help,
+.opportunity-prefill-preview,
 .opportunity-checks,
 .opportunity-form .form-actions {
   grid-column: 1 / -1;
 }
 
+.opportunity-form-header {
+  display: grid;
+  gap: 7px;
+}
+
+.opportunity-source-help,
+.opportunity-prefill-preview {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.opportunity-source-help strong,
+.opportunity-prefill-preview strong {
+  color: var(--text-strong);
+}
+
+.opportunity-prefill-preview {
+  background: #eef8f3;
+  border-color: #cce8dc;
+}
+
+.opportunity-prefill-preview span {
+  color: #176342;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .opportunity-checks {
   display: grid;
   gap: 10px;
+}
+
+.opportunity-checks > strong {
+  color: var(--text-strong);
 }
 
 .opportunity-checks label {
@@ -1564,14 +1824,16 @@ textarea {
 }
 
 .opportunity-card {
-  align-items: center;
+  align-items: start;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-left: 5px solid #3c7f72;
-  border-radius: 8px;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(180px, 1.25fr) auto repeat(3, minmax(110px, 0.7fr)) auto;
-  padding: 14px;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(140px, 0.65fr) repeat(3, minmax(120px, 0.7fr)) auto;
+  padding: 16px;
 }
 
 .opportunity-card--blocked {
@@ -1582,6 +1844,14 @@ textarea {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+
+.opportunity-card-main {
+  gap: 6px;
+}
+
+.opportunity-readiness {
+  gap: 8px;
 }
 
 .opportunity-card span,
@@ -2958,6 +3228,9 @@ textarea {
   .procurement-hub-columns,
   .procurement-flow-tiles,
   .procurement-pulse-grid,
+  .finance-metric-grid,
+  .finance-two-column,
+  .application-review-meta,
   .graph-toolbar,
   .graph-summary,
   .finance-ledger-summary,

@@ -176,16 +176,27 @@ export function ApplicationsPage({
 
       {state.status === 'ready' ? (
         <>
-          <section className="applications-summary">
+          <section className="finance-metric-grid" aria-label="Application summary">
             {metrics.map((metric) => (
               <article
-                className={`applications-summary-card applications-summary-card--${metric.tone}`}
+                className={`finance-metric-card finance-metric-card--${metric.tone}`}
                 key={metric.label}
               >
                 <span>{metric.label}</span>
                 <strong>{metric.value}</strong>
+                <small>API-backed list summary</small>
               </article>
             ))}
+          </section>
+
+          <section className="finance-guidance-panel finance-guidance-panel--compact">
+            <span className="eyebrow">Review pipeline</span>
+            <h2>Gate visibility, not list-based approval</h2>
+            <p>
+              This view shows evidence, financier, Shariah, contract, and
+              closure readiness. Mutations remain inside the application
+              workspace where backend guards create audit events.
+            </p>
           </section>
 
           <ApplicationFilters filters={filters} onChange={setFilters} />
@@ -238,14 +249,20 @@ export function ApplicationsPage({
           ) : (
             <section className="applications-table" aria-label="Applications">
               {filteredApplications.map((application) => (
-                <article key={application.id}>
+                <article className="application-pipeline-card" key={application.id}>
                   <div className="applications-record-main">
-                    <strong>{application.opportunityTitle}</strong>
-                    <span>{application.applicantName ?? 'No applicant assigned'}</span>
-                    <small>{application.id}</small>
+                    <div className="application-pipeline-title">
+                      <strong>{application.opportunityTitle}</strong>
+                      <ApplicationStatusBadge status={application.status} />
+                    </div>
+                    <span>
+                      {application.applicantName ?? 'No applicant assigned'} -
+                      {application.id}
+                    </span>
+                    <small>Backend status: {application.rawStatus}</small>
                   </div>
-                  <ApplicationStatusBadge status={application.status} />
-                  <div>
+
+                  <div className="application-pipeline-money">
                     <strong>
                       {formatCurrency(
                         application.requestedCapital,
@@ -254,23 +271,48 @@ export function ApplicationsPage({
                     </strong>
                     <span>Requested capital</span>
                   </div>
-                  <div>
-                    <strong>{application.nextReviewer}</strong>
-                    <span>Next reviewer</span>
+
+                  <div className="application-readiness">
+                    <div className="finance-readiness-bar">
+                      <span style={{ width: `${application.readinessPercent}%` }} />
+                    </div>
+                    <strong>{application.readinessPercent}% ready</strong>
+                    <span>{application.evidenceGapCount} evidence gaps</span>
                   </div>
-                  <div>
-                    <strong>{application.evidenceGapCount}</strong>
-                    <span>Evidence gaps</span>
+
+                  <div className="application-gate-list" aria-label="Review gates">
+                    {application.gateSummary.map((gate) => (
+                      <span
+                        className={`application-gate application-gate--${gate.state}`}
+                        key={gate.key}
+                      >
+                        {gate.label}
+                      </span>
+                    ))}
                   </div>
-                  <div>
-                    <strong>{application.riskRating}</strong>
-                    <span>Risk</span>
+
+                  <div className="application-review-meta">
+                    <div>
+                      <strong>{application.nextReviewer}</strong>
+                      <span>Next reviewer</span>
+                    </div>
+                    <div>
+                      <strong>{application.riskRating}</strong>
+                      <span>Risk</span>
+                    </div>
+                    <div>
+                      <strong>{formatDate(application.dueAt)}</strong>
+                      <span>Due date</span>
+                    </div>
                   </div>
-                  <div>
-                    <strong>{formatDate(application.dueAt)}</strong>
-                    <span>Due date</span>
-                  </div>
-                  <div className="inline-actions">
+
+                  {application.blockedReason ? (
+                    <p className="application-blocked-note">
+                      {application.blockedReason}
+                    </p>
+                  ) : null}
+
+                  <div className="application-pipeline-actions">
                     {application.status === 'draft' && showCreateAction ? (
                       <button
                         type="button"

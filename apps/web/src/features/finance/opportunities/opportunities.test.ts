@@ -4,11 +4,14 @@ import { opportunityFixtures } from './opportunities.fixtures'
 import type { CreateOpportunityFormValues } from './opportunities.types'
 import {
   buildDraftApplicationPayload,
+  buildOpportunityMetrics,
   buildOpportunityCreatePayload,
   canCreateDraftApplication,
   canCreateOpportunity,
   canViewOpportunities,
   mapOpportunities,
+  opportunityBlockedReason,
+  opportunityReadinessPercent,
   validateOpportunityInput,
 } from './opportunities.validation'
 
@@ -93,6 +96,26 @@ describe('finance opportunity eligibility', () => {
     expect(payload.opportunityId).toBe(readyOpportunity.id)
     expect(payload.requestedCapital).toBe(readyOpportunity.requestedCapitalAmount)
     expect(payload.purpose).toContain(readyOpportunity.sourceDocumentId)
+  })
+
+  it('summarizes opportunity pipeline metrics without treating blocked records as eligible', () => {
+    const opportunities = mapOpportunities(opportunityFixtures)
+    const metrics = buildOpportunityMetrics(opportunities)
+
+    expect(metrics.find((metric) => metric.label === 'Eligible opportunities')?.value)
+      .toBe(1)
+    expect(metrics.find((metric) => metric.label === 'Blocked')?.value).toBe(1)
+  })
+
+  it('explains readiness and blocked opportunity reasons', () => {
+    const [readyOpportunity, blockedOpportunity] =
+      mapOpportunities(opportunityFixtures)
+
+    expect(opportunityReadinessPercent(readyOpportunity)).toBeGreaterThan(60)
+    expect(opportunityBlockedReason(readyOpportunity)).toBeNull()
+    expect(opportunityBlockedReason(blockedOpportunity)).toContain(
+      'Routine internal consumption',
+    )
   })
 
   it('limits opportunity access to admins and finance-side viewers', () => {

@@ -1,5 +1,6 @@
 import type { AppRoleCode } from '../../../shared/types'
 import type {
+  ApplicationGateState,
   ApplicationFiltersState,
   ApplicationRawDto,
   ApplicationReviewRole,
@@ -118,6 +119,9 @@ export function summarizeApplication(application: ApplicationRawDto): Applicatio
       (item) => (item.status || '').toUpperCase() !== 'COMPLETED',
     ).length ?? 0
 
+  const evidenceGapCount = Number(application.evidenceGapCount ?? checklistGapCount)
+  const gateSummary = buildApplicationGateSummary(status, evidenceGapCount)
+
   return {
     id: application.id,
     opportunityTitle,
@@ -127,11 +131,14 @@ export function summarizeApplication(application: ApplicationRawDto): Applicatio
     status,
     rawStatus: application.status || 'DRAFT',
     riskRating: inferRiskRating(application),
-    evidenceGapCount: Number(application.evidenceGapCount ?? checklistGapCount),
+    evidenceGapCount,
     nextReviewer: inferNextReviewer(application, status),
     dueAt: application.dueAt ?? null,
     submittedAt: application.submittedAt ?? application.createdAt ?? null,
     updatedAt: application.updatedAt ?? application.createdAt ?? null,
+    gateSummary,
+    readinessPercent: buildApplicationReadinessPercent(gateSummary),
+    blockedReason: buildApplicationBlockedReason(status, evidenceGapCount),
   }
 }
 
@@ -229,6 +236,109 @@ export function buildApplicationMetrics(applications: readonly ApplicationSummar
   ] as const
 }
 
+export function buildApplicationGateSummary(
+  status: MudarabahApplicationStatus,
+  evidenceGapCount: number,
+) {
+  return [
+    {
+      key: 'evidence',
+      label: 'Evidence',
+      state: gateState(status, evidenceGapCount, [
+        'submitted',
+        'due_diligence',
+        'shariah_review',
+        'approved',
+        'contracting',
+        'active',
+        'monitoring',
+        'closure_pending',
+        'closed',
+      ]),
+    },
+    {
+      key: 'due_diligence',
+      label: 'Due diligence',
+      state: gateState(status, 0, [
+        'shariah_review',
+        'approved',
+        'contracting',
+        'active',
+        'monitoring',
+        'closure_pending',
+        'closed',
+      ]),
+    },
+    {
+      key: 'shariah',
+      label: 'Shariah',
+      state: gateState(status, 0, [
+        'approved',
+        'contracting',
+        'active',
+        'monitoring',
+        'closure_pending',
+        'closed',
+      ]),
+    },
+    {
+      key: 'contract',
+      label: 'Contract',
+      state: gateState(status, 0, [
+        'contracting',
+        'active',
+        'monitoring',
+        'closure_pending',
+        'closed',
+      ]),
+    },
+    {
+      key: 'closure',
+      label: 'Closure',
+      state: gateState(status, 0, ['closed']),
+    },
+  ] as const
+}
+
+export function buildApplicationReadinessPercent(
+  gateSummary: readonly { state: ApplicationGateState }[],
+) {
+  return Math.round(
+    (gateSummary.filter((gate) => gate.state === 'complete').length /
+      gateSummary.length) *
+      100,
+  )
+}
+
+export function buildApplicationBlockedReason(
+  status: MudarabahApplicationStatus,
+  evidenceGapCount: number,
+) {
+  if (status === 'evidence_required' || evidenceGapCount > 0) {
+    return `${evidenceGapCount || 'Required'} evidence gap${
+      evidenceGapCount === 1 ? '' : 's'
+    } must be completed or formally waived before review can progress.`
+  }
+
+  if (status === 'due_diligence') {
+    return 'Financier due diligence is still pending; approval and contract generation remain blocked.'
+  }
+
+  if (status === 'shariah_review') {
+    return 'Shariah review is still pending; application approval remains blocked.'
+  }
+
+  if (status === 'rejected') {
+    return 'This application is rejected; create an amended application if the business case changes.'
+  }
+
+  if (status === 'loss_exception') {
+    return 'Loss exception review is active; closure must wait for classification and evidence.'
+  }
+
+  return null
+}
+
 export function applicationWorkspaceRoute(applicationId: string) {
   return `/finance/applications/${encodeURIComponent(applicationId)}`
 }
@@ -289,6 +399,37 @@ function inferNextReviewer(
   }
 
   return 'No active reviewer'
+}
+
+function gateState(
+  status: MudarabahApplicationStatus,
+  evidenceGapCount: number,
+  completeStatuses: readonly MudarabahApplicationStatus[],
+): ApplicationGateState {
+  if (status === 'rejected' || status === 'loss_exception') {
+    return 'blocked'
+  }
+
+  if (evidenceGapCount > 0 && completeStatuses.includes('submitted')) {
+    return 'blocked'
+  }
+
+  if (completeStatuses.includes(status)) {
+    return 'complete'
+  }
+
+  if (
+    (status === 'evidence_required' && completeStatuses.includes('submitted')) ||
+    (status === 'due_diligence' &&
+      completeStatuses.includes('shariah_review')) ||
+    (status === 'shariah_review' && completeStatuses.includes('approved')) ||
+    (status === 'approved' && completeStatuses.includes('contracting')) ||
+    (status === 'closure_pending' && completeStatuses.includes('closed'))
+  ) {
+    return 'current'
+  }
+
+  return 'pending'
 }
 
 function dateRank(value?: string | null) {
