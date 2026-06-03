@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
 import { useAppSession } from '../../app/session'
@@ -16,6 +16,11 @@ import { StatusBadge } from '../../shared/components/StatusBadge'
 import { useValidatedForm } from '../../shared/forms/useValidatedForm'
 import { useToast } from '../../shared/toast/useToast'
 import type { Membership, Role, User } from '../../shared/types'
+import {
+  adminReadinessStatusLabel,
+  buildAdminReadinessCards,
+  summarizeIdentityAdmin,
+} from './identityAdmin.model'
 
 const createUserSchema = z.object({
   displayName: z.string().trim().min(1, 'Display name is required.'),
@@ -47,6 +52,19 @@ export function UsersAdmin() {
       selectedRoleId: '',
     },
   })
+  const summary = useMemo(
+    () => summarizeIdentityAdmin({ users, roles, memberships }),
+    [memberships, roles, users],
+  )
+  const readinessCards = useMemo(
+    () =>
+      buildAdminReadinessCards({
+        organizationId: session.organizationId,
+        hasRoles: roles.length > 0,
+        hasMemberships: memberships.length > 0,
+      }),
+    [memberships.length, roles.length, session.organizationId],
+  )
 
   const loadAdminData = useCallback(async () => {
     const [userRows, roleRows, membershipRows] = await Promise.all([
@@ -156,10 +174,85 @@ export function UsersAdmin() {
 
   return (
     <>
-      <PageHeader eyebrow="Identity and access" title="Users and memberships" />
+      <PageHeader eyebrow="Administration" title="Users and memberships" />
+
+      <section className="admin-hero" aria-label="Administration overview">
+        <div>
+          <span>Identity and access</span>
+          <h2>Organization-scoped access control</h2>
+          <p>
+            Users, roles, and memberships are backend-backed. Data residency,
+            feature flags, invitations, and API clients remain planned settings
+            until their audited backend models exist.
+          </p>
+        </div>
+        <div className="admin-hero-status">
+          <strong>
+            {summary.usersWithoutMembership
+              ? `${summary.usersWithoutMembership} user(s) need membership`
+              : 'Membership baseline assigned'}
+          </strong>
+          <p>
+            Route visibility is driven by session role and permission claims.
+            Backend authorization remains the source of truth for mutations.
+          </p>
+        </div>
+      </section>
+
+      <section className="details-grid admin-overview-grid">
+        <article>
+          <span>Total users</span>
+          <strong>{summary.totalUsers}</strong>
+        </article>
+        <article>
+          <span>Active users</span>
+          <strong>{summary.activeUsers}</strong>
+        </article>
+        <article>
+          <span>Roles defined</span>
+          <strong>{summary.totalRoles}</strong>
+        </article>
+        <article>
+          <span>Memberships</span>
+          <strong>{summary.totalMemberships}</strong>
+        </article>
+        <article>
+          <span>Permission codes</span>
+          <strong>{summary.uniquePermissionCodes}</strong>
+        </article>
+        <article>
+          <span>Unassigned users</span>
+          <strong>{summary.usersWithoutMembership}</strong>
+        </article>
+      </section>
+
+      <section className="admin-readiness-grid" aria-label="Administration readiness">
+        {readinessCards.map((card) => (
+          <article key={card.id}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            <small
+              className={`admin-readiness-status admin-readiness-status--${card.status}`}
+            >
+              {adminReadinessStatusLabel(card.status)}
+            </small>
+            <p>{card.description}</p>
+          </article>
+        ))}
+      </section>
+
       <section className="split-grid">
-      <form className="form-grid" noValidate onSubmit={(event) => void createUser(event)}>
+        <form
+          className="form-grid"
+          noValidate
+          onSubmit={(event) => void createUser(event)}
+        >
           <h2>Create user</h2>
+          <p className="form-support-copy">
+            Creates a local user record for the active organization context.
+            Invitation acceptance and OIDC provisioning remain separate planned
+            flows.
+          </p>
           <FormField
             label="Display name"
             name="displayName"
@@ -182,8 +275,16 @@ export function UsersAdmin() {
           </div>
         </form>
 
-      <form className="form-grid" noValidate onSubmit={(event) => void assignRole(event)}>
+        <form
+          className="form-grid"
+          noValidate
+          onSubmit={(event) => void assignRole(event)}
+        >
           <h2>Assign role</h2>
+          <p className="form-support-copy">
+            Assigns a backend membership record. Destructive membership changes
+            are not exposed in this demo surface.
+          </p>
           <SelectField
             label="User"
             name="selectedUserId"

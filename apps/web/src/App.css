@@ -2496,6 +2496,237 @@ textarea {
     #ffffff;
 }
 
+.admin-hero,
+.reports-hero {
+  align-items: stretch;
+  background:
+    linear-gradient(135deg, rgba(41, 98, 115, 0.1), rgba(165, 135, 52, 0.08)),
+    #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  margin-bottom: 18px;
+  padding: 22px;
+}
+
+.admin-hero span,
+.reports-hero span,
+.admin-readiness-grid span,
+.report-filter-row span,
+.report-card-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-hero h2,
+.reports-hero h2,
+.admin-hero p,
+.reports-hero p,
+.admin-readiness-grid p,
+.report-card p {
+  margin: 0;
+}
+
+.admin-hero h2,
+.reports-hero h2 {
+  color: var(--text-strong);
+  font-size: 22px;
+  margin-top: 8px;
+}
+
+.admin-hero p,
+.reports-hero p,
+.admin-readiness-grid p,
+.report-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.admin-hero-status,
+.reports-hero-status {
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(150, 168, 180, 0.38);
+  border-left: 5px solid #579b8f;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.admin-hero-status strong,
+.reports-hero-status strong,
+.admin-readiness-grid strong,
+.report-card strong {
+  color: var(--text-strong);
+}
+
+.admin-overview-grid,
+.reports-summary-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.admin-readiness-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0 24px;
+}
+
+.admin-readiness-grid article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.admin-readiness-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  justify-self: start;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.admin-readiness-status--backend_backed {
+  background: #e6f5ee;
+  color: #176342;
+}
+
+.admin-readiness-status--documentation_only {
+  background: #e8f3ff;
+  color: #406f9f;
+}
+
+.admin-readiness-status--planned {
+  background: #fff4da;
+  color: #765414;
+}
+
+.form-support-copy {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.reports-hero {
+  background:
+    linear-gradient(135deg, rgba(94, 83, 159, 0.1), rgba(33, 92, 84, 0.08)),
+    #ffffff;
+}
+
+.reports-hero-status {
+  border-left-color: #efd58f;
+}
+
+.report-filter-row {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 24px 0 14px;
+}
+
+.report-filter-row h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 4px 0 0;
+}
+
+.report-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-tab {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 900;
+  padding: 9px 12px;
+}
+
+.report-tab--active,
+.report-tab[aria-selected='true'] {
+  background: var(--text-strong);
+  border-color: var(--text-strong);
+  color: #ffffff;
+}
+
+.report-card-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.report-card-header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.report-card-header h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 4px 0 0;
+}
+
+.report-metric-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.report-card-footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.report-card-footer a {
+  color: #215c54;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.status-tag--API-backed {
+  background: #e6f5ee;
+  color: #176342;
+}
+
+.status-tag--Partial {
+  background: #fff4da;
+  color: #765414;
+}
+
+.status-tag--Blocked {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
 .table-section {
   margin-top: 24px;
 }
@@ -4103,6 +4334,13 @@ textarea {
   .operations-hero,
   .operations-command-grid,
   .operations-backup-grid,
+  .admin-hero,
+  .admin-overview-grid,
+  .admin-readiness-grid,
+  .reports-hero,
+  .reports-summary-grid,
+  .report-card-grid,
+  .report-metric-grid,
   .status-card-grid,
   .status-card-grid--operations,
   .operations-readiness,
@@ -4171,6 +4409,13 @@ textarea {
   }
 
   .section-heading-row {
+    display: grid;
+  }
+
+  .report-filter-row,
+  .report-card-header,
+  .report-card-footer {
+    align-items: flex-start;
     display: grid;
   }
 

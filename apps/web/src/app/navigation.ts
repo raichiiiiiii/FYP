@@ -12,6 +12,7 @@ export type AppModule =
   | 'Integrations'
   | 'Operations'
   | 'Administration'
+  | 'Reports'
 
 export type AppRouteMetadata = {
   path: string
@@ -507,6 +508,21 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
+  },
+  {
+    path: '/reports',
+    label: 'Reports',
+    module: 'Reports',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: true,
+    requiredRoleCodes: [
+      'ORG_ADMIN',
+      'FINANCE_ACCOUNTANT',
+      'FINANCIER_USER',
+      'AUDITOR',
+      'DEVELOPER_INTEGRATOR',
+    ],
   },
 ] as const
 

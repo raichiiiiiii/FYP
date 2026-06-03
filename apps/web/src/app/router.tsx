@@ -24,6 +24,7 @@ import { OperationsRoute } from '../features/operations/OperationsRoute'
 import { UsersAdmin } from '../features/identity/UsersAdmin'
 import { OrgSetup } from '../features/organization/OrgSetup'
 import { ProcurementRoute } from '../features/procurement/ProcurementRoute'
+import { ReportsRoute } from '../features/reports/ReportsRoute'
 import { AppShell } from '../layouts/AppShell'
 
 function ProcurementRouteAdapter() {
@@ -81,6 +82,12 @@ function OperationsRouteAdapter() {
   const { session } = useAppSession()
 
   return <OperationsRoute session={session} />
+}
+
+function ReportsRouteAdapter() {
+  const { session } = useAppSession()
+
+  return <ReportsRoute session={session} />
 }
 
 export function AppRouter() {
@@ -182,6 +189,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <OperationsRouteAdapter />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <RequireAuth>
+                <ReportsRouteAdapter />
               </RequireAuth>
             }
           />

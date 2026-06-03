@@ -85,6 +85,7 @@ describe('route authorization', () => {
     expect(labels).toContain('Users')
     expect(labels).toContain('Roles')
     expect(labels).toContain('Audit Events')
+    expect(labels).toContain('Reports')
   })
 
   it('hides admin and finance opportunity routes from procurement officers', () => {
@@ -98,6 +99,7 @@ describe('route authorization', () => {
     expect(labels).not.toContain('Finance Opportunities')
     expect(labels).not.toContain('Users')
     expect(labels).not.toContain('Roles')
+    expect(labels).not.toContain('Reports')
   })
 
   it('shows finance review routes to financier users', () => {
@@ -109,6 +111,7 @@ describe('route authorization', () => {
     expect(labels).toContain('Finance Opportunities')
     expect(labels).toContain('Applications')
     expect(labels).toContain('Ledgers')
+    expect(labels).toContain('Reports')
   })
 
   it('keeps Shariah reviewers in application and contract workspaces', () => {
@@ -125,6 +128,7 @@ describe('route authorization', () => {
     expect(labels).toContain('Evidence Packs')
     expect(labels).toContain('Hash Verification')
     expect(labels).toContain('Audit Events')
+    expect(labels).toContain('Reports')
     expect(labels).not.toContain('Suppliers')
   })
 })
