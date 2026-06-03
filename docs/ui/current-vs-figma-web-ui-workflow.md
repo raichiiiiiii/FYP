@@ -1,69 +1,80 @@
-# Current Web UI Workflow Compared With Figma Prototype
+# Current Production UI vs Figma Make UI Flow Assessment
 
 ## Purpose
 
-This document compares the current MEPN web UI against the Figma Make prototype
-stored in `docs/design/figma-make-reference/prototype-src/`.
+This document compares the current MEPN production web UI against the Figma
+Make prototype reference and records the UI flow assessment for future
+implementation work.
 
-It follows the style of `docs/ui/skeletal-web-ui-workflow.md`, but focuses on
-the design gap between:
+The app is still a prototype/MVP implementation. The current production UI is
+route/API/RBAC based and already implements the main MEPN skeleton. The Figma
+Make UI is a visual and interaction reference only. It must not override the
+SRS, SDD, UI Flow Contract, production routing, backend state, audit behavior,
+ledger rules, or integration safety rules.
 
-- the current production React app in `apps/web/src`
-- the Figma Make visual/interaction reference in
-  `docs/design/figma-make-reference/prototype-src/src/app/components`
+## Evidence Labels
 
-The goal is not to copy the Figma prototype wholesale. The goal is to identify
-which visual, layout, density, and workflow presentation patterns should be
-adapted into the production UI while preserving real routing, RBAC, API-backed
-state, audit behavior, and domain rules.
+- Directly observed from Make source/context: observed from
+  `local_figma.get_design_context` and the stored Make source under
+  `docs/design/figma-make-reference/prototype-src/`.
+- Directly observed from captured Make UI screenshot: observed from screenshots
+  captured from a local reconstruction of the Make source.
+- Inferred from local prototype state: inferred from React local state,
+  fixture arrays, or simulated handlers in the Make prototype.
+- Not verified: not proven by source or screenshot in this pass.
+- Production behavior must remain API-backed: visual behavior may be adapted,
+  but production success states must come from backend/API state.
 
 ## Related Documents
 
 - `docs/ui/skeletal-web-ui-workflow.md`
 - `docs/ui/figma-to-ui-contract-map.md`
 - `docs/design/figma-make-reference/README.md`
+- `docs/design/figma-make-reference/prototype-src/`
 - `docs/use-cases-and-mock-data.md`
 
-## Comparison Baseline
+## Executive Summary
 
-Current UI baseline:
+The current production UI is stronger architecturally: it uses React Router,
+route metadata, dev session context, API-backed workflows, backend audit events,
+and permission-denied states. The Figma Make prototype is stronger visually: it
+has a denser dark sidebar, clearer role cockpit pages, richer module landing
+screens, stronger workflow status treatment, and better reviewer-oriented
+visual hierarchy.
 
-- React Router application shell.
-- Role-aware navigation from route metadata.
-- Dev authentication/session provider.
-- Shared loading, empty, error, and permission-denied states.
-- API-backed screens for core procurement, evidence, audit, finance, graph, and
-  integration workflows.
-- Some frontend fixtures remain for dashboard, graph, role summaries, and
-  prototype display states.
+The best next step is to adapt the Figma Make visual and interaction patterns
+into the current production architecture. Do not copy the prototype's local
+role switching, mock data, fake Fabric status, fake approval states, fake
+disbursement states, or prototype-only routing.
 
-Figma prototype baseline:
+## Prototype Scope And Assumptions
 
-- Single prototype shell using local view switching.
-- Dark dense sidebar with section grouping, role selector, badges, and anchor
-  status widget.
-- High-density dashboard with KPI cards, task inbox, charts, readiness cards,
-  and recent activity.
-- Rich application workspace with lifecycle stepper, role guidance banners,
-  evidence checklist, review panels, ledger, audit, and Fabric status.
-- Procurement hub with KPI strip, exception alert, tabs, supplier scoring,
-  purchase-order list, and analytics.
-- Graph/canvas with pan, zoom, filters, colored nodes, channel nodes, risk
-  indicators, and finance/procurement relationships.
-- Integration operations surface with outbox events, retry explanations,
-  idempotency keys, adapters, reconciliation, and degraded states.
+Directly observed from Make source/context:
+
+- The Make prototype uses `App.tsx` local state for auth, current role, current
+  view, selected application, and pending anchors.
+- Pre-auth screens are `landing`, `org-setup`, and `invite`.
+- Auth states are `session-checking`, `anonymous`, `no-org`, and `authorized`.
+- Main post-auth views are dashboard, network, procurement, applications,
+  workspace, opportunities, ledger, audit, integrations, operations, admin, and
+  reports.
+- Sidebar navigation is grouped into Visibility, Procurement, Finance,
+  Compliance, Operations, and Admin.
+- SME Admin receives the Platform Manager Dashboard. Other roles receive the
+  role-specific Dashboard view.
+
+Production behavior must remain API-backed:
+
+- Role selection in the Make sidebar is a prototype device, not production auth.
+- The `Fabric anchors synced` / pending anchor sidebar widget is a visual
+  pattern only. Verified anchor state must come from backend evidence.
+- Approval, contract, disbursement, ledger, closure, integration, and anchor
+  success states must not be accepted from local UI state.
 
 ## Current UI Screenshot Evidence
 
 The current production screenshots used for this comparison are stored under
-`docs/ui/assets/` and have also been uploaded to this Figma review file:
-
-<https://www.figma.com/design/KXHhtyeeWS51KUCaoBtDxe>
-
-The Figma file is a review artifact only. It contains screenshots of the current
-web UI so the team can compare the implemented screens with the Figma Make
-prototype reference. It is not a new source of truth for routing, permissions,
-workflow state, audit behavior, ledger calculation, or backend behavior.
+`docs/ui/assets/` and were captured from the current React/NestJS prototype.
 
 ### Screen 01 - Login
 
@@ -117,434 +128,740 @@ workflow state, audit behavior, ledger calculation, or backend behavior.
 
 ![Current Access Denied](assets/current-screen-13-access-denied.png)
 
-## Design Principle For Tailoring
+## Figma Make UI Screenshot Evidence
 
-Use this rule:
+Screenshots in this section were captured from a local reconstruction of the
+Figma Make source stored under
+`docs/design/figma-make-reference/prototype-src/`. The live Figma Make URL was
+not used for screenshots because `local_figma.get_screenshot` is unsupported
+for Make files and browser capture of the live Make URL can include loading UI
+or Figma chrome.
 
-```text
-Figma component -> production route -> UI contract section -> production behavior
-```
+The Figma Make source/context was inspected through
+`local_figma.get_design_context`. Screenshot source for every item below:
+local reconstruction of the Make source.
 
-Do not copy:
+### Figma Screen 01 - Landing
 
-- Figma mock role switching as production auth.
-- Fake successful Fabric anchoring.
-- Fake approval, disbursement, ledger closure, or external integration success.
-- Prototype-only local state.
-- Prototype-only routing.
+![Figma Make Landing](assets/figma-make-screen-01-landing.png)
 
-Adapt:
+- Represents: public landing and pre-auth entry.
+- Compare against: current login/dev sign-in screen.
+- Source: local reconstruction of Figma Make source.
 
-- layout density
-- visual hierarchy
-- card/table/badge/tabs patterns
-- status wording
-- reviewer guidance
-- role-specific information architecture
-- network and integration presentation
+### Figma Screen 02 - Sign In Role Selection
 
-## Main Workflow Comparison
+![Figma Make Sign In Role Selection](assets/figma-make-screen-02-sign-in-role-selection.png)
 
-### Screen Group 01 - App Shell And Sidebar
+- Represents: prototype dev-login role picker modal.
+- Compare against: current dev login screen and future OIDC login.
+- Source: local reconstruction of Figma Make source.
 
-Current production UI:
+### Figma Screen 03 - Organization Setup
 
-- Uses real React Router routes.
-- Sidebar visibility is driven by route metadata and frontend authorization.
-- Direct route access can show permission denied.
-- Session is loaded through `AuthProvider`.
+![Figma Make Organization Setup](assets/figma-make-screen-03-organization-setup.png)
 
-Figma reference:
+- Represents: organization registration wizard.
+- Compare against: current `/org/setup`.
+- Source: local reconstruction of Figma Make source.
 
-- `Sidebar.tsx` uses a dark navy sidebar.
-- Navigation is grouped by Visibility, Procurement, Finance, Compliance,
-  Operations, and Admin.
-- Role selector is visible in the sidebar.
-- Anchor status widget appears near the bottom.
-- Integrations show a badge count.
+### Figma Screen 04 - Role Dashboard
 
-Gap:
+![Figma Make Dashboard](assets/figma-make-screen-04-dashboard.png)
 
-- Current shell is more correct architecturally, but less visually close to the
-  prototype.
-- Current role switching is separated into dev auth/session behavior, which is
-  correct for production direction.
-- The sidebar can better expose module grouping, badges, and anchor/outbox
-  status.
+- Represents: non-admin role-aware dashboard.
+- Compare against: current `/dashboard`.
+- Source: local reconstruction of Figma Make source.
 
-TODO:
+### Figma Screen 05 - Platform Manager Dashboard
+
+![Figma Make Platform Manager Dashboard](assets/figma-make-screen-05-platform-manager-dashboard.png)
+
+- Represents: SME Admin/platform manager dashboard.
+- Compare against: current admin dashboard state and `/dashboard` for admin.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 06 - Procurement Hub
+
+![Figma Make Procurement Hub](assets/figma-make-screen-06-procurement-hub.png)
+
+- Represents: procurement module hub and tabbed work area.
+- Compare against: current procurement list/detail routes.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 07 - Applications List
+
+![Figma Make Applications List](assets/figma-make-screen-07-applications-list.png)
+
+- Represents: mudarabah application pipeline.
+- Compare against: current `/finance/applications`.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 08 - Application Workspace
+
+![Figma Make Application Workspace](assets/figma-make-screen-08-application-workspace.png)
+
+- Represents: finance application lifecycle workspace.
+- Compare against: current `/finance/applications/:id`.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 09 - Finance Opportunities
+
+![Figma Make Finance Opportunities](assets/figma-make-screen-09-finance-opportunities.png)
+
+- Represents: opportunity list and creation direction.
+- Compare against: current `/finance/opportunities`.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 10 - Network Canvas
+
+![Figma Make Network Canvas](assets/figma-make-screen-10-network-canvas.png)
+
+- Represents: network graph/canvas cockpit.
+- Compare against: current graph/project network route.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 11 - Ledger And Profit/Loss
+
+![Figma Make Ledger And Profit Loss](assets/figma-make-screen-11-ledger-profit-loss.png)
+
+- Represents: project ledger and P/L explanation surface.
+- Compare against: current finance ledger and closure surfaces.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 12 - Audit And Verification
+
+![Figma Make Audit Verification](assets/figma-make-screen-12-audit-verification.png)
+
+- Represents: audit event, evidence pack, closure, and hash verification view.
+- Compare against: current `/audit/search`, entity timeline, and hash screens.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 13 - Integrations
+
+![Figma Make Integrations](assets/figma-make-screen-13-integrations.png)
+
+- Represents: integration adapters, outbox, reconciliation, and webhooks.
+- Compare against: current `/integrations`.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 14 - Operations Health
+
+![Figma Make Operations Health](assets/figma-make-screen-14-operations-health.png)
+
+- Represents: deployment health and runtime readiness.
+- Compare against: current operations/deployment health surfaces.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 15 - Admin
+
+![Figma Make Admin](assets/figma-make-screen-15-admin.png)
+
+- Represents: administration, users, roles, flags, and settings direction.
+- Compare against: current identity/admin routes.
+- Source: local reconstruction of Figma Make source.
+
+### Figma Screen 16 - Reports
+
+![Figma Make Reports](assets/figma-make-screen-16-reports.png)
+
+- Represents: reports and export direction.
+- Compare against: current reporting/export roadmap.
+- Source: local reconstruction of Figma Make source.
+
+## Screen/View Inventory
+
+| Make screen/view | Make source | Current production comparison | Evidence |
+|---|---|---|---|
+| Landing | `LandingView.tsx` | `/login` and public entry | Make source/context + screenshot |
+| Sign-in role selection | `LandingView.tsx` modal | dev login/session page | Make source/context + screenshot |
+| Organization setup | `OrgSetupView.tsx` | `/org/setup` | Make source/context + screenshot |
+| Invite acceptance | `InviteView.tsx` | invitation/onboarding roadmap | Make source/context, not screenshotted |
+| Platform Manager Dashboard | `PlatformDashboardView.tsx` | admin `/dashboard` | Make source/context + screenshot |
+| Role Dashboard | `DashboardView.tsx` | role-aware `/dashboard` | Make source/context + screenshot |
+| Procurement Hub | `ProcurementView.tsx` | procurement module routes | Make source/context + screenshot |
+| Applications List | `ApplicationsList.tsx` | `/finance/applications` | Make source/context + screenshot |
+| Application Workspace | `ApplicationWorkspace.tsx` | `/finance/applications/:id` | Make source/context + screenshot |
+| Opportunities | `OpportunitiesView.tsx` | `/finance/opportunities` | Make source/context + screenshot |
+| Network Canvas | `NetworkCanvas.tsx` | graph/project network route | Make source/context + screenshot |
+| Ledger and P/L | `LedgerView.tsx` | finance ledger/P&L route | Make source/context + screenshot |
+| Audit and Verification | `AuditView.tsx` | audit search/entity/hash routes | Make source/context + screenshot |
+| Integrations | `IntegrationsView.tsx` | `/integrations` | Make source/context + screenshot |
+| Operations Health | `OperationsView.tsx` | deployment/operations route | Make source/context + screenshot |
+| Admin | `AdminView.tsx` | identity/admin routes | Make source/context + screenshot |
+| Reports | `ReportsView.tsx` | reports/export roadmap | Make source/context + screenshot |
+
+## Role-Based Entry Flows
+
+Directly observed from Make source/context:
+
+- Anonymous user lands on `LandingView`.
+- `Continue to sign in` opens a role selection modal.
+- Selecting a role and confirming moves to authorized dashboard state.
+- `Start registration` opens `OrgSetupView`.
+- Completing organization setup signs in as SME Admin and opens dashboard.
+- `Enter invitation token` opens `InviteView`.
+- Invitation acceptance routes by role:
+  - Supplier User -> Procurement Hub.
+  - Financier User -> Applications.
+  - Shariah Reviewer -> Applications.
+  - Auditor -> Audit and Verification.
+  - Procurement Officer -> Applications.
+  - Approver -> Applications.
+
+Production behavior must remain API-backed:
+
+- Production should not use Make role selection as authentication.
+- Role claims should come from the dev session provider locally and OIDC later.
+- Invitation acceptance should create/verify membership server-side.
+
+## Primary User Journeys
+
+### Journey 1 - Onboard organization
+
+Flow: Landing -> Register organization -> organization profile -> compliance
+and deployment -> admin account -> review/create -> dashboard.
+
+Current production status: `/org/setup` exists and creates organization-related
+records through the API. The Make wizard has clearer multi-step visual structure
+that can be adapted.
+
+### Journey 2 - Role dashboard to task
+
+Flow: Sign in -> dashboard -> task/KPI/action -> module route.
+
+Current production status: role-aware dashboard and smart task inbox exist.
+Figma provides denser task, health, and recent activity presentation.
+
+### Journey 3 - Procurement evidence
+
+Flow: Procurement Hub -> requisitions/POs/suppliers/analytics -> detail record
+-> audit/evidence linkage -> opportunity.
+
+Current production status: production has broader API-backed procurement routes.
+Figma provides a stronger module landing hub.
+
+### Journey 4 - Mudarabah application review
+
+Flow: Opportunities -> Applications -> Application Workspace -> evidence ->
+due diligence -> Shariah review -> approval -> contract -> disbursement ->
+ledger -> P/L -> closure.
+
+Current production status: production has role-scoped finance workspaces and
+domain-safe ledger/P&L foundations. Figma provides a richer single-workspace
+status and next-action experience.
+
+### Journey 5 - Audit, verification, and integrations
+
+Flow: Audit and Verification -> hash/anchor review -> evidence pack/closure ->
+Integrations -> outbox/reconciliation -> Operations Health.
+
+Current production status: production has audit filtering, anchor states,
+integration requests, outbox/reconciliation, and operations documentation.
+Figma provides clearer operational status density and visual status grouping.
+
+## State Transitions, Modals, Tabs, Panels, And Filters
+
+Directly observed from Make source/context:
+
+- Landing modal: sign-in role selection.
+- Organization setup wizard: step index from organization profile through
+  review/create, with disabled next button until required fields are filled.
+- Sidebar: role selector, collapsible sections, nav item badges, anchor status
+  widget.
+- Dashboard: task/action cards navigate to workspace, procurement, ledger,
+  audit, integrations, or operations.
+- Procurement: tab state for purchase orders, requisitions, suppliers, and
+  analytics; search/filter state; selected/expanded purchase order state.
+- Applications: search and status filter; open workspace action.
+- Opportunities: new opportunity modal, source document selection, two-step
+  creation, expand/collapse opportunity details, create/open application.
+- Application Workspace: lifecycle stepper, pre-flight check modal, expandable
+  evidence/review/audit panels, action buttons gated by current lifecycle and
+  role.
+- Network Canvas: filters, risk/finance toggles, node detail panel, zoom
+  controls, close detail action.
+- Ledger: add-entry modal with entry type, amount, description, date, and
+  save/cancel.
+- Audit: tabs for events, evidence packs, closure; search/filter; hash verify
+  input with valid/invalid local result.
+- Integrations: tabs for outbox, reconciliation, adapters, webhooks; expandable
+  status cards; status filter.
+- Operations: tabs for runtime services, environment, backup/DR, UAT; run
+  health check action.
+- Admin: tabs for users, roles, residency, feature flags, API clients.
+- Reports: tabs for procurement, finance, audit, integration; period selection.
+
+Not verified:
+
+- Full mobile responsive behavior.
+- Keyboard focus order and tab order.
+- Screen reader labels and ARIA behavior.
+- All modal submit error states.
+- Real API error handling for Make screens, because Make uses local fixtures.
+
+## Screen-By-Screen Comparison And Implementation-Safe TODOs
+
+### 1. App Shell And Sidebar
+
+Current production UI summary:
+
+- Uses React Router routes and reusable route metadata.
+- Sidebar visibility is permission-aware.
+- Direct URL access can show access denied.
+- Session comes from `AuthProvider` and dev auth endpoints.
+
+Figma Make screenshot reference:
+
+- `assets/figma-make-screen-04-dashboard.png`
+- `assets/figma-make-screen-05-platform-manager-dashboard.png`
+
+Figma Make interaction behavior:
+
+- Sidebar groups routes by module.
+- Role selector changes local prototype role.
+- Operations and Admin sections collapse/expand.
+- Anchor status widget shows pending anchor count.
+
+Gap analysis:
+
+- Production shell is safer, but Figma shell has better grouping and status
+  density.
+- Production must not copy role switching into the normal production sidebar.
+
+Implementation-safe TODOs:
 
 - [ ] Add production-safe sidebar section grouping matching the Figma hierarchy.
-- [ ] Add badge support for pending review/outbox counts from typed data.
-- [ ] Add an anchor/outbox status widget that never claims verified anchoring
-      unless the backend status is verified.
-- [ ] Keep role switching out of production sidebar; use dev-only session tools
-      for local testing.
-- [ ] Align labels with Figma where they improve clarity: `Procurement Hub`,
-      `Ledger & P/L`, `Audit & Verification`, `Deployment Health`.
+- [ ] Add route metadata badges for pending tasks/outbox counts.
+- [ ] Add an anchor/outbox widget that shows pending/failed/verified only from
+      backend status.
+- [ ] Keep role switching dev-only.
 
-### Screen Group 02 - Dashboard
+### 2. Landing, Login, And Organization Setup
 
-Current production UI:
+Current production UI summary:
+
+- Current dev login accepts email and organization ID.
+- `/org/setup` exists and creates organization records through the API.
+
+Figma Make screenshot reference:
+
+- `assets/figma-make-screen-01-landing.png`
+- `assets/figma-make-screen-02-sign-in-role-selection.png`
+- `assets/figma-make-screen-03-organization-setup.png`
+
+Figma Make interaction behavior:
+
+- Landing presents sign in, register organization, and accept invitation cards.
+- Sign-in modal selects a simulated role.
+- Organization setup is a multi-step wizard.
+
+Gap analysis:
+
+- Current login is more implementation-realistic, but Figma makes the entry
+  points clearer.
+- Organization setup can adopt the wizard structure without changing backend
+  behavior.
+
+Implementation-safe TODOs:
+
+- [ ] Add a dev-only landing/help layer if useful for demonstrations.
+- [ ] Keep real auth/OIDC separate from Make role switching.
+- [ ] Improve organization setup wizard structure and review step.
+- [ ] Add invitation flow only when backend invitation state exists.
+
+### 3. Dashboard
+
+Current production UI summary:
 
 - Shows API, PostgreSQL, and Redis health.
-- Shows role-aware dashboard content.
-- Includes KPI grid and smart task inbox.
-- Uses typed dashboard fixtures where backend aggregation is incomplete.
+- Shows role-aware KPIs and smart tasks.
+- Some dashboard values remain fixtures.
 
-Figma reference:
+Figma Make screenshot reference:
 
-- `DashboardView.tsx` shows dense role-specific KPI cards.
-- Includes charts for pipeline and exposure.
-- Includes evidence readiness, next actions, and recent activity.
-- Uses strong visual hierarchy with white cards on a light gray canvas.
+- `assets/figma-make-screen-04-dashboard.png`
+- `assets/figma-make-screen-05-platform-manager-dashboard.png`
 
-Gap:
+Figma Make interaction behavior:
 
-- Current dashboard has the right product concept but should become more
-  visually dense and review-ready.
-- Current dashboard should better show recent activity, evidence readiness, and
-  role-specific operating context.
+- SME Admin receives platform manager dashboard.
+- Other roles receive role-specific task/KPI dashboard.
+- Action cards navigate to modules.
+- System and setup readiness are visible.
 
-TODO:
+Gap analysis:
 
-- [ ] Add a dashboard header with organization, role, and system status.
-- [ ] Add evidence readiness card for the active finance/procurement case.
-- [ ] Add recent activity feed from audit events.
-- [ ] Add role-specific chart panels when backed by API or explicit fixtures.
-- [ ] Replace dashboard fixtures with backend dashboard DTOs after API support
-      is available.
-- [ ] Use the mock data from `docs/use-cases-and-mock-data.md` for meaningful
-      dashboard values.
+- Current dashboard has correct architecture, but less review-ready density.
+- Figma dashboard better communicates role context, task urgency, and platform
+  readiness.
 
-### Screen Group 03 - Procurement Hub
+Implementation-safe TODOs:
 
-Current production UI:
+- [ ] Add role-specific header context and system status.
+- [ ] Add evidence readiness and recent audit activity cards.
+- [ ] Use backend dashboard DTOs when available; label fixtures while present.
+- [ ] Add explicit pending/failed integration indicators, not fake success.
 
-- Provides procurement routes and API-backed lists/details.
-- Supports requisitions, projects, suppliers, approval tasks, approval rules,
-  RFQs, quotations, purchase orders, receipts, invoices, and matching areas.
-- Current walkthrough includes requisition and purchase order detail screens.
+### 4. Procurement Hub
 
-Figma reference:
+Current production UI summary:
 
-- `ProcurementView.tsx` has a `Procurement Hub` landing page.
-- Includes KPI strip for open POs, matched records, exceptions, pending
-  approvals, and approved suppliers.
-- Includes exception alert for invoice match issues.
-- Uses tabbed navigation: Purchase Orders, Requisitions, Suppliers, Analytics.
-- Shows supplier scoring and spend analytics.
+- Production has API-backed procurement modules for requisitions, projects,
+  suppliers, approval tasks, RFQs, quotations, POs, receipts, invoices, and
+  matching.
+- Current screenshots show requisition and PO detail routes.
 
-Gap:
+Figma Make screenshot reference:
 
-- Current UI has broader route coverage, but the Figma prototype has a clearer
-  module landing/dashboard pattern.
-- Procurement detail screens should keep API correctness but adopt stronger
-  summary, exception, and matching visuals.
+- `assets/figma-make-screen-06-procurement-hub.png`
 
-TODO:
+Figma Make interaction behavior:
 
-- [ ] Create or refine a procurement hub landing screen with KPI strip.
-- [ ] Add invoice/receipt matching exception alert.
-- [ ] Add supplier score/status cards where backend supplier data supports it.
-- [ ] Add tabbed procurement module overview without removing existing deep
-      routes.
-- [ ] Add spend/category analytics using real procurement totals or explicit
-      demo fixtures.
-- [ ] Seed the TechBuild/SolarTech procurement case from
-      `docs/use-cases-and-mock-data.md`.
+- Procurement Hub has KPI cards, exception alert, tabs, search, supplier
+  scoring, and analytics.
 
-### Screen Group 04 - Opportunities And Applications List
+Gap analysis:
 
-Current production UI:
+- Production has wider workflow coverage; Figma has a clearer landing hub.
+- The current production UI should better summarize exceptions and matching
+  status before users drill into detail pages.
 
-- Provides finance opportunities and application list foundations.
-- Has typed status models, filters, and navigation to workspace routes.
-- Enforces revenue-generating opportunity validation at the frontend foundation.
+Implementation-safe TODOs:
 
-Figma reference:
+- [ ] Add procurement hub summary cards and exception alerts.
+- [ ] Add tabbed procurement overview without removing deep routes.
+- [ ] Add supplier score/status display only when backend or explicit fixtures
+      support it.
+- [ ] Seed the TechBuild/SolarTech procurement scenario for demos.
 
-- `OpportunitiesView.tsx` emphasizes creating opportunities from buyer PO,
-  contract award, sales order, or equivalent revenue documents.
-- `ApplicationsList.tsx` presents a pipeline-oriented financing list with
-  status and review context.
+### 5. Applications And Opportunities
 
-Gap:
+Current production UI summary:
 
-- Current UI is behaviorally aligned but should better communicate why an
-  opportunity is eligible or blocked.
-- Application list should more visibly show review stage, evidence readiness,
-  Shariah status, and financier action.
+- Finance opportunities and applications exist.
+- Opportunity creation validates revenue-generating source documents.
+- Application status model and filtering are implemented at foundation level.
 
-TODO:
+Figma Make screenshot reference:
 
-- [ ] Add eligibility explanation panel to opportunity creation.
-- [ ] Add blocked-case examples for non-revenue internal purchases.
-- [ ] Add application pipeline cards or denser table columns: evidence status,
-      due diligence, Shariah review, contract state, audit state.
-- [ ] Make status badges visually consistent with the Figma badge palette.
-- [ ] Seed both valid and invalid opportunities for demo/UAT.
+- `assets/figma-make-screen-07-applications-list.png`
+- `assets/figma-make-screen-09-finance-opportunities.png`
 
-### Screen Group 05 - Mudarabah Application Workspace
+Figma Make interaction behavior:
 
-Current production UI:
+- Applications are presented as a pipeline.
+- Opportunities have source document selection and application draft creation.
+- Opportunity detail panels expand from the list.
 
-- Provides a route for `/finance/applications/:id`.
-- Shows overview, lifecycle, tabs, and role-aware finance surfaces.
-- Some mutation-heavy actions remain incomplete or API-dependent.
+Gap analysis:
 
-Figma reference:
+- Production behavior is aligned, but Figma communicates evidence readiness and
+  review stage more clearly.
 
-- `ApplicationWorkspace.tsx` is the richest prototype screen.
-- Shows a horizontal lifecycle from draft through closure.
-- Uses role-aware banners explaining the next action.
-- Displays evidence checklist, due diligence, Shariah review, contract,
-  disbursement, ledger, audit trail, and Fabric anchors in one workspace.
+Implementation-safe TODOs:
 
-Gap:
+- [ ] Add eligibility explanation and blocked-case examples.
+- [ ] Add evidence, due diligence, Shariah, contract, and audit summary columns
+      to the application list.
+- [ ] Keep opportunity/application creation API-backed.
 
-- Current workspace is structurally close, but the Figma prototype communicates
-  status and next action more clearly.
-- Current UI should add stronger role guidance, evidence progress, and stage
-  blocking explanations.
+### 6. Application Workspace
 
-TODO:
+Current production UI summary:
 
-- [ ] Add role-specific guidance banners for procurement officer, financier,
-      Shariah reviewer, accountant, and auditor.
-- [ ] Add evidence checklist progress and required-vs-optional grouping.
-- [ ] Add explicit blocked-state messages for contract generation and
-      disbursement.
-- [ ] Add due diligence and Shariah review summary cards.
-- [ ] Add audit/Fabric summary in the workspace header or side panel.
-- [ ] Keep approval/disbursement states backend-backed; never use visual-only
-      success states.
+- `/finance/applications/:id` exists with workspace tabs and role-aware actions.
+- Mutations depend on backend support and permission checks.
 
-### Screen Group 06 - Ledger, Profit/Loss, And Closure
+Figma Make screenshot reference:
 
-Current production UI:
+- `assets/figma-make-screen-08-application-workspace.png`
 
-- Provides ledger and profit/loss domain-safe frontend foundations.
-- Tests protect against guaranteed fixed return patterns.
+Figma Make interaction behavior:
+
+- Horizontal lifecycle stepper shows draft through closed.
+- Evidence, due diligence, Shariah, contract, disbursement, ledger, P/L, and
+  audit are visible in one workspace.
+- Actions are disabled or enabled based on local role/lifecycle state.
+
+Gap analysis:
+
+- Current production workspace is structurally aligned, but Figma is stronger
+  for next-action guidance and lifecycle visibility.
+- Make local state must not be used as proof of approvals or disbursement.
+
+Implementation-safe TODOs:
+
+- [ ] Improve lifecycle stepper and next-action copy.
+- [ ] Add explicit blocked explanations for contract/disbursement.
+- [ ] Add role guidance panels for procurement officer, financier, Shariah
+      reviewer, finance/accountant, and auditor.
+- [ ] Preserve backend as the source of truth for every mutation.
+
+### 7. Ledger, Profit/Loss, And Closure
+
+Current production UI summary:
+
+- Ledger and P/L foundations exist.
+- Domain tests protect against guaranteed fixed-return behavior.
 - Closure pack state is visible.
 
-Figma reference:
+Figma Make screenshot reference:
 
-- `LedgerView.tsx` emphasizes project ledger, profit/loss, distributions, and
-  exception workflows.
-- Prototype data shows revenue/cost tracking and reviewer-friendly summaries.
+- `assets/figma-make-screen-11-ledger-profit-loss.png`
 
-Gap:
+Figma Make interaction behavior:
 
-- Current ledger behavior is domain-safe, but the visual explanation should be
-  clearer for reviewers and supervisors.
-- Closure pack should read more like a final dossier.
+- Ledger shows entry types, revenue/cost evidence, preliminary P/L, and
+  distribution view.
+- Add-entry modal is local prototype state.
 
-TODO:
+Gap analysis:
 
-- [ ] Add P/L explanation panel: revenue, allowed costs, net profit/loss,
-      distribution ratio.
-- [ ] Add warning copy that no fixed guaranteed return is calculated.
-- [ ] Add loss exception panel with genuine loss vs breach/negligence states.
-- [ ] Add closure pack checklist linking procurement, evidence, audit, reviews,
-      ledger, and P/L.
-- [ ] Use the MYR 280,000 revenue / MYR 210,000 cost example from the mock data.
+- Production is domain-safe; Figma is better for explaining the calculation to
+  reviewers.
 
-### Screen Group 07 - Audit And Fabric Verification
+Implementation-safe TODOs:
 
-Current production UI:
+- [ ] Add P/L explanation panel using revenue, allowed cost, net result, and
+      approved ratio.
+- [ ] Add warning that no fixed guaranteed return is calculated.
+- [ ] Add loss exception display for genuine loss vs breach/negligence.
+- [ ] Keep all calculation results backend/API backed.
 
-- Provides audit search and entity timeline routes.
-- Displays Fabric anchor states honestly.
-- Tests cover pending, submitted, verified, failed, and unavailable states.
+### 8. Audit And Verification
 
-Figma reference:
+Current production UI summary:
 
-- `AuditView.tsx` presents audit and verification as reviewer surfaces.
-- Prototype emphasizes document hash, transaction reference, and anchor status.
+- Audit search, entity timeline, and Fabric anchor status surfaces exist.
+- Production distinguishes pending, submitted, verified, failed, and
+  unavailable anchor states.
 
-Gap:
+Figma Make screenshot reference:
 
-- Current UI has the right honesty rule but should become more explanatory for
-  non-developer reviewers.
-- Fabric status should include a status legend and what each state means.
+- `assets/figma-make-screen-12-audit-verification.png`
 
-TODO:
+Figma Make interaction behavior:
 
-- [ ] Add a verification legend: local audit, hash created, anchor pending,
-      anchor submitted, verified, failed, unavailable.
-- [ ] Add document hash comparison card with canonical input explanation.
-- [ ] Add source-record links from audit timeline rows.
-- [ ] Add reviewer-friendly export/download affordance for audit evidence.
-- [ ] Keep mock Fabric status visibly labelled as mock or pending.
+- Audit tabs separate events, evidence packs, and closure.
+- Hash verification input returns local valid/invalid result.
+- Fabric status is displayed in the review context.
 
-### Screen Group 08 - Network Canvas
+Gap analysis:
 
-Current production UI:
+- Current production honesty rule is correct.
+- Figma gives a clearer reviewer center pattern.
 
-- Provides a graph/canvas route and permission-filtered model.
-- Current graph is read-only and source-record oriented.
+Implementation-safe TODOs:
 
-Figma reference:
+- [ ] Add verification legend for local audit, hash, pending anchor, submitted,
+      verified, failed, and unavailable.
+- [ ] Add canonical hash explanation for non-developer reviewers.
+- [ ] Link audit rows to source records and evidence items.
+- [ ] Never show verified Fabric status unless backend status is verified.
 
-- `NetworkCanvas.tsx` is a full visual cockpit.
-- Shows SME, suppliers, buyer, financier, opportunity, contract, and Fabric
-  channel nodes.
-- Includes pan/zoom, filters, risk indicators, and finance/procurement edge
-  types.
+### 9. Network Canvas
 
-Gap:
+Current production UI summary:
 
-- Current graph is correctly framed as a visualization layer, but it can move
-  closer to the prototype in visual richness.
+- Graph/canvas route exists as read-only visualization.
+- Graph visibility is permission-filtered.
 
-TODO:
+Figma Make screenshot reference:
 
-- [ ] Add toolbar for zoom, fit, filter, and risk overlays.
+- `assets/figma-make-screen-10-network-canvas.png`
+
+Figma Make interaction behavior:
+
+- Shows organization, supplier, buyer, financier, opportunity, application, and
+  document/channel nodes.
+- Supports node detail panel, filters, risk/finance toggles, and zoom controls.
+
+Gap analysis:
+
+- Production graph is correctly not a source of truth.
+- Figma shows the desired cockpit density and edge semantics.
+
+Implementation-safe TODOs:
+
+- [ ] Add toolbar for zoom, fit, filters, and risk overlays.
 - [ ] Add node detail panel with source-record links.
-- [ ] Add edge labels for supplies, buyer PO, capital request, contract, and
-      evidence relationships.
-- [ ] Use the TechBuild/SolarTech/Amanah network mock data.
-- [ ] Keep graph read-only until backend graph persistence is intentionally
-      designed.
+- [ ] Add edge labels such as supplies, buys from, finances, evidences, and
+      anchors.
+- [ ] Keep graph read-only until persistence is designed.
 
-### Screen Group 09 - Integrations And Operations
+### 10. Integrations And Operations
 
-Current production UI:
+Current production UI summary:
 
-- Provides integration status cards and operations surfaces.
-- Shows degraded/unavailable states.
-- Uses mock/adapter-first integration model.
+- Integration requests go through outbox/adapters.
+- Current UI shows status and auditor read-only behavior.
+- Operations/deployment documentation exists.
 
-Figma reference:
+Figma Make screenshot reference:
 
-- `IntegrationsView.tsx` has a detailed outbox table.
-- Shows event type, aggregate, status, attempts, next retry, last error,
-  idempotency key, and safe retry explanation.
-- `OperationsView.tsx` supports deployment readiness and operational health.
+- `assets/figma-make-screen-13-integrations.png`
+- `assets/figma-make-screen-14-operations-health.png`
 
-Gap:
+Figma Make interaction behavior:
 
-- Current UI should expose more outbox/reconciliation detail and explain retry
-  safety.
-- Operations can better connect deployment, queue, backup, and adapter health.
+- Integrations use tabs for outbox, reconciliation, adapters, and webhooks.
+- Operations use tabs for runtime services, environment, backup/DR, and UAT.
+- Degraded runtime states are visible.
 
-TODO:
+Gap analysis:
 
-- [ ] Add outbox table with attempts, next retry, last error, and idempotency
+- Production has the correct adapter/outbox direction.
+- Figma provides stronger operational status explanation and retry visibility.
+
+Implementation-safe TODOs:
+
+- [ ] Add outbox columns for attempts, next retry, last error, and idempotency
       key.
 - [ ] Add reconciliation detail cards.
-- [ ] Add safe retry explanation for failed/retrying events.
-- [ ] Add backup, queue, worker, and deployment health panels.
-- [ ] Avoid claiming external providers are healthy unless backed by real
-      health checks or explicit mock fixture labels.
+- [ ] Add backup, worker, queue, and deployment health panels.
+- [ ] Label mock adapters clearly and never claim external provider health
+      unless backed by real health checks or explicit fixtures.
 
-### Screen Group 10 - Admin And Reports
+### 11. Admin And Reports
 
-Current production UI:
+Current production UI summary:
 
-- Identity and access foundations exist.
-- Users/roles routes exist in the broader app.
-- Reports are not yet a fully developed product surface.
+- Identity/organization foundations exist.
+- Reports are still roadmap-level compared with core workflows.
 
-Figma reference:
+Figma Make screenshot reference:
 
-- `AdminView.tsx` covers users, roles, permissions, and organization settings.
-- `ReportsView.tsx` covers procurement, finance, audit, and integration export
-  direction.
+- `assets/figma-make-screen-15-admin.png`
+- `assets/figma-make-screen-16-reports.png`
 
-Gap:
+Figma Make interaction behavior:
 
-- Admin and reports need stronger review-ready screens if they are part of the
-  final demo.
+- Admin view has users, roles, residency, feature flags, and API clients tabs.
+- Reports view has procurement, finance, audit, and integration reports.
 
-TODO:
+Gap analysis:
 
-- [ ] Add admin dashboard for users, roles, memberships, invitations, and
+- Admin and reports need stronger production screens if they are part of the
+  final demo path.
+
+Implementation-safe TODOs:
+
+- [ ] Build admin screens around users, roles, memberships, invitations, and
       organization settings.
-- [ ] Add audit event creation for admin changes where backend support exists.
-- [ ] Add report catalogue: procurement report, finance report, audit report,
-      evidence pack report, integration report.
-- [ ] Clearly label report export formats that are not implemented yet.
+- [ ] Audit admin changes where backend support exists.
+- [ ] Add report catalogue and clearly label unimplemented export formats.
 
-## Design Tailoring TODO List
+## UX Risks, Missing States, And Unclear Flows
 
-### Priority 0 - Seed Realistic Demo Data
+- Role switching in the Make sidebar is convenient for demos but unsafe if
+  copied into production auth.
+- The Make sidebar can imply `Fabric anchors synced`; production must show
+  verified only when anchored/verified by backend state.
+- Some Make actions advance lifecycle locally. Production approval,
+  disbursement, contract, ledger, closure, and export success must be
+  API-backed.
+- The Make prototype has rich status cards but limited explicit API error
+  states.
+- Some dense panels may overflow on small screens; mobile behavior was not
+  visually verified in this pass.
+- Invitation, report export, backup/restore, and some integration details are
+  visually represented but not fully verified as production workflows.
 
-- [ ] Implement or update a seed script using
-      `docs/use-cases-and-mock-data.md`.
-- [ ] Ensure seeded data covers SME admin, procurement officer, approver,
-      finance/accountant, financier, Shariah reviewer, and auditor.
-- [ ] Seed one complete TechBuild/SolarTech procurement and finance scenario.
-- [ ] Seed negative opportunity examples for blocked eligibility cases.
-- [ ] Seed audit/outbox statuses including pending, retrying, failed, completed,
-      and unavailable.
+## Accessibility And Responsive-Design Risks
 
-### Priority 1 - Align Shell And Visual System
+Not verified:
 
-- [ ] Adopt a production-safe version of the Figma dark sidebar.
-- [ ] Standardize card, table, badge, tab, stepper, and panel spacing.
-- [ ] Add module badges for pending tasks and integration backlog.
-- [ ] Align route labels and module grouping with the Figma hierarchy.
-- [ ] Keep accessibility and text fit checks on desktop and mobile.
+- Keyboard-only navigation through sidebar, tabs, modals, graph controls, and
+  wizard steps.
+- Screen reader semantics for icon-only status indicators.
+- Focus trapping in sign-in, opportunity, pre-flight, and ledger modals.
+- Mobile layout for dense workspace, graph, operations, and reports screens.
+- Color contrast for low-contrast secondary text in the dark sidebar and cards.
 
-### Priority 2 - Make Each Module Landing Page Reviewable
+Implementation-safe TODOs:
 
-- [ ] Dashboard: role cockpit with KPIs, tasks, charts, recent activity.
-- [ ] Procurement: hub with KPIs, exceptions, tabs, supplier status.
-- [ ] Finance: pipeline with evidence and review readiness.
-- [ ] Audit: verification center with status legend.
-- [ ] Graph: visual cockpit with source-record links.
-- [ ] Integrations: outbox/reconciliation control panel.
+- [ ] Add automated component tests for keyboard tab/focus where practical.
+- [ ] Verify responsive screenshots for dashboard, workspace, audit, and graph.
+- [ ] Add accessible names for status icons and icon buttons.
+- [ ] Ensure modals trap focus and return focus on close.
 
-### Priority 3 - Replace Fixtures With API-Backed Data
+## Recommendations And Priority Fixes
 
-- [ ] Define dashboard summary API DTO.
-- [ ] Define procurement hub summary API DTO.
-- [ ] Define finance workspace summary API DTO.
-- [ ] Define graph read-model API DTO.
-- [ ] Define integration status API DTO.
-- [ ] Keep fixture labels visible until data is API-backed.
+### Priority 0 - Keep production safety rules intact
 
-### Priority 4 - Produce Updated Screenshots
+- [ ] Do not copy mock role switching into production auth.
+- [ ] Do not copy fake Fabric anchoring.
+- [ ] Do not copy fake approval, disbursement, ledger closure, or integration
+      success.
+- [ ] Do not treat Make local state as production routing or persistence.
 
-- [ ] Re-seed demo data.
-- [ ] Capture current UI screenshots after visual tailoring.
-- [ ] Update `docs/ui/skeletal-web-ui-workflow.md` or create a new screenshot
-      walkthrough.
-- [ ] Capture comparison screenshots for dashboard, procurement hub, finance
-      workspace, audit verification, graph, and integrations.
+### Priority 1 - Adapt the shell and dashboard visual hierarchy
 
-## Suggested Mock Data To Seed
+- [ ] Add production-safe sidebar grouping and badges.
+- [ ] Add dashboard role context, evidence readiness, recent activity, and
+      integration backlog.
+- [ ] Keep all status values API-backed or explicitly labelled fixture data.
 
-Use `docs/use-cases-and-mock-data.md` as the source for demo data.
+### Priority 2 - Improve finance review clarity
 
-Minimum seed package:
+- [ ] Add lifecycle stepper and next-action guidance to application workspace.
+- [ ] Add evidence, due diligence, Shariah, contract, disbursement, ledger, and
+      audit summaries in the workspace.
+- [ ] Add blocked-state explanations for finance gates.
 
-- TechBuild Energy Sdn Bhd organization.
-- SolarTech Industries buyer.
-- Mega Components, TechParts Asia, and Struktur Steel suppliers.
-- Amanah Islamic Bank financier.
-- Seven demo users across the main roles.
-- One project: `PRJ-2026-001 SolarTech Rooftop Solar Retrofit`.
-- One approved requisition, one RFQ, two quotations, two POs, one receipt, one
-  invoice.
-- One opportunity: `OPP-2026-001`.
-- One application: `APP-2026-001`.
-- Evidence pack: `EVP-2026-001`.
-- Ledger showing MYR 280,000 revenue and MYR 210,000 allowed cost.
-- P/L statement showing MYR 70,000 profit split 60/40.
-- Audit events and outbox events for pending, retrying, failed, and completed
-  integration states.
+### Priority 3 - Make reviewer surfaces more understandable
 
-## Acceptance Criteria For Future UI Tailoring
+- [ ] Add audit/Fabric status legend.
+- [ ] Add P/L explanation and no-guaranteed-return note.
+- [ ] Add closure pack checklist and evidence source links.
 
-- [ ] Production UI remains route/API/RBAC based.
-- [ ] Figma is used only as visual and interaction reference.
-- [ ] No prototype mock role switching is copied into production auth.
-- [ ] No fake Fabric, payment, approval, disbursement, ledger, or closure
-      success states are introduced.
-- [ ] Each module has loading, empty, error, and permission-denied states where
-      relevant.
-- [ ] Realistic seeded data supports the demo path.
-- [ ] Screenshots show a coherent end-to-end TechBuild/SolarTech use case.
+### Priority 4 - Strengthen operational visibility
+
+- [ ] Add outbox/reconciliation details.
+- [ ] Add deployment health, queue, worker, backup, and adapter health panels.
+- [ ] Label mock providers and unavailable integrations clearly.
+
+## Appendix: Inferred Flow Map
+
+Directly observed from Make source/context unless marked otherwise:
+
+```text
+Session checking -> timeout -> Landing
+
+Landing -> Continue to sign in -> Sign-in role modal
+Sign-in role modal -> choose role -> Sign in as role -> Dashboard
+Landing -> Start registration -> Organization setup wizard
+Organization setup wizard -> Create Organization -> SME Admin Dashboard
+Landing -> Enter invitation token -> Invite acceptance
+Invite acceptance -> Accept supplier invite -> Procurement Hub
+Invite acceptance -> Accept financier invite -> Applications
+Invite acceptance -> Accept Shariah invite -> Applications
+Invite acceptance -> Accept auditor invite -> Audit and Verification
+
+Dashboard -> task/action -> Application Workspace
+Dashboard -> task/action -> Procurement Hub
+Dashboard -> task/action -> Ledger and P/L
+Dashboard -> task/action -> Audit and Verification
+Dashboard -> admin/setup action -> Admin or Integrations or Operations
+
+Sidebar -> Network Canvas -> node click -> node detail panel
+Sidebar -> Procurement Hub -> tab/search/select PO -> detail/linked workspace
+Sidebar -> Applications -> search/filter/open -> Application Workspace
+Sidebar -> Opportunities -> New Opportunity -> source step -> details step -> draft/application
+Sidebar -> Application Workspace -> evidence/review/action panels
+Sidebar -> Ledger and P/L -> Add Entry modal -> local entry state
+Sidebar -> Audit and Verification -> hash input -> verify result
+Sidebar -> Integrations -> tab/filter/expand integration card
+Sidebar -> Deployment Health -> Run Health Check -> running/updated health state
+Sidebar -> Administration -> tab/toggle feature/admin review
+Sidebar -> Reports -> tab/period/export direction
+```
+
+Production behavior must remain API-backed:
+
+```text
+Production login -> AuthProvider/session claims -> route registry/guards
+Production action -> API mutation -> database/audit/outbox update -> UI query refresh
+Production verification -> backend hash/anchor status -> honest UI state
+```
