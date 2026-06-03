@@ -1,15 +1,12 @@
 import { NavLink } from 'react-router-dom'
 
-import { canAccessRoute } from '../app/authorization'
+import { getVisibleSidebarRoutes } from '../app/authorization'
 import { routeMetadata } from '../app/navigation'
 import { useAppSession } from '../app/session'
 
 export function Sidebar() {
   const { authorization, session } = useAppSession()
-  const visibleRoutes = routeMetadata.filter(
-    (route) =>
-      route.showInSidebar && canAccessRoute(route, session, authorization),
-  )
+  const visibleRoutes = getVisibleSidebarRoutes(routeMetadata, session, authorization)
   const modules = [...new Set(visibleRoutes.map((route) => route.module))]
 
   return (

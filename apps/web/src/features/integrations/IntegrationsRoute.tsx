@@ -3,7 +3,9 @@ import type { ReactNode } from 'react'
 
 import { PageHeader } from '../../layouts/PageHeader'
 import { EmptyState } from '../../shared/components/EmptyState'
+import { ErrorState } from '../../shared/components/ErrorState'
 import { Field } from '../../shared/components/Field'
+import { LoadingState } from '../../shared/components/LoadingState'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { AppSession, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
@@ -13,6 +15,8 @@ import {
   type WebhookSubscription,
   useIntegrations,
 } from './api/useIntegrations'
+import { IntegrationStatusCards } from './status/IntegrationStatusCards'
+import { buildIntegrationStatusCards } from './status/integrationStatus.model'
 
 type IntegrationData = {
   outbox: OutboxEventView[]
@@ -162,6 +166,17 @@ export function IntegrationsRoute({
 
   const data = dataState.status === 'ready' ? dataState.data : emptyData
   const statusCounts = useMemo(() => countStatuses(data.outbox), [data.outbox])
+  const integrationStatuses = useMemo(
+    () =>
+      dataState.status === 'ready'
+        ? buildIntegrationStatusCards({
+            outbox: data.outbox,
+            reconciliation: data.reconciliation,
+            subscriptions: data.subscriptions,
+          })
+        : [],
+    [data.outbox, data.reconciliation, data.subscriptions, dataState.status],
+  )
 
   const submitFabric = useCallback(async () => {
     if (!requireFields(fabricForm.entityId, fabricForm.canonicalHash)) {
@@ -315,6 +330,10 @@ export function IntegrationsRoute({
           <strong>{statusCounts.FAILED}</strong>
         </article>
       </section>
+
+      {integrationStatuses.length ? (
+        <IntegrationStatusCards statuses={integrationStatuses} />
+      ) : null}
 
       {canRequestActions ? (
         <section className="integration-action-grid">
@@ -574,10 +593,13 @@ export function IntegrationsRoute({
       {formError ? <p className="error-text">{formError}</p> : null}
 
       {dataState.status === 'loading' ? (
-        <EmptyState>Loading integration status...</EmptyState>
+        <LoadingState message="Loading integration status..." />
       ) : null}
       {dataState.status === 'error' ? (
-        <p className="error-text">{dataState.message}</p>
+        <ErrorState
+          title="Unable to load integration status"
+          message={dataState.message}
+        />
       ) : null}
       {dataState.status === 'ready' ? (
         <>

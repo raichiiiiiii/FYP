@@ -20,19 +20,21 @@ import { FinanceRoute } from '../features/finance/FinanceRoute'
 import { GraphRoute } from '../features/graph/GraphRoute'
 import { RolesAdmin } from '../features/identity/RolesAdmin'
 import { IntegrationsRoute } from '../features/integrations/IntegrationsRoute'
+import { OperationsRoute } from '../features/operations/OperationsRoute'
 import { UsersAdmin } from '../features/identity/UsersAdmin'
 import { OrgSetup } from '../features/organization/OrgSetup'
 import { ProcurementRoute } from '../features/procurement/ProcurementRoute'
 import { AppShell } from '../layouts/AppShell'
 
 function ProcurementRouteAdapter() {
-  const { session } = useAppSession()
+  const { authorization, session } = useAppSession()
   const navigate = useNavigate()
 
   return (
     <ProcurementRoute
       session={session}
       navigate={(path) => navigate(path)}
+      roleCodes={authorization.roleCodes}
     />
   )
 }
@@ -56,9 +58,9 @@ function FinanceRouteAdapter() {
 }
 
 function GraphRouteAdapter() {
-  const { session } = useAppSession()
+  const { authorization, session } = useAppSession()
 
-  return <GraphRoute session={session} />
+  return <GraphRoute session={session} roleCodes={authorization.roleCodes} />
 }
 
 function IntegrationsRouteAdapter() {
@@ -67,9 +69,18 @@ function IntegrationsRouteAdapter() {
   return (
     <IntegrationsRoute
       session={session}
-      canRequestActions={authorization.roleCodes.includes('ORG_ADMIN')}
+      canRequestActions={
+        authorization.roleCodes.includes('ORG_ADMIN') ||
+        authorization.roleCodes.includes('DEVELOPER_INTEGRATOR')
+      }
     />
   )
+}
+
+function OperationsRouteAdapter() {
+  const { session } = useAppSession()
+
+  return <OperationsRoute session={session} />
 }
 
 export function AppRouter() {
@@ -155,6 +166,22 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <IntegrationsRouteAdapter />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/operations"
+            element={
+              <RequireAuth>
+                <OperationsRouteAdapter />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/operations/health"
+            element={
+              <RequireAuth>
+                <OperationsRouteAdapter />
               </RequireAuth>
             }
           />

@@ -33,9 +33,12 @@ const knownRoleCodes = new Set<AppRoleCode>([
   'ORG_ADMIN',
   'PROCUREMENT_OFFICER',
   'APPROVER',
+  'SUPPLIER_USER',
+  'FINANCE_ACCOUNTANT',
   'FINANCIER_USER',
   'SHARIAH_REVIEWER',
   'AUDITOR',
+  'DEVELOPER_INTEGRATOR',
 ])
 
 export function authorizationFromSession(
@@ -67,7 +70,11 @@ export function canAccessRoute(
     return Boolean(route.allowAnonymous)
   }
 
-  if (authorization.status === 'loading') {
+  if (authorization.status !== 'ready') {
+    return false
+  }
+
+  if (!route.allowAnonymous && authorization.roleCodes.length === 0) {
     return false
   }
 
@@ -94,6 +101,20 @@ export function canAccessRoute(
   }
 
   return true
+}
+
+export function getVisibleSidebarRoutes(
+  routes: readonly AppRouteMetadata[],
+  session: AppSession,
+  authorization: AuthorizationState,
+) {
+  if (authorization.status !== 'ready') {
+    return []
+  }
+
+  return routes.filter(
+    (route) => route.showInSidebar && canAccessRoute(route, session, authorization),
+  )
 }
 
 function isAppRoleCode(code: string): code is AppRoleCode {

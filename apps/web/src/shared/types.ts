@@ -26,9 +26,12 @@ export type AppRoleCode =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
   | 'APPROVER'
+  | 'SUPPLIER_USER'
+  | 'FINANCE_ACCOUNTANT'
   | 'FINANCIER_USER'
   | 'SHARIAH_REVIEWER'
   | 'AUDITOR'
+  | 'DEVELOPER_INTEGRATOR'
 
 export type AppPermission =
   | 'users:create'

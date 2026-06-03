@@ -1,744 +1,638 @@
 # Azure Student VM Deployment Guide
 
-## Status
-Completed prototype deployment runbook.
+## 1. Purpose
 
-This guide documents how to deploy the MEPN FYP prototype to a single Azure for
-Students Linux VM. It is suitable for prototype, staging, supervisor demo, and
-UAT environments. It is not a production-grade deployment because API, web, and
-worker processes are still run directly on the VM rather than through a full
-container or reverse-proxy topology.
+This document explains how to deploy the MEPN MVP to an Azure Student VM using
+Docker Compose.
 
-## Purpose
-Use this document to:
+This deployment is intended for:
 
-- Create or verify the Azure student VM environment.
-- Deploy the current `main` branch to the VM.
-- Start PostgreSQL, Redis, MinIO, API, web, and worker processes.
-- Verify the deployment from the VM and from a browser.
-- Seed repeatable UAT/demo data.
-- Back up and restart the prototype safely.
-- Hand the environment to another developer or reviewer without relying on
-  undocumented terminal history.
+- academic demonstration
+- MVP validation
+- self-hosted SME-node demonstration
+- UI/UX testing
+- integration smoke testing
 
-## Source Control Rule
-The VM is a runtime environment only. The repository is the source of truth.
+It is not a high-availability regulated production deployment.
 
-Recommended deployment flow:
+## Current Deployment Status
 
-1. Make changes locally.
-2. Commit and push to `main`.
-3. SSH into the VM.
-4. Pull `main`.
-5. Install dependencies, apply migrations, build, and restart processes.
+This runbook is ready for manual execution from an empty Azure Ubuntu VM.
 
-Record the deployed commit during each handover:
+Recorded local readiness:
 
-```bash
-git rev-parse --short HEAD
-git rev-parse HEAD
-```
+- `docker-compose.prod.yml` configuration validates with
+  `.env.production.example`.
+- Local `corepack pnpm verify` passed on commit `e19efd2`.
+- GitHub Actions CI and Azure VM deployment workflows exist.
 
-Initial deployment baseline:
+Not yet recorded in this repository:
 
-```text
-commit: ef279c8c963f2760918612b461fa0dad9146e515
-tag:    mepn-skeletal-workflow-prototype
-note:   Initial skeletal workflow prototype baseline
-```
+- live Azure VM public IP smoke test
+- live `docker compose build` output from the VM
+- live `docker compose ps` output from the VM
+- live `curl http://PUBLIC_IP` output
 
-## Azure Resource Inventory
-Keep all FYP resources in one Azure resource group so cost and cleanup are easy.
+Do not mark deployment complete for assessment until those live outputs are
+captured privately or added to a deployment/test report without exposing
+secrets.
 
-| Item | Recommended / current value | Handover note |
-| --- | --- | --- |
-| Azure offer | Azure for Students | Confirm remaining credit before demos. |
-| Resource group | `rg-mepn-fyp` | Keep all FYP resources here. |
-| VM name | `vm-mepn-fyp` | Main prototype VM. |
-| Region | Central India | Used because the student policy allowed it during the first deployment. |
-| OS image | Canonical Ubuntu Server 24.04 LTS | Use the official Canonical image, not a paid third-party image. |
-| SSH user | `azureuser` | SSH key login only. Do not commit keys. |
-| VM size | B1ms minimum, B2s preferred for demos | Confirm exact size in Azure Portal before handover. |
-| OS disk | Standard SSD, 30 GiB minimum | Increase only if logs/backups need more space. |
-| Public IP | Azure-assigned public IP or DNS label | Record in private handover notes, not in public docs. |
-| Budget alert | Low student-credit threshold | Recommended alerts at 50%, 75%, and 90% of available credit. |
-
-## Runtime Architecture
-The current prototype uses one Azure VM.
+## 2. Target Architecture
 
 ```text
 Browser
-  -> Azure VM public endpoint
-  -> Vite web app on port 5173
-  -> NestJS API on port 3000
-  -> PostgreSQL container on localhost:5432
-  -> Redis container on localhost:6379
-  -> MinIO container on localhost:9000/9001
-  -> Worker process polling outbox events
+  -> Azure public IP or domain
+  -> Nginx reverse proxy
+  -> Frontend container
+  -> Backend API container
+  -> Worker container
+  -> PostgreSQL
+  -> Redis
+  -> MinIO object storage
+  -> optional Fabric adapter mock or external Fabric endpoint
 ```
 
-Current runtime shape:
-
-| Component | Runtime | Port | Public access |
-| --- | --- | ---: | --- |
-| Web | Vite build served by `vite preview` or temporary Vite dev server | 5173 | Temporarily yes |
-| API | NestJS compiled app or dev server | 3000 | Temporarily yes |
-| Worker | NestJS worker process | none | No |
-| PostgreSQL | Docker Compose container | 5432 | No |
-| Redis | Docker Compose container | 6379 | No |
-| MinIO API | Docker Compose container | 9000 | No |
-| MinIO console | Docker Compose container | 9001 | No |
-
-Prototype limitations:
-
-- There is no reverse proxy yet.
-- HTTPS is not configured unless a domain/reverse proxy is added later.
-- `infra/docker-compose.yml` currently starts infrastructure services only.
-- API, web, and worker are started from the repository with `tmux`.
-- Public ports `3000` and `5173` are temporary for student demo use.
-
-## Repository Files
-Deployment-related repository files:
+Current repository deployment files:
 
 ```text
-.env.example
 .env.production.example
-infra/docker-compose.yml
-package.json
-pnpm-lock.yaml
-pnpm-workspace.yaml
-apps/api
-apps/web
-apps/worker
-tests/uat/seed-uat-demo.mjs
-docs/deployment/azure-student-vm-deployment.md
+docker-compose.prod.yml
+deploy/frontend.Dockerfile
+deploy/api.Dockerfile
+deploy/worker.Dockerfile
+deploy/nginx/nginx.conf
+deploy/nginx/frontend.conf
 ```
 
-Runtime-only VM files:
+## 3. Recommended VM Settings
+
+Recommended VM:
+
+- OS: Ubuntu LTS, preferably Ubuntu Server 24.04 LTS
+- Authentication: SSH public key
+- Size: B1ms minimum, B2s preferred for demos
+- OS disk: Standard SSD, 30 GiB minimum
+- Inbound ports:
+  - `22` for SSH
+  - `80` for HTTP
+  - `443` for HTTPS if TLS will be enabled
+
+Do not expose PostgreSQL, Redis, MinIO, or the API port directly to the public
+internet.
+
+## 4. Create VM
+
+1. Sign in to Azure Portal.
+2. Create a new Linux virtual machine.
+3. Select an Ubuntu LTS image.
+4. Use SSH public key authentication.
+5. Allow selected inbound ports:
+   - SSH `22`
+   - HTTP `80`
+6. After creation, add HTTPS `443` to the VM network security group if TLS will
+   be enabled.
+7. Copy the public IP address.
+
+Placeholder values used in this guide:
 
 ```text
-.env.production
-backups/
-*.pem
+YOUR_PUBLIC_IP
+YOUR_DOMAIN
+YOUR_REPO_URL
+~/Downloads/mepn-vm-key.pem
 ```
 
-These files must not be committed. `.gitignore` is configured to ignore them.
+## 5. SSH Into VM
 
-## Azure VM Network Rules
-Use this inbound access while the app is still a prototype:
-
-| Layer | Allow |
-| --- | --- |
-| Azure NSG | `22`, temporary `3000`, temporary `5173` |
-| Ubuntu UFW | `OpenSSH`, temporary `3000/tcp`, temporary `5173/tcp` |
-
-Keep these ports closed to the public internet:
-
-```text
-5432  PostgreSQL
-6379  Redis
-9000  MinIO API
-9001  MinIO console
-```
-
-When a reverse proxy is added, only `22`, `80`, and `443` should remain open,
-and the temporary public `3000` and `5173` rules should be removed.
-
-## Create The VM
-Create the VM through Azure Portal or Azure CLI with these choices:
-
-- Subscription: Azure for Students.
-- Resource group: `rg-mepn-fyp`.
-- Region: use a region allowed by the student policy.
-- Image: Canonical Ubuntu Server 24.04 LTS.
-- Authentication: SSH public key.
-- Inbound ports: SSH only at creation time.
-- Disk: Standard SSD is enough for the prototype.
-
-After creation, add temporary inbound rules for:
-
-```text
-3000/tcp
-5173/tcp
-```
-
-These are required only because the prototype does not yet have a reverse proxy.
-
-## Bootstrap Ubuntu
-SSH into the VM:
+From your local machine:
 
 ```bash
-ssh -i /path/to/vm-mepn-fyp-key.pem azureuser@YOUR_VM_PUBLIC_ENDPOINT
+chmod 400 ~/Downloads/mepn-vm-key.pem
+ssh -i ~/Downloads/mepn-vm-key.pem azureuser@YOUR_PUBLIC_IP
 ```
 
-Update packages:
+## 6. Update OS
+
+On the VM:
 
 ```bash
-sudo apt-get update
-sudo apt-get upgrade -y
+sudo apt update
+sudo apt upgrade -y
+sudo reboot
 ```
 
-Install base tools:
+Reconnect after reboot:
 
 ```bash
-sudo apt-get install -y git curl ca-certificates gnupg build-essential tmux ufw
+ssh -i ~/Downloads/mepn-vm-key.pem azureuser@YOUR_PUBLIC_IP
 ```
 
-Install Docker:
+## 7. Install Required Packages
 
 ```bash
-sudo apt-get install -y docker.io docker-compose-plugin
-sudo usermod -aG docker "$USER"
+sudo apt update
+sudo apt install -y ca-certificates curl git nano ufw
 ```
 
-Log out and SSH back in so the Docker group membership is active. Then verify:
-
-```bash
-docker --version
-docker compose version
-```
-
-Install Node.js LTS and pnpm through Corepack:
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-sudo corepack enable
-corepack prepare pnpm@9.0.0 --activate
-node --version
-pnpm --version
-```
-
-Enable the firewall:
+Optional firewall setup:
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 3000/tcp
-sudo ufw allow 5173/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo ufw enable
 sudo ufw status
 ```
 
-## Clone Or Update The Repository
-First-time clone:
+Only enable `443/tcp` if HTTPS will be configured.
+
+## 8. Install Docker Engine and Compose Plugin
 
 ```bash
-cd ~
-git clone https://github.com/raichiiiiiii/FYP.git
-cd ~/FYP
-git checkout main
+sudo apt update
+sudo apt install -y ca-certificates curl
+
+sudo install -m 0755 -d /etc/apt/keyrings
+
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
+
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-Update an existing VM checkout:
+Verify Docker:
 
 ```bash
-cd ~/FYP
-git fetch origin
-git checkout main
-git pull --ff-only origin main
+sudo systemctl status docker
+sudo docker run hello-world
+docker compose version
 ```
 
-If the VM has local uncommitted edits, stop and inspect them before pulling:
+Optional Docker group setup:
 
 ```bash
-git status --short
+sudo usermod -aG docker $USER
+newgrp docker
+docker run hello-world
 ```
 
-Do not resolve VM drift by committing directly on the VM unless there is a clear
-operational reason.
+If the Docker group is not applied immediately, log out and SSH back in.
 
-## Configure Environment
-Create the VM-local production env file:
+## 9. Clone Repository
 
 ```bash
-cd ~/FYP
+sudo mkdir -p /opt/mepn
+sudo chown -R $USER:$USER /opt/mepn
+
+cd /opt/mepn
+
+git clone YOUR_REPO_URL .
+```
+
+Confirm the repository contains the deployment files:
+
+```bash
+ls
+ls deploy
+ls deploy/nginx
+```
+
+## 10. Configure Production Environment
+
+```bash
+cd /opt/mepn
 cp .env.production.example .env.production
 nano .env.production
 ```
 
-Replace:
+Never commit `.env.production`.
+
+At minimum, replace placeholder values:
 
 ```text
-YOUR_VM_PUBLIC_ENDPOINT
-change_me
+APP_URL
+API_URL
+WEB_ORIGIN
+POSTGRES_PASSWORD
+DATABASE_URL
+JWT_SECRET
+SESSION_SECRET
+OBJECT_STORAGE_ACCESS_KEY
+OBJECT_STORAGE_SECRET_KEY
+MINIO_ACCESS_KEY
+MINIO_SECRET_KEY
 ```
 
-For the current infrastructure compose file, PostgreSQL and MinIO demo
-credentials match the values in `infra/docker-compose.yml`. If those compose
-credentials are changed later, update `.env.production` at the same time.
+For a public-IP-only prototype, use:
 
-Load environment variables for the current shell:
+```env
+APP_URL=http://YOUR_PUBLIC_IP
+API_URL=http://YOUR_PUBLIC_IP/api
+WEB_ORIGIN=http://YOUR_PUBLIC_IP
+VITE_API_BASE_URL=/api/v1
+```
+
+For a domain-based prototype, use:
+
+```env
+APP_URL=https://YOUR_DOMAIN
+API_URL=https://YOUR_DOMAIN/api
+WEB_ORIGIN=https://YOUR_DOMAIN
+VITE_API_BASE_URL=/api/v1
+```
+
+Ensure the database password in `DATABASE_URL` matches `POSTGRES_PASSWORD`.
+
+Example pattern:
+
+```env
+POSTGRES_DB=mepn
+POSTGRES_USER=mepn
+POSTGRES_PASSWORD=change_me_to_a_long_random_value
+DATABASE_URL=postgresql://mepn:change_me_to_a_long_random_value@postgres:5432/mepn
+```
+
+## 11. Validate Compose Configuration
 
 ```bash
-set -a
-source .env.production
-set +a
+cd /opt/mepn
+docker compose -f docker-compose.prod.yml --env-file .env.production config
 ```
 
-## Start Infrastructure
-Start PostgreSQL, Redis, and MinIO:
+If this command fails, fix `.env.production` or `docker-compose.prod.yml`
+before building.
+
+## 12. Build and Start
 
 ```bash
-docker compose \
-  --env-file .env.production \
-  -f infra/docker-compose.yml \
-  up -d
+cd /opt/mepn
+docker compose -f docker-compose.prod.yml --env-file .env.production build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ```
 
-Verify containers:
+The API container runs Prisma migrations before starting the NestJS API.
+
+## 13. Check Containers
 
 ```bash
-docker ps
+docker compose -f docker-compose.prod.yml --env-file .env.production ps
+docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail=100
 ```
 
-Expected containers:
+Expected services:
 
 ```text
-mepn-postgres
-mepn-redis
-mepn-minio
+mepn_reverse_proxy
+mepn_frontend
+mepn_api
+mepn_worker
+mepn_postgres
+mepn_redis
+mepn_minio
 ```
 
-## Install, Generate, Migrate, And Build
-Install dependencies:
+## 14. Smoke Test
+
+From the VM:
 
 ```bash
-pnpm install
+curl -I http://localhost
+curl http://localhost/api/v1/health
 ```
 
-Generate Prisma client:
+From your local machine or browser:
 
 ```bash
-pnpm prisma:generate
+curl -I http://YOUR_PUBLIC_IP
 ```
 
-Apply migrations:
-
-```bash
-pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
-```
-
-Build API, worker, and web:
-
-```bash
-pnpm --dir apps/api build
-pnpm --dir apps/worker build
-pnpm --dir apps/web build
-```
-
-Use `prisma db push` only as an emergency prototype fallback when migrations are
-not available:
-
-```bash
-pnpm --dir apps/api exec prisma db push --schema prisma/schema.prisma
-```
-
-Do not use `db push` as the normal deployment path once migrations exist.
-
-## Start Processes With tmux
-Stop old sessions if they exist:
-
-```bash
-tmux kill-session -t mepn-api 2>/dev/null || true
-tmux kill-session -t mepn-web 2>/dev/null || true
-tmux kill-session -t mepn-worker 2>/dev/null || true
-```
-
-Start API:
-
-```bash
-tmux new -d -s mepn-api \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/api start:prod'
-```
-
-Start web in prototype preview mode:
-
-```bash
-tmux new -d -s mepn-web \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/web preview --host 0.0.0.0 --port 5173'
-```
-
-Start worker:
-
-```bash
-tmux new -d -s mepn-worker \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/worker start:prod'
-```
-
-If a build artifact is missing or the demo needs hot reload, the temporary
-development commands are:
-
-```bash
-tmux new -d -s mepn-api 'cd ~/FYP && set -a && source .env.production && set +a && pnpm dev:api'
-tmux new -d -s mepn-web 'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/web dev --host 0.0.0.0 --port 5173'
-tmux new -d -s mepn-worker 'cd ~/FYP && set -a && source .env.production && set +a && pnpm dev:worker'
-```
-
-Check sessions:
-
-```bash
-tmux ls
-```
-
-Attach to a session:
-
-```bash
-tmux attach -t mepn-api
-```
-
-Detach without stopping it:
+Expected successful frontend result:
 
 ```text
-Ctrl+B, then D
+HTTP/1.1 200 OK
 ```
 
-## Verification Checklist
-Run on the VM:
-
-```bash
-docker ps
-tmux ls
-curl http://localhost:3000/api/v1/health
-curl -I http://localhost:5173
-ss -tlnp | grep -E '3000|5173'
-```
-
-Expected API health shape:
+Expected API health response includes:
 
 ```json
 {
   "status": "ok",
   "service": "mepn-api",
   "database": "ok",
-  "redis": "ok",
-  "environment": "production"
+  "redis": "ok"
 }
 ```
 
-Browser checks from a laptop:
+Open the app:
 
 ```text
-http://YOUR_VM_PUBLIC_ENDPOINT:5173
-http://YOUR_VM_PUBLIC_ENDPOINT:3000/api/v1/health
+http://YOUR_PUBLIC_IP/
 ```
 
-Minimum UI checks:
+If using a domain:
 
-- `/dashboard` shows API, database, and Redis status.
-- `/org/setup` can create or show organization context.
-- `/procurement/requisitions` opens without console errors.
-- `/evidence/packs` can show seeded evidence packs.
-- `/audit/search` loads audit filters.
-- `/finance/applications` loads the finance workspace.
-- `/integrations` shows outbox/integration status for allowed roles.
-
-## Seed Demo Or UAT Data
-After the API is running:
-
-```bash
-pnpm seed:uat
+```text
+https://YOUR_DOMAIN/
 ```
 
-For a remote or non-default API URL:
+## 15. Update Deployment
+
+To deploy the latest `main` branch:
 
 ```bash
-UAT_API_BASE_URL=http://YOUR_VM_PUBLIC_ENDPOINT:3000/api/v1 pnpm seed:uat
-```
-
-Save the JSON output in private UAT handover evidence. It contains:
-
-- Organization ID.
-- Role user IDs.
-- Procurement records.
-- Evidence pack.
-- Finance application.
-- Closure pack.
-- Integration outbox request.
-- Suggested reviewer start URLs.
-
-## Update Deployment After A New Main Commit
-On the VM:
-
-```bash
-cd ~/FYP
+cd /opt/mepn
 git fetch origin
 git checkout main
-git pull --ff-only origin main
-pnpm install
-pnpm prisma:generate
-pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
-pnpm --dir apps/api build
-pnpm --dir apps/worker build
-pnpm --dir apps/web build
+git pull origin main
+
+docker compose -f docker-compose.prod.yml --env-file .env.production build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ```
 
-Restart tmux sessions:
+Record the deployed commit:
 
 ```bash
-tmux kill-session -t mepn-api 2>/dev/null || true
-tmux kill-session -t mepn-web 2>/dev/null || true
-tmux kill-session -t mepn-worker 2>/dev/null || true
-
-tmux new -d -s mepn-api \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/api start:prod'
-tmux new -d -s mepn-web \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/web preview --host 0.0.0.0 --port 5173'
-tmux new -d -s mepn-worker \
-  'cd ~/FYP && set -a && source .env.production && set +a && pnpm --dir apps/worker start:prod'
+git rev-parse --short HEAD
+git rev-parse HEAD
 ```
 
-Re-run the verification checklist.
-
-## Backup And Restore
-Create a local backup folder:
+## 16. Rollback
 
 ```bash
-mkdir -p ~/FYP/backups
+cd /opt/mepn
+
+git log --oneline -5
+git checkout PREVIOUS_COMMIT_SHA
+
+docker compose -f docker-compose.prod.yml --env-file .env.production build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+After rollback, smoke test again:
+
+```bash
+curl -I http://localhost
+curl http://localhost/api/v1/health
+```
+
+Return to `main` when ready:
+
+```bash
+git checkout main
+```
+
+## 17. Logs and Troubleshooting
+
+View all logs:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production logs -f --tail=200
+```
+
+View one service:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production logs -f api
+docker compose -f docker-compose.prod.yml --env-file .env.production logs -f frontend
+docker compose -f docker-compose.prod.yml --env-file .env.production logs -f worker
+```
+
+Restart one service:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production restart frontend
+docker compose -f docker-compose.prod.yml --env-file .env.production restart api
+docker compose -f docker-compose.prod.yml --env-file .env.production restart worker
+```
+
+Restart all services:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production restart
+```
+
+Stop all services:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production down
+```
+
+Stop and remove containers without deleting persistent volumes:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production down
+```
+
+Stop and remove containers plus volumes:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production down -v
+```
+
+Use `down -v` only when you intentionally want to delete PostgreSQL, Redis, and
+MinIO data.
+
+## 18. Common Issues
+
+### Docker Permission Denied
+
+Use `sudo` or add the user to the Docker group:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### Port 80 Already In Use
+
+Find the process:
+
+```bash
+sudo ss -tulpn | grep ':80'
+```
+
+Stop the conflicting service or change the published port in
+`docker-compose.prod.yml`.
+
+### API Health Fails
+
+Check API, database, and Redis logs:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production logs -f api postgres redis
+```
+
+Confirm:
+
+- `DATABASE_URL` points to `postgres`, not `localhost`.
+- `REDIS_URL` points to `redis`, not `localhost`.
+- `POSTGRES_PASSWORD` matches the password inside `DATABASE_URL`.
+- Prisma migrations completed in the API logs.
+
+### Frontend Cannot Call API
+
+Confirm the frontend was built with:
+
+```env
+VITE_API_BASE_URL=/api/v1
+```
+
+Then rebuild:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production build frontend
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d frontend reverse-proxy
+```
+
+### VM Is Not Reachable From Browser
+
+Confirm Azure NSG and UFW allow `80/tcp`:
+
+```bash
+sudo ufw status
+```
+
+Also confirm the reverse proxy is running:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production ps reverse-proxy
+```
+
+## 19. Backups
+
+Create a backup directory:
+
+```bash
+mkdir -p /opt/mepn/backups
 ```
 
 Back up PostgreSQL:
 
 ```bash
-docker exec -e PGPASSWORD=mepn mepn-postgres \
-  pg_dump -U mepn -d mepn > ~/FYP/backups/mepn-$(date +%Y%m%d-%H%M%S).sql
+docker compose -f docker-compose.prod.yml --env-file .env.production exec postgres \
+  pg_dump -U mepn mepn > /opt/mepn/backups/mepn-$(date +%Y%m%d-%H%M%S).sql
 ```
 
-List backups:
+Back up object storage volume through Docker volume backup if required by the
+demo or UAT plan.
 
-```bash
-ls -lh ~/FYP/backups
-```
+## 20. Known Limitations
 
-Restore to the current database only when you intentionally want to replace its
-contents:
+This Azure Student VM deployment is not a regulated production deployment.
 
-```bash
-cat ~/FYP/backups/YOUR_BACKUP_FILE.sql | \
-  docker exec -i -e PGPASSWORD=mepn mepn-postgres \
-  psql -U mepn -d mepn
-```
+Limitations:
 
-MinIO object data currently lives in the Docker volume
-`mepn-minio-data`. For prototype handover, preserve the VM and Docker volumes.
-For stronger backup coverage, copy MinIO data or move object storage to a managed
-S3-compatible service later.
+- single VM
+- no high availability
+- no managed database
+- local container volumes unless migrated to managed services
+- limited disaster recovery
+- HTTPS is not configured unless a domain and TLS certificate are added
+- Fabric may be mocked or externally integrated depending on environment
+- no production-grade secret manager unless added separately
+- no automated blue-green or canary release process
+- not suitable for real financial customer data without security, legal,
+  Shariah, privacy, and regulatory review
 
-## Cost Control
-Azure for Students credit is limited. When the VM is not needed:
+## 21. GitHub Actions Deployment
 
-1. Open Azure Portal.
-2. Go to `vm-mepn-fyp`.
-3. Select `Stop`.
-4. Confirm the VM state becomes `Stopped (deallocated)`.
+After the manual Docker Compose deployment has succeeded once, deployment can be
+triggered from GitHub Actions.
 
-Do not rely only on `sudo shutdown now` inside Ubuntu. A stopped-but-allocated VM
-can still consume compute credit.
-
-Recommended cost checks:
-
-- Add budget alerts at 50%, 75%, and 90% of available student credit.
-- Deallocate the VM after demos.
-- Avoid premium disks unless required.
-- Keep all resources in `rg-mepn-fyp` for easy cleanup.
-- Delete unused public IPs, disks, snapshots, and test VMs.
-
-## Security Rules
-Never commit:
-
-- `.env.production`
-- Private SSH keys
-- Real public IP handover sheets
-- Database passwords
-- MinIO credentials
-- OIDC secrets
-- JWT/session secrets
-- Backup files
-
-Prototype safety rules:
-
-- Use SSH key authentication.
-- Keep Postgres, Redis, and MinIO ports private.
-- Use temporary public `3000` and `5173` only for demos.
-- Rotate demo credentials if a screenshot or handover note exposes them.
-- Prefer private handover notes for IP addresses and credentials.
-
-## Troubleshooting
-
-### Azure region policy blocks VM creation
-
-Symptom:
+The workflow file is:
 
 ```text
-RequestDisallowedByAzure
-Allowed resource deployment regions
+.github/workflows/deploy-azure-vm.yml
 ```
 
-Fix:
-
-Use a region allowed by the Azure for Students policy. Central India worked for
-the initial deployment.
-
-### Marketplace eligibility fails
-
-Symptom:
+Required repository secrets:
 
 ```text
-MarketplacePurchaseEligibilityFailed
-PublisherId: cloud-infrastructure-services
+AZURE_VM_HOST
+AZURE_VM_USER
+AZURE_VM_SSH_KEY
 ```
 
-Fix:
-
-Use the official Canonical Ubuntu Server image.
-
-### SSH connection times out
-
-Check from Windows:
-
-```powershell
-Test-NetConnection YOUR_VM_PUBLIC_ENDPOINT -Port 22
-```
-
-Fix:
-
-- Confirm the VM is running.
-- Confirm Azure NSG allows SSH.
-- Confirm local network allows outbound SSH.
-- Confirm the public IP or DNS label is correct.
-
-### Windows private key permissions are too open
-
-Symptom:
+Set them in:
 
 ```text
-UNPROTECTED PRIVATE KEY FILE
-bad permissions
+GitHub repository -> Settings -> Secrets and variables -> Actions -> Repository secrets
 ```
 
-Fix:
+Secret meaning:
 
-Move the key into the Windows user `.ssh` directory and restrict access, or use
-`icacls` to remove broad permissions.
+| Secret | Meaning |
+| --- | --- |
+| `AZURE_VM_HOST` | VM public IP address or DNS name |
+| `AZURE_VM_USER` | SSH username, for example `azureuser` |
+| `AZURE_VM_SSH_KEY` | Private SSH key with access to the VM |
 
-### pnpm is unavailable
+Do not store `.env.production` in GitHub secrets for this workflow. The runtime
+environment file must already exist on the VM at:
 
-Fix:
+```text
+/opt/mepn/.env.production
+```
+
+The workflow connects over SSH and runs:
 
 ```bash
-sudo corepack enable
-corepack prepare pnpm@9.0.0 --activate
+cd /opt/mepn
+git fetch origin main
+git reset --hard origin/main
+docker compose -f docker-compose.prod.yml --env-file .env.production build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+docker compose -f docker-compose.prod.yml --env-file .env.production ps
 ```
 
-Fallback:
+Trigger options:
 
-```bash
-sudo npm install -g pnpm@9.0.0
-```
+- automatically on push to `main`
+- manually from GitHub Actions using `Run workflow`
 
-### Browser cannot access the web app
+Manual trigger:
 
-Check:
+1. Open the GitHub repository.
+2. Go to `Actions`.
+3. Select `Deploy to Azure VM`.
+4. Click `Run workflow`.
+5. Select the branch to deploy.
+6. Confirm the run.
 
-```bash
-curl -I http://localhost:5173
-ss -tlnp | grep 5173
-```
+The workflow must not print `.env.production` or any secret values. Review the
+workflow logs after each deployment and confirm only Docker Compose status is
+shown.
 
-Fix:
+## 22. Handover Checklist
 
-Start the web process with `--host 0.0.0.0`:
-
-```bash
-pnpm --dir apps/web preview --host 0.0.0.0 --port 5173
-```
-
-Also confirm Azure NSG and UFW allow `5173/tcp`.
-
-### API health is degraded
-
-Check containers and env:
-
-```bash
-docker ps
-printenv DATABASE_URL
-printenv REDIS_URL
-curl http://localhost:3000/api/v1/health
-```
-
-Fix:
-
-- Restart infrastructure with Docker Compose.
-- Confirm `.env.production` was sourced before starting API/worker.
-- Confirm Prisma migrations were applied.
-
-### Worker is not processing outbox events
-
-Check:
-
-```bash
-tmux attach -t mepn-worker
-```
-
-Confirm `.env.production` has:
-
-```env
-WORKER_POLL_ENABLED=true
-WORKER_POLL_INTERVAL_MS=5000
-WORKER_MAX_ATTEMPTS=5
-```
-
-Restart the worker after env changes.
-
-## Future Hardening Backlog
-These improvements are not required for the current student VM prototype, but
-they are the next steps toward a production-style deployment:
-
-- Add Dockerfiles for API, web, and worker.
-- Add `docker-compose.prod.yml` for full single-VM deployment.
-- Add Nginx or Caddy reverse proxy.
-- Serve web through `80`/`443`.
-- Route API through `/api/v1` behind the reverse proxy.
-- Remove public access to `3000` and `5173`.
-- Enable HTTPS with a real domain.
-- Move secrets to GitHub Actions Secrets, Azure Key Vault, or another secret
-  store.
-- Add GitHub Actions CI and deployment workflow.
-- Add automated backup and restore scripts.
-- Add health checks and structured logging.
-- Add rollback instructions for previous release directories or images.
-
-## Handover Checklist
 Before handover, record these items in private project notes:
 
 | Item | Completed |
 | --- | --- |
 | Azure resource group confirmed | |
-| VM size and disk type confirmed | |
-| Public IP or DNS label recorded privately | |
-| Current deployed commit recorded | |
-| `.env.production` exists on VM | |
-| Docker containers are running | |
-| API, web, and worker tmux sessions are running | |
-| API health endpoint returns `ok` | |
-| Browser can open the web app | |
-| UAT/demo seed command was run if needed | |
-| Latest backup file created | |
-| Budget alerts are configured | |
-| VM deallocation rule explained | |
-
-## Final State Summary
-At the end of this deployment path:
-
-```text
-Azure VM is reachable by SSH.
-Docker and Docker Compose are installed.
-PostgreSQL, Redis, and MinIO run through Docker Compose.
-API runs on port 3000.
-Web runs on port 5173.
-Worker runs without public exposure.
-API health confirms database and Redis connectivity.
-Frontend can call the API through VITE_API_BASE_URL.
-UAT/demo data can be seeded repeatably.
-The setup is adequate for FYP prototype demos and UAT, with hardening clearly
-listed for future production work.
-```
+| VM public IP or domain recorded privately | |
+| SSH access verified | |
+| Docker and Compose installed | |
+| Repository cloned to `/opt/mepn` | |
+| `.env.production` created and not committed | |
+| `docker compose config` passes | |
+| Containers build successfully | |
+| Containers are running | |
+| `curl http://localhost/api/v1/health` returns `ok` | |
+| Browser can open the app | |
+| Latest deployed commit recorded | |
+| Rollback command tested or documented | |
+| Known limitations explained to reviewer | |

@@ -250,6 +250,531 @@ select:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.dashboard-intro {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.5fr);
+  margin-top: 24px;
+}
+
+.dashboard-intro > div,
+.dashboard-panel,
+.dashboard-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dashboard-intro > div {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.dashboard-intro p,
+.dashboard-intro span,
+.dashboard-panel p,
+.dashboard-task p,
+.dashboard-signal p,
+.dashboard-activity p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.dashboard-intro strong,
+.dashboard-panel h2,
+.dashboard-task strong,
+.dashboard-signal strong,
+.dashboard-activity strong {
+  color: var(--text-strong);
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.dashboard-kpi-card {
+  border-left-width: 5px;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px;
+}
+
+.dashboard-kpi-card--neutral {
+  border-left-color: #8da2b1;
+}
+
+.dashboard-kpi-card--success {
+  border-left-color: var(--success);
+}
+
+.dashboard-kpi-card--warning {
+  border-left-color: #d08a00;
+}
+
+.dashboard-kpi-card--danger {
+  border-left-color: var(--danger);
+}
+
+.dashboard-kpi-card span,
+.dashboard-task span,
+.dashboard-signal span,
+.dashboard-activity span,
+.dashboard-task small,
+.dashboard-activity small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-kpi-card strong {
+  color: var(--text-strong);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dashboard-kpi-card p,
+.dashboard-kpi-card em {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  margin: 0;
+}
+
+.dashboard-panels {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  margin-top: 24px;
+}
+
+.dashboard-panel {
+  align-content: start;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.dashboard-panel--wide {
+  min-width: 0;
+}
+
+.dashboard-panel-header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.dashboard-panel-header h2 {
+  font-size: 18px;
+  margin: 3px 0 0;
+}
+
+.dashboard-panel-header a,
+.dashboard-task a,
+.dashboard-signal,
+.dashboard-activity {
+  color: var(--button-bg);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.dashboard-task-list,
+.dashboard-signal-list,
+.dashboard-activity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-task {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.dashboard-task--low {
+  border-left-color: #8da2b1;
+}
+
+.dashboard-task--medium {
+  border-left-color: #d08a00;
+}
+
+.dashboard-task--high,
+.dashboard-task--critical {
+  border-left-color: var(--danger);
+}
+
+.dashboard-task strong,
+.dashboard-activity strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.dashboard-task p,
+.dashboard-activity p {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.dashboard-task-meta {
+  align-items: end;
+  display: grid;
+  gap: 7px;
+  justify-items: end;
+  min-width: 132px;
+}
+
+.dashboard-status {
+  border-radius: 999px;
+  display: inline-flex;
+  min-height: 24px;
+  padding: 5px 9px;
+}
+
+.dashboard-status--open {
+  background: #e6f5ee;
+  color: #176342;
+}
+
+.dashboard-status--blocked {
+  background: #fdeceb;
+  color: #9f2d23;
+}
+
+.dashboard-status--pending_external {
+  background: #fff4da;
+  color: #765414;
+}
+
+.dashboard-status--done {
+  background: #eef3f7;
+  color: #25313c;
+}
+
+.dashboard-signal,
+.dashboard-activity {
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  color: var(--text-strong);
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+}
+
+.dashboard-signal--neutral {
+  border-left-color: #8da2b1;
+}
+
+.dashboard-signal--success {
+  border-left-color: var(--success);
+}
+
+.dashboard-signal--warning {
+  border-left-color: #d08a00;
+}
+
+.dashboard-signal--danger {
+  border-left-color: var(--danger);
+}
+
+.dashboard-details-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-activity {
+  border-left-color: #8da2b1;
+}
+
+.applications-summary,
+.applications-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.applications-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.applications-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 104px;
+  padding: 18px;
+}
+
+.applications-summary-card--neutral {
+  border-left-color: #8da2b1;
+}
+
+.applications-summary-card--success {
+  border-left-color: var(--success);
+}
+
+.applications-summary-card--warning {
+  border-left-color: #d08a00;
+}
+
+.applications-summary-card--danger {
+  border-left-color: var(--danger);
+}
+
+.applications-summary-card span,
+.applications-table span,
+.applications-table small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.applications-summary-card strong {
+  color: var(--text-strong);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.applications-toolbar {
+  align-items: end;
+  grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(150px, 0.6fr));
+}
+
+.applications-sort-row {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.applications-table {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.applications-table article {
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns:
+    minmax(180px, 1.6fr) minmax(120px, 0.72fr) minmax(100px, 0.8fr)
+    minmax(140px, 0.9fr) minmax(70px, 0.45fr) minmax(70px, 0.45fr)
+    minmax(90px, 0.6fr) auto;
+  min-height: 74px;
+  padding: 14px 16px;
+}
+
+.applications-table strong {
+  color: var(--text-strong);
+  display: block;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.applications-record-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.applications-record-main small {
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+  text-transform: none;
+}
+
+.workspace-layout {
+  display: grid;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.workspace-hero,
+.workspace-panel,
+.workspace-overview-grid article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.workspace-hero {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.workspace-hero h2,
+.workspace-panel h2 {
+  color: var(--text-strong);
+  margin: 3px 0 0;
+}
+
+.workspace-hero h2 {
+  font-size: 22px;
+}
+
+.workspace-hero p,
+.workspace-panel p {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.workspace-hero span,
+.workspace-panel-header span,
+.workspace-overview-grid span,
+.workspace-action span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.workspace-overview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.workspace-overview-grid article {
+  display: grid;
+  gap: 8px;
+  min-height: 90px;
+  padding: 16px;
+}
+
+.workspace-overview-grid strong,
+.workspace-action strong {
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.workspace-panels {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr) minmax(280px, 0.65fr);
+}
+
+.workspace-panel {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.workspace-panel--wide {
+  overflow: hidden;
+}
+
+.workspace-panel-header {
+  align-items: start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.workspace-panel-header h2 {
+  font-size: 18px;
+}
+
+.workspace-action-list {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-action {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left: 5px solid #8da2b1;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.workspace-action p {
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.workspace-timeline {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workspace-timeline-step {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  min-height: 48px;
+  padding: 10px;
+}
+
+.workspace-timeline-step span {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.workspace-timeline-step--complete {
+  background: #e6f5ee;
+  border-color: #b9dfcf;
+  color: #176342;
+}
+
+.workspace-timeline-step--current {
+  background: #fff4da;
+  border-color: #efd58f;
+  color: #765414;
+}
+
+.workspace-timeline-step--exception {
+  background: #fdeceb;
+  border-color: #f4c7c3;
+  color: #9f2d23;
+}
+
+.module-tab--disabled {
+  background: #f4f6f8;
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .form-grid {
   display: grid;
   gap: 16px;
@@ -314,6 +839,183 @@ textarea {
   gap: 12px;
 }
 
+.opportunity-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.opportunity-form h2,
+.opportunity-form .notice,
+.opportunity-form .error-text,
+.opportunity-checks,
+.opportunity-form .form-actions {
+  grid-column: 1 / -1;
+}
+
+.opportunity-checks {
+  display: grid;
+  gap: 10px;
+}
+
+.opportunity-checks label {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.opportunity-checks input {
+  min-height: auto;
+  width: 18px;
+}
+
+.opportunity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.opportunity-card {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left: 5px solid #3c7f72;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1.25fr) auto repeat(3, minmax(110px, 0.7fr)) auto;
+  padding: 14px;
+}
+
+.opportunity-card--blocked {
+  border-left-color: var(--danger);
+}
+
+.opportunity-card > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.opportunity-card span,
+.opportunity-card small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.opportunity-card .error-text {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.procurement-workspace {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.procurement-summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.procurement-summary article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid #3c7f72;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  padding: 16px;
+}
+
+.procurement-summary span,
+.requisition-card span,
+.requisition-card small,
+.section-heading-row p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.procurement-summary strong {
+  color: var(--text-strong);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.section-heading-row {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.section-heading-row p {
+  margin-top: 6px;
+  max-width: 720px;
+}
+
+.requisition-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.requisition-form h2,
+.requisition-form .notice,
+.requisition-form .error-text,
+.requisition-form .form-actions {
+  grid-column: 1 / -1;
+}
+
+.requisition-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.requisition-card {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid #8da2b1;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1.15fr) auto minmax(120px, 0.55fr) minmax(240px, 1.25fr) auto;
+  padding: 14px;
+}
+
+.requisition-card-main,
+.requisition-card-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.requisition-card-main strong,
+.requisition-card-meta strong {
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.requisition-card .lifecycle-track {
+  min-width: 0;
+}
+
+.requisition-reason {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .integration-action-grid {
   display: grid;
   gap: 16px;
@@ -324,6 +1026,116 @@ textarea {
 .integration-action-panel {
   align-content: start;
   margin-top: 0;
+}
+
+.status-card-section {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.section-heading {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+}
+
+.section-heading h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 3px 0 0;
+}
+
+.status-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.status-card-grid--operations {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.status-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  min-height: 160px;
+  padding: 16px;
+}
+
+.status-card-header {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.status-card-header span,
+.status-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status-card strong {
+  color: var(--text-strong);
+  font-size: 19px;
+}
+
+.status-card p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.status-card--healthy {
+  border-color: #b9dfcf;
+}
+
+.status-card--degraded,
+.status-card--pending {
+  border-color: #efd58f;
+}
+
+.status-card--unavailable {
+  border-color: #f4c7c3;
+}
+
+.status-card--not_configured {
+  border-color: #d7e0e7;
+}
+
+.operations-readiness {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  margin-bottom: 18px;
+}
+
+.operations-readiness article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.operations-readiness span {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.operations-readiness strong {
+  color: var(--text-strong);
+  font-size: 22px;
+}
+
+.operations-readiness p {
+  color: var(--muted);
+  margin: 0;
 }
 
 .table-section {
@@ -426,6 +1238,133 @@ textarea {
   grid-template-columns: 1.3fr 1fr 1fr 1.2fr;
 }
 
+.audit-verification-summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.audit-verification-summary article,
+.audit-verification-panel,
+.audit-event-list article {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.audit-verification-summary article {
+  display: grid;
+  gap: 8px;
+  min-height: 92px;
+  padding: 14px;
+}
+
+.audit-verification-summary span,
+.audit-event-list span,
+.audit-event-list small,
+.audit-hash-grid span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.audit-verification-summary strong {
+  color: var(--text-strong);
+  font-size: 28px;
+}
+
+.audit-verification-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.audit-verification-panel h2 {
+  margin: 0;
+}
+
+.audit-verification-panel p {
+  margin: 4px 0 0;
+  max-width: 760px;
+}
+
+.audit-hash-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.audit-hash-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.audit-event-list {
+  display: grid;
+  gap: 12px;
+}
+
+.audit-event-list article {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.55fr 0.8fr 0.9fr 1.35fr 1.3fr 0.85fr auto;
+  padding: 14px;
+}
+
+.audit-event-list article > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.audit-event-list strong {
+  min-width: 0;
+}
+
+.anchor-status {
+  align-items: center;
+  border: 1px solid #d7e0e7;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  width: fit-content;
+}
+
+.anchor-status--not_required {
+  background: #eef3f7;
+  border-color: #d7e0e7;
+  color: #25313c;
+}
+
+.anchor-status--pending,
+.anchor-status--submitted {
+  background: #fff4da;
+  border-color: #efd58f;
+  color: #765414;
+}
+
+.anchor-status--verified {
+  background: #e6f5ee;
+  border-color: #b9dfcf;
+  color: #176342;
+}
+
+.anchor-status--failed,
+.anchor-status--unavailable {
+  background: #fdeceb;
+  border-color: #f4c7c3;
+  color: #9f2d23;
+}
+
 .data-table--actions article {
   grid-template-columns: 1.15fr 1.35fr 0.75fr 0.7fr auto;
 }
@@ -441,6 +1380,16 @@ textarea {
 
 .data-table--finance article {
   grid-template-columns: 1.2fr 1.2fr 0.8fr 0.9fr;
+}
+
+.data-table--ledger article {
+  align-items: start;
+  grid-template-columns: 1.4fr 0.7fr 0.8fr 1fr;
+}
+
+.data-table--closure article {
+  align-items: start;
+  grid-template-columns: 1.4fr 0.75fr 1fr 0.8fr;
 }
 
 .data-table--finance-lifecycle article {
@@ -491,7 +1440,10 @@ textarea {
 .status-tag--RECORDED,
 .status-tag--ACTIVE,
 .status-tag--EXPORTED,
-.status-tag--COMPLETED {
+.status-tag--COMPLETED,
+.status-tag--READY_FOR_APPLICATION,
+.status-tag--APPLICATION_CREATED,
+.status-tag--healthy {
   background: #e6f5ee;
   border-color: #b9dfcf;
   color: #176342;
@@ -499,7 +1451,12 @@ textarea {
 
 .status-tag--REJECTED,
 .status-tag--error,
-.status-tag--FAILED {
+.status-tag--FAILED,
+.status-tag--INELIGIBLE,
+.status-tag--CANCELLED,
+.status-tag--application-rejected,
+.status-tag--application-loss_exception,
+.status-tag--unavailable {
   background: #fdeceb;
   border-color: #f4c7c3;
   color: #9f2d23;
@@ -510,6 +1467,7 @@ textarea {
 .status-tag--PUBLISHED,
 .status-tag--ISSUED,
 .status-tag--INVOICED,
+.status-tag--CONVERTED_TO_PO,
 .status-tag--EVIDENCE_PENDING,
 .status-tag--DUE_DILIGENCE_IN_REVIEW,
 .status-tag--SHARIAH_IN_REVIEW,
@@ -522,10 +1480,43 @@ textarea {
 .status-tag--PENDING_SIGNATURE,
 .status-tag--EXECUTED,
 .status-tag--PROCESSING,
-.status-tag--RETRYING {
+.status-tag--RETRYING,
+.status-tag--PRELIMINARY,
+.status-tag--REVIEW_REQUIRED,
+.status-tag--DRAFT,
+.status-tag--application-evidence_required,
+.status-tag--application-submitted,
+.status-tag--application-due_diligence,
+.status-tag--application-shariah_review,
+.status-tag--application-contracting,
+.status-tag--application-monitoring,
+.status-tag--application-closure_pending,
+.status-tag--pending,
+.status-tag--degraded {
   background: #fff4da;
   border-color: #efd58f;
   color: #765414;
+}
+
+.status-tag--application-approved,
+.status-tag--application-active,
+.status-tag--application-closed {
+  background: #e6f5ee;
+  border-color: #b9dfcf;
+  color: #176342;
+}
+
+.status-tag--application-draft,
+.status-tag--not_configured {
+  background: #eef3f7;
+  border-color: #d7e0e7;
+  color: #25313c;
+}
+
+.status-tag--LOSS_EXCEPTION {
+  background: #fdeceb;
+  border-color: #f4c7c3;
+  color: #9f2d23;
 }
 
 .inline-actions {
@@ -592,13 +1583,143 @@ textarea {
   margin-top: 24px;
 }
 
+.finance-ledger-summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.finance-ledger-summary article,
+.finance-pl-panel,
+.finance-pl-list > article,
+.finance-distribution-grid article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.finance-ledger-summary span,
+.finance-pl-header span,
+.finance-pl-panel p,
+.finance-pl-panel dt,
+.finance-evidence-list span,
+.finance-distribution-grid span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.finance-ledger-summary strong,
+.finance-pl-panel dd,
+.finance-pl-header strong,
+.finance-distribution-grid strong {
+  color: var(--text-strong);
+  display: block;
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+.finance-ledger-grid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.7fr);
+  margin-top: 24px;
+}
+
+.finance-ledger-form {
+  margin-top: 0;
+}
+
+.finance-pl-panel {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
+
+.finance-pl-panel h2,
+.finance-evidence-list h3 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 0;
+}
+
+.finance-pl-panel dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.finance-pl-panel dl > div,
+.finance-evidence-list {
+  background: #f7f9fa;
+  border: 1px solid #dfe7ec;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.finance-pl-panel dd {
+  font-size: 16px;
+  margin: 0;
+}
+
+.finance-evidence-list {
+  display: grid;
+  gap: 8px;
+}
+
+.finance-pl-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.finance-pl-list > article {
+  display: grid;
+  gap: 14px;
+}
+
+.finance-pl-header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.finance-distribution-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .graph-toolbar {
   align-items: end;
-  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+}
+
+.graph-toggle {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-strong);
+  display: flex;
+  font-weight: 800;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.graph-toggle input {
+  min-height: auto;
+  width: 18px;
 }
 
 .graph-summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-top: 0;
 }
 
@@ -633,6 +1754,25 @@ textarea {
 .graph-edge {
   stroke: #96a8b4;
   stroke-width: 2;
+}
+
+.graph-edge--supplies {
+  stroke: #3b7c72;
+}
+
+.graph-edge--buys_from {
+  stroke: #406f9f;
+}
+
+.graph-edge--finances {
+  stroke: #8a5a9e;
+  stroke-dasharray: 7 4;
+}
+
+.graph-edge--evidences,
+.graph-edge--anchors {
+  stroke: #7d7a3d;
+  stroke-dasharray: 4 4;
 }
 
 .graph-edge-label {
@@ -681,23 +1821,113 @@ textarea {
   justify-self: start;
 }
 
+.graph-node .status-tag--APPROVED,
+.graph-node .status-tag--active,
+.graph-node .status-tag--CLOSED,
+.graph-node .status-tag--RECEIVED,
+.graph-node .status-tag--RECORDED,
+.graph-node .status-tag--ACTIVE,
+.graph-node .status-tag--EXPORTED,
+.graph-node .status-tag--COMPLETED,
+.graph-node .status-tag--READY_FOR_APPLICATION,
+.graph-node .status-tag--APPLICATION_CREATED {
+  color: #176342;
+}
+
+.graph-node .status-tag--REJECTED,
+.graph-node .status-tag--error,
+.graph-node .status-tag--FAILED,
+.graph-node .status-tag--INELIGIBLE,
+.graph-node .status-tag--CANCELLED,
+.graph-node .status-tag--application-rejected,
+.graph-node .status-tag--application-loss_exception {
+  color: #9f2d23;
+}
+
+.graph-node .status-tag--SUBMITTED,
+.graph-node .status-tag--SOURCING,
+.graph-node .status-tag--PUBLISHED,
+.graph-node .status-tag--ISSUED,
+.graph-node .status-tag--INVOICED,
+.graph-node .status-tag--CONVERTED_TO_PO,
+.graph-node .status-tag--EVIDENCE_PENDING,
+.graph-node .status-tag--DUE_DILIGENCE_IN_REVIEW,
+.graph-node .status-tag--SHARIAH_IN_REVIEW,
+.graph-node .status-tag--CONTRACT_PENDING_SIGNATURE,
+.graph-node .status-tag--CONTRACT_EXECUTED,
+.graph-node .status-tag--DISBURSED,
+.graph-node .status-tag--MONITORING,
+.graph-node .status-tag--PROFIT_LOSS_CALCULATED,
+.graph-node .status-tag--PENDING,
+.graph-node .status-tag--PENDING_SIGNATURE,
+.graph-node .status-tag--EXECUTED,
+.graph-node .status-tag--PROCESSING,
+.graph-node .status-tag--RETRYING,
+.graph-node .status-tag--PRELIMINARY,
+.graph-node .status-tag--REVIEW_REQUIRED,
+.graph-node .status-tag--DRAFT,
+.graph-node .status-tag--application-evidence_required,
+.graph-node .status-tag--application-submitted,
+.graph-node .status-tag--application-due_diligence,
+.graph-node .status-tag--application-shariah_review,
+.graph-node .status-tag--application-contracting,
+.graph-node .status-tag--application-monitoring,
+.graph-node .status-tag--application-closure_pending {
+  color: #765414;
+}
+
+.graph-node-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.graph-risk {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  min-height: 24px;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.graph-node .graph-risk--low {
+  background: #e6f5ee;
+  color: #176342;
+}
+
+.graph-node .graph-risk--medium {
+  background: #fff4da;
+  color: #765414;
+}
+
+.graph-node .graph-risk--high,
+.graph-node .graph-risk--critical {
+  background: #fdeceb;
+  color: #9f2d23;
+}
+
 .graph-node--organization {
   border-color: #9ec5a8;
 }
 
-.graph-node--party {
+.graph-node--supplier {
   border-color: #e1b879;
 }
 
-.graph-node--procurement {
+.graph-node--buyer {
   border-color: #8eb6d9;
 }
 
-.graph-node--evidence {
+.graph-node--document {
   border-color: #b7a3d8;
 }
 
-.graph-node--finance {
+.graph-node--financier,
+.graph-node--opportunity,
+.graph-node--application {
   border-color: #88c2bd;
 }
 
@@ -791,8 +2021,45 @@ textarea {
   .split-grid,
   .graph-toolbar,
   .graph-summary,
-  .integration-action-grid {
+  .finance-ledger-summary,
+  .finance-ledger-grid,
+  .finance-distribution-grid,
+  .integration-action-grid,
+  .status-card-grid,
+  .status-card-grid--operations,
+  .operations-readiness,
+  .procurement-summary,
+  .dashboard-intro,
+  .dashboard-kpi-grid,
+  .dashboard-panels,
+  .dashboard-details-grid,
+  .applications-summary,
+  .applications-toolbar,
+  .workspace-overview-grid,
+  .workspace-panels,
+  .workspace-timeline,
+  .audit-verification-summary,
+  .audit-hash-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-hero,
+  .workspace-action {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-hero {
+    display: grid;
+  }
+
+  .dashboard-task {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-task-meta {
+    align-items: start;
+    justify-items: start;
   }
 
   .details-grid .wide {
@@ -804,13 +2071,31 @@ textarea {
   .data-table--audit article,
   .data-table--evidence article,
   .data-table--finance article,
+  .data-table--ledger article,
+  .data-table--closure article,
   .data-table--finance-lifecycle article,
   .data-table--checklist article,
   .data-table--lifecycle article,
   .data-table--integrations article,
   .data-table--reconciliation article,
-  .data-table--webhooks article {
+  .data-table--webhooks article,
+  .audit-event-list article {
     align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .opportunity-form,
+  .opportunity-card,
+  .requisition-form,
+  .requisition-card {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading-row {
+    display: grid;
+  }
+
+  .applications-table article {
     grid-template-columns: 1fr;
   }
 

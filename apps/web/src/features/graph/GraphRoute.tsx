@@ -3,10 +3,24 @@ import { Link } from 'react-router-dom'
 
 import { PageHeader } from '../../layouts/PageHeader'
 import { EmptyState } from '../../shared/components/EmptyState'
+import { ErrorState } from '../../shared/components/ErrorState'
 import { StatusBadge } from '../../shared/components/StatusBadge'
-import type { AppSession } from '../../shared/types'
+import type { AppRoleCode, AppSession, LoadState } from '../../shared/types'
 import { useProjects } from '../procurement/api/useProjects'
 import { useProjectGraph } from './api/useProjectGraph'
+import {
+  filterNetworkGraphByView,
+  filterNetworkGraphForRoles,
+  mapProjectGraphApiToNetworkGraph,
+  summarizeNetworkGraph,
+} from './model/networkGraph.model'
+import type {
+  NetworkEdge,
+  NetworkGraph,
+  NetworkNodeType,
+  NetworkRiskLevel,
+  ProjectGraphApi,
+} from './model/networkGraph.types'
 
 type Project = {
   id: string
@@ -15,58 +29,46 @@ type Project = {
   status: string
 }
 
-type GraphNode = {
-  id: string
-  entityType: string
-  entityId: string
-  label: string
-  subtitle?: string
-  status?: string
-  category: 'organization' | 'party' | 'procurement' | 'evidence' | 'finance'
-  sourcePath: string
-  position: {
-    x: number
-    y: number
-  }
-}
-
-type GraphEdge = {
-  id: string
-  sourceNodeId: string
-  targetNodeId: string
-  label: string
-}
-
-type ProjectGraph = {
-  project: {
-    id: string
-    name: string
-    status: string
-  }
-  visibility: {
-    roleCodes: string[]
-    financeNodesIncluded: boolean
-  }
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-}
-
-type LoadState<T> =
-  | { status: 'loading' }
-  | { status: 'ready'; data: T }
-  | { status: 'error'; message: string }
-
 const nodeWidth = 172
 const nodeHeight = 74
 const minCanvasHeight = 720
 const canvasWidth = 1040
 
-export function GraphRoute({ session }: { session: AppSession }) {
+const nodeTypeOptions: Array<NetworkNodeType | 'all'> = [
+  'all',
+  'organization',
+  'supplier',
+  'buyer',
+  'financier',
+  'opportunity',
+  'application',
+  'document',
+]
+
+const riskOptions: Array<NetworkRiskLevel | 'all'> = [
+  'all',
+  'low',
+  'medium',
+  'high',
+  'critical',
+]
+
+export function GraphRoute({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { listProjects } = useProjects(session)
   const { getProjectGraph } = useProjectGraph(session)
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState('')
-  const [graphState, setGraphState] = useState<LoadState<ProjectGraph>>({
+  const [nodeTypeFilter, setNodeTypeFilter] =
+    useState<NetworkNodeType | 'all'>('all')
+  const [riskFilter, setRiskFilter] = useState<NetworkRiskLevel | 'all'>('all')
+  const [showFinance, setShowFinance] = useState(true)
+  const [graphState, setGraphState] = useState<LoadState<ProjectGraphApi>>({
     status: 'loading',
   })
 
@@ -84,7 +86,7 @@ export function GraphRoute({ session }: { session: AppSession }) {
         setProjects(rows)
         setProjectId((current) => current || rows[0]?.id || '')
         if (!rows.length) {
-          setGraphState({ status: 'ready', data: emptyGraph() })
+          setGraphState({ status: 'ready', data: emptyProjectGraph() })
         }
       })
       .catch((error: unknown) => {
@@ -114,7 +116,7 @@ export function GraphRoute({ session }: { session: AppSession }) {
           setGraphState({ status: 'loading' })
         }
 
-        return getProjectGraph<ProjectGraph>(projectId)
+        return getProjectGraph<ProjectGraphApi>(projectId)
       })
       .then((graph) => {
         if (!cancelled) {
@@ -138,11 +140,32 @@ export function GraphRoute({ session }: { session: AppSession }) {
     }
   }, [getProjectGraph, projectId])
 
-  const graph = graphState.status === 'ready' ? graphState.data : null
+  const authorizedGraph = useMemo(() => {
+    if (graphState.status !== 'ready') {
+      return null
+    }
+
+    return filterNetworkGraphForRoles(
+      mapProjectGraphApiToNetworkGraph(graphState.data),
+      roleCodes,
+    )
+  }, [graphState, roleCodes])
+  const graph = useMemo(() => {
+    if (!authorizedGraph) {
+      return null
+    }
+
+    return filterNetworkGraphByView(authorizedGraph, {
+      nodeType: nodeTypeFilter,
+      riskLevel: riskFilter,
+      showFinance,
+    })
+  }, [authorizedGraph, nodeTypeFilter, riskFilter, showFinance])
+  const summary = graph ? summarizeNetworkGraph(graph) : null
 
   return (
     <>
-      <PageHeader eyebrow="Graph/Canvas" title="Project network canvas" />
+      <PageHeader eyebrow="Graph/Canvas" title="Network canvas cockpit" />
       <section className="form-grid graph-toolbar">
         <label className="field">
           <span>Project</span>
@@ -158,19 +181,70 @@ export function GraphRoute({ session }: { session: AppSession }) {
             ))}
           </select>
         </label>
+        <label className="field">
+          <span>Node type</span>
+          <select
+            value={nodeTypeFilter}
+            onChange={(event) =>
+              setNodeTypeFilter(event.target.value as NetworkNodeType | 'all')
+            }
+          >
+            {nodeTypeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === 'all' ? 'All node types' : labelFor(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Risk</span>
+          <select
+            value={riskFilter}
+            onChange={(event) =>
+              setRiskFilter(event.target.value as NetworkRiskLevel | 'all')
+            }
+          >
+            {riskOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === 'all' ? 'All risks' : labelFor(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="graph-toggle">
+          <input
+            type="checkbox"
+            checked={showFinance}
+            onChange={(event) => setShowFinance(event.target.checked)}
+          />
+          <span>Show finance layer</span>
+        </label>
         {graph ? (
           <div className="details-grid graph-summary">
             <article>
               <span>Nodes</span>
-              <strong>{graph.nodes.length}</strong>
+              <strong>{summary?.nodeCount ?? 0}</strong>
             </article>
             <article>
               <span>Edges</span>
-              <strong>{graph.edges.length}</strong>
+              <strong>{summary?.edgeCount ?? 0}</strong>
             </article>
             <article>
               <span>Finance layer</span>
-              <strong>{graph.visibility.financeNodesIncluded ? 'Visible' : 'Hidden'}</strong>
+              <strong>
+                {graph.visibility.financeNodesIncluded ? 'Visible' : 'Hidden'}
+              </strong>
+            </article>
+            <article>
+              <span>Hidden by role</span>
+              <strong>{graph.visibility.hiddenNodeCount}</strong>
+            </article>
+            <article>
+              <span>Risk flags</span>
+              <strong>
+                {(summary?.riskCounts.high ?? 0) +
+                  (summary?.riskCounts.critical ?? 0)}
+              </strong>
             </article>
           </div>
         ) : null}
@@ -180,17 +254,19 @@ export function GraphRoute({ session }: { session: AppSession }) {
         <EmptyState>Loading project graph...</EmptyState>
       ) : null}
       {graphState.status === 'error' ? (
-        <p className="error-text">{graphState.message}</p>
+        <ErrorState message={graphState.message} />
       ) : null}
       {graph && graph.nodes.length ? <GraphCanvas graph={graph} /> : null}
       {graph && !graph.nodes.length ? (
-        <EmptyState>No project graph records found.</EmptyState>
+        <EmptyState>
+          No authorized graph records match the current filters.
+        </EmptyState>
       ) : null}
     </>
   )
 }
 
-function GraphCanvas({ graph }: { graph: ProjectGraph }) {
+function GraphCanvas({ graph }: { graph: NetworkGraph }) {
   const nodeById = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node])),
     [graph.nodes],
@@ -216,8 +292,8 @@ function GraphCanvas({ graph }: { graph: ProjectGraph }) {
           viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
         >
           {graph.edges.map((edge) => {
-            const source = nodeById.get(edge.sourceNodeId)
-            const target = nodeById.get(edge.targetNodeId)
+            const source = nodeById.get(edge.source)
+            const target = nodeById.get(edge.target)
 
             if (!source || !target) {
               return null
@@ -233,14 +309,14 @@ function GraphCanvas({ graph }: { graph: ProjectGraph }) {
             return (
               <g key={edge.id}>
                 <line
-                  className="graph-edge"
+                  className={`graph-edge graph-edge--${edge.relationship}`}
                   x1={sourceX}
                   y1={sourceY}
                   x2={targetX}
                   y2={targetY}
                 />
                 <text className="graph-edge-label" x={labelX} y={labelY}>
-                  {edge.label}
+                  {edge.label ?? relationshipLabel(edge)}
                 </text>
               </g>
             )
@@ -249,7 +325,7 @@ function GraphCanvas({ graph }: { graph: ProjectGraph }) {
         {graph.nodes.map((node) => (
           <Link
             key={node.id}
-            className={`graph-node graph-node--${node.category}`}
+            className={`graph-node graph-node--${node.type}`}
             style={{
               left: node.position.x,
               top: node.position.y,
@@ -261,7 +337,14 @@ function GraphCanvas({ graph }: { graph: ProjectGraph }) {
             <span>{node.entityType}</span>
             <strong>{node.label}</strong>
             {node.subtitle ? <em>{node.subtitle}</em> : null}
-            {node.status ? <StatusBadge status={node.status} /> : null}
+            <div className="graph-node-meta">
+              {node.status ? <StatusBadge status={node.status} /> : null}
+              {node.riskLevel ? (
+                <span className={`graph-risk graph-risk--${node.riskLevel}`}>
+                  {node.riskLevel}
+                </span>
+              ) : null}
+            </div>
           </Link>
         ))}
       </div>
@@ -269,7 +352,7 @@ function GraphCanvas({ graph }: { graph: ProjectGraph }) {
   )
 }
 
-function emptyGraph(): ProjectGraph {
+function emptyProjectGraph(): ProjectGraphApi {
   return {
     project: {
       id: '',
@@ -283,4 +366,15 @@ function emptyGraph(): ProjectGraph {
     nodes: [],
     edges: [],
   }
+}
+
+function labelFor(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function relationshipLabel(edge: NetworkEdge) {
+  return edge.relationship.replace('_', ' ')
 }

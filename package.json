@@ -15,7 +15,10 @@
     "test:integration": "corepack pnpm --dir apps/api test:integration && corepack pnpm --dir apps/worker test:integration",
     "test:e2e": "node tests/e2e/setup-e2e.mjs && playwright test",
     "test:ci": "corepack pnpm lint && corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm test:e2e",
-    "seed:uat": "node tests/uat/seed-uat-demo.mjs"
+    "seed:uat": "node tests/uat/seed-uat-demo.mjs",
+    "typecheck": "corepack pnpm --dir apps/web typecheck",
+    "build": "corepack pnpm --dir apps/web build && corepack pnpm --dir apps/api build && corepack pnpm --dir apps/worker build",
+    "verify": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {

@@ -3,12 +3,15 @@ import type { FormEvent, ReactNode } from 'react'
 import { Route, Routes, useParams } from 'react-router-dom'
 
 import { PageHeader as SharedPageHeader } from '../../layouts/PageHeader'
+import { AccessDenied } from '../../shared/components/AccessDenied'
 import { EmptyState } from '../../shared/components/EmptyState'
 import { Field as SharedField } from '../../shared/components/Field'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import { WorkflowStepper } from '../../shared/components/WorkflowStepper'
+import type { AppRoleCode } from '../../shared/types'
 import { formatCurrency, formatDateTime } from '../../shared/utils/formatting'
 import { useAuditTimeline } from '../evidence/api/useAuditTimeline'
+import { ProcurementPage } from './ProcurementPage'
 import { useApprovalRules } from './api/useApprovalRules'
 import { useApprovalTasks } from './api/useApprovalTasks'
 import { useInvoices } from './api/useInvoices'
@@ -20,6 +23,19 @@ import { useReceipts } from './api/useReceipts'
 import { useRequisitions } from './api/useRequisitions'
 import { useRfqs } from './api/useRfqs'
 import { useSuppliers } from './api/useSuppliers'
+import { RequisitionForm } from './requisitions/RequisitionForm'
+import type {
+  CreateRequisitionFormValues,
+  ProcurementProjectOption,
+  RequisitionAction,
+} from './requisitions/requisition.types'
+import {
+  buildRequisitionCreatePayload,
+  canCreateRequisition,
+  canReviewRequisitions,
+  canSubmitRequisition,
+  getApprovalActionState,
+} from './requisitions/requisition.validation'
 
 type AppSession = {
   organizationId: string | null
@@ -207,6 +223,7 @@ type LoadState<T> =
 type ProcurementRouteProps = {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }
 
 const lifecycleStates = [
@@ -505,167 +522,38 @@ function SuppliersScreen({
 function RequisitionsScreen({
   session,
   navigate,
+  roleCodes,
 }: {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }) {
-  const { listRequisitions, transitionRequisition } = useRequisitions(session)
-  const [state, setState] = useState<LoadState<Requisition[]>>({
-    status: 'loading',
-  })
-  const [message, setMessage] = useState<string | null>(null)
-
-  const loadRequisitions = useCallback(
-    () => listRequisitions<Requisition>(),
-    [listRequisitions],
-  )
-
-  async function refresh() {
-    setState({ status: 'ready', data: await loadRequisitions() })
-  }
-
-  useEffect(() => {
-    let cancelled = false
-
-    loadRequisitions()
-      .then((rows) => {
-        if (!cancelled) {
-          setState({ status: 'ready', data: rows })
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setState({
-            status: 'error',
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Unable to load requisitions',
-          })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [loadRequisitions])
-
-  async function transition(id: string, action: 'submit' | 'approve' | 'reject') {
-    setMessage(null)
-
-    try {
-      await transitionRequisition<Requisition>(id, action, {
-        actorUserId: session.actorUserId,
-        ...(action === 'submit'
-          ? {}
-          : { approverUserId: session.actorUserId }),
-      })
-      await refresh()
-      setMessage(`Requisition ${action} complete`)
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Unable to update requisition',
-      )
-    }
-  }
-
-  const requisitions = state.status === 'ready' ? state.data : []
-
   return (
-    <>
-      <PageHeader
-        eyebrow="Source-to-pay"
-        title="Requisitions"
-        action={
-          <button
-            type="button"
-            onClick={() => navigate('/procurement/requisitions/new')}
-          >
-            New requisition
-          </button>
-        }
-      />
-      {state.status === 'loading' ? (
-        <EmptyNotice>Loading requisitions...</EmptyNotice>
-      ) : null}
-      {state.status === 'error' ? (
-        <p className="error-text">{state.message}</p>
-      ) : null}
-      {message ? <p className="notice">{message}</p> : null}
-      {state.status === 'ready' ? (
-        <section className="table-section">
-          {requisitions.length ? (
-            <div className="data-table data-table--lifecycle">
-              {requisitions.map((requisition) => (
-                <article key={requisition.id}>
-                  <div>
-                    <strong>{requisition.title}</strong>
-                    <span>{requisition.project?.name ?? 'No project'}</span>
-                  </div>
-                  <StatusTag status={requisition.status} />
-                  <span>{formatCurrency(requisition.totalAmount)}</span>
-                  <LifecycleTrack status={requisition.status} />
-                  <div className="inline-actions">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(`/procurement/requisitions/${requisition.id}`)
-                      }
-                    >
-                      Open
-                    </button>
-                    <button
-                      type="button"
-                      disabled={requisition.status !== 'DRAFT'}
-                      onClick={() => void transition(requisition.id, 'submit')}
-                    >
-                      Submit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={
-                        requisition.status !== 'SUBMITTED' ||
-                        requisition.requesterUserId === session.actorUserId
-                      }
-                      onClick={() => void transition(requisition.id, 'approve')}
-                    >
-                      Approve
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyNotice>No requisitions found.</EmptyNotice>
-          )}
-        </section>
-      ) : null}
-    </>
+    <ProcurementPage session={session} navigate={navigate} roleCodes={roleCodes} />
   )
 }
 
 function NewRequisitionScreen({
   session,
   navigate,
+  roleCodes,
 }: {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }) {
   const { listProjects } = useProjects(session)
   const { createRequisition: createRequisitionRecord } =
     useRequisitions(session)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [projectId, setProjectId] = useState('')
-  const [title, setTitle] = useState('Office equipment for project team')
-  const [justification, setJustification] = useState('Procurement evidence pack')
-  const [description, setDescription] = useState('Laptop workstation')
-  const [quantity, setQuantity] = useState('2')
-  const [unitPrice, setUnitPrice] = useState('1250')
+  const [projects, setProjects] = useState<ProcurementProjectOption[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const canCreate = canCreateRequisition(roleCodes)
 
-  const loadProjects = useCallback(() => listProjects<Project>(), [listProjects])
+  const loadProjects = useCallback(
+    () => listProjects<ProcurementProjectOption>(),
+    [listProjects],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -674,7 +562,6 @@ function NewRequisitionScreen({
       .then((rows) => {
         if (!cancelled) {
           setProjects(rows)
-          setProjectId((current) => current || rows[0]?.id || '')
         }
       })
       .catch((error: unknown) => {
@@ -690,25 +577,22 @@ function NewRequisitionScreen({
     }
   }, [loadProjects])
 
-  async function createRequisition(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function createRequisition(values: CreateRequisitionFormValues) {
+    if (!session.organizationId) {
+      setMessage('Create an organization first.')
+      return
+    }
+
+    setIsSubmitting(true)
     setMessage(null)
 
     try {
       await createRequisitionRecord<Requisition>(
-        scopedBody(session, {
-          projectId: projectId || undefined,
-          requesterUserId: session.actorUserId,
-          title,
-          justification,
-          items: [
-            {
-              description,
-              quantity,
-              unitPrice,
-            },
-          ],
-        }),
+        buildRequisitionCreatePayload(
+          values,
+          session.organizationId,
+          session.actorUserId,
+        ),
       )
       navigate('/procurement/requisitions')
     } catch (error) {
@@ -717,65 +601,25 @@ function NewRequisitionScreen({
           ? error.message
           : 'Unable to create requisition',
       )
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  if (!canCreate) {
+    return <AccessDenied />
   }
 
   return (
     <>
       <PageHeader eyebrow="Source-to-pay" title="New requisition" />
-      <form
-        className="form-grid"
-        onSubmit={(event) => void createRequisition(event)}
-      >
-        <Field label="Title" name="title" required value={title} onChange={setTitle} />
-        <label className="field">
-          <span>Project</span>
-          <select
-            value={projectId}
-            onChange={(event) => setProjectId(event.target.value)}
-          >
-            <option value="">No project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Field
-          label="Justification"
-          name="justification"
-          value={justification}
-          onChange={setJustification}
-        />
-        <Field
-          label="Item description"
-          name="description"
-          required
-          value={description}
-          onChange={setDescription}
-        />
-        <Field
-          label="Quantity"
-          name="quantity"
-          type="number"
-          required
-          value={quantity}
-          onChange={setQuantity}
-        />
-        <Field
-          label="Unit price"
-          name="unitPrice"
-          type="number"
-          required
-          value={unitPrice}
-          onChange={setUnitPrice}
-        />
-        <div className="form-actions">
-          <button type="submit">Create requisition</button>
-          {message ? <p className="notice">{message}</p> : null}
-        </div>
-      </form>
+      {message ? <p className="notice">{message}</p> : null}
+      <RequisitionForm
+        projects={projects}
+        canCreate={canCreate}
+        isSubmitting={isSubmitting}
+        onSubmit={createRequisition}
+      />
     </>
   )
 }
@@ -1594,7 +1438,13 @@ function EntityTimelinePanel({
   )
 }
 
-function RequisitionDetailScreen({ session }: { session: AppSession }) {
+function RequisitionDetailScreen({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { id = '' } = useParams()
   const { getRequisition, transitionRequisition } = useRequisitions(session)
   const [state, setState] = useState<LoadState<Requisition>>({
@@ -1635,7 +1485,7 @@ function RequisitionDetailScreen({ session }: { session: AppSession }) {
     }
   }, [loadRequisition])
 
-  async function transition(action: 'submit' | 'approve' | 'reject') {
+  async function transition(action: RequisitionAction) {
     setMessage(null)
 
     try {
@@ -1656,6 +1506,13 @@ function RequisitionDetailScreen({ session }: { session: AppSession }) {
 
   const requisition = state.status === 'ready' ? state.data : null
   const isRequester = requisition?.requesterUserId === session.actorUserId
+  const approvalState = requisition
+    ? getApprovalActionState(requisition, roleCodes, session.actorUserId)
+    : null
+  const canSubmit = requisition
+    ? canSubmitRequisition(requisition, roleCodes)
+    : false
+  const canReview = canReviewRequisitions(roleCodes)
 
   return (
     <>
@@ -1686,31 +1543,40 @@ function RequisitionDetailScreen({ session }: { session: AppSession }) {
           {isRequester ? (
             <p className="notice">Requester cannot approve their own requisition.</p>
           ) : null}
+          {approvalState?.reason ? (
+            <p className="notice">{approvalState.reason}</p>
+          ) : null}
           <section className="table-section">
             <h2>Workflow</h2>
             <LifecycleTrack status={requisition.status} />
             <div className="inline-actions">
               <button
                 type="button"
-                disabled={requisition.status !== 'DRAFT'}
+                disabled={!canSubmit}
                 onClick={() => void transition('submit')}
               >
                 Submit
               </button>
-              <button
-                type="button"
-                disabled={requisition.status !== 'SUBMITTED' || isRequester}
-                onClick={() => void transition('approve')}
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                disabled={requisition.status !== 'SUBMITTED'}
-                onClick={() => void transition('reject')}
-              >
-                Reject
-              </button>
+              {canReview ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={!approvalState?.canApprove}
+                    title={approvalState?.reason}
+                    onClick={() => void transition('approve')}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!approvalState?.canReject}
+                    title={approvalState?.reason}
+                    onClick={() => void transition('reject')}
+                  >
+                    Reject
+                  </button>
+                </>
+              ) : null}
             </div>
           </section>
           <section className="table-section">
@@ -1752,11 +1618,18 @@ function RequisitionDetailScreen({ session }: { session: AppSession }) {
   )
 }
 
-function ApprovalInboxScreen({ session }: { session: AppSession }) {
+function ApprovalInboxScreen({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { listApprovalTasks } = useApprovalTasks(session)
   const { transitionRequisition } = useRequisitions(session)
   const [tasks, setTasks] = useState<ApprovalTask[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  const canReview = canReviewRequisitions(roleCodes)
 
   const loadTasks = useCallback(
     () => listApprovalTasks<ApprovalTask>(),
@@ -1804,6 +1677,10 @@ function ApprovalInboxScreen({ session }: { session: AppSession }) {
     }
   }
 
+  if (!canReview) {
+    return <AccessDenied />
+  }
+
   return (
     <>
       <PageHeader eyebrow="Approvals" title="Task inbox" />
@@ -1813,8 +1690,11 @@ function ApprovalInboxScreen({ session }: { session: AppSession }) {
         {tasks.length ? (
           <div className="data-table data-table--actions">
             {tasks.map((task) => {
-              const isRequester =
-                task.requisition.requesterUserId === session.actorUserId
+              const approvalState = getApprovalActionState(
+                task.requisition,
+                roleCodes,
+                session.actorUserId,
+              )
 
               return (
                 <article key={task.id}>
@@ -1825,18 +1705,24 @@ function ApprovalInboxScreen({ session }: { session: AppSession }) {
                   <div className="inline-actions">
                     <button
                       type="button"
-                      disabled={isRequester}
+                      disabled={!approvalState.canApprove}
+                      title={approvalState.reason}
                       onClick={() => void decide(task, 'approve')}
                     >
                       Approve
                     </button>
                     <button
                       type="button"
+                      disabled={!approvalState.canReject}
+                      title={approvalState.reason}
                       onClick={() => void decide(task, 'reject')}
                     >
                       Reject
                     </button>
                   </div>
+                  {approvalState.reason ? (
+                    <p className="requisition-reason">{approvalState.reason}</p>
+                  ) : null}
                 </article>
               )
             })}
@@ -2452,9 +2338,20 @@ function MatchingScreen({ session }: { session: AppSession }) {
 export function ProcurementRoute({
   session,
   navigate,
+  roleCodes,
 }: ProcurementRouteProps) {
   return (
     <Routes>
+      <Route
+        index
+        element={
+          <ProcurementPage
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
+      />
       <Route path="projects" element={<ProjectsScreen session={session} />} />
       <Route
         path="suppliers"
@@ -2466,19 +2363,33 @@ export function ProcurementRoute({
       />
       <Route
         path="requisitions"
-        element={<RequisitionsScreen session={session} navigate={navigate} />}
+        element={
+          <RequisitionsScreen
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
       />
       <Route
         path="requisitions/:id"
-        element={<RequisitionDetailScreen session={session} />}
+        element={
+          <RequisitionDetailScreen session={session} roleCodes={roleCodes} />
+        }
       />
       <Route
         path="requisitions/new"
-        element={<NewRequisitionScreen session={session} navigate={navigate} />}
+        element={
+          <NewRequisitionScreen
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
       />
       <Route
         path="approvals"
-        element={<ApprovalInboxScreen session={session} />}
+        element={<ApprovalInboxScreen session={session} roleCodes={roleCodes} />}
       />
       <Route
         path="approval-rules"

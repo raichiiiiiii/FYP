@@ -10,6 +10,7 @@ export type AppModule =
   | 'Finance'
   | 'Graph/Canvas'
   | 'Integrations'
+  | 'Operations'
   | 'Administration'
 
 export type AppRouteMetadata = {
@@ -38,9 +39,8 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Dashboard',
     module: 'Dashboard',
     requiredPermissions: [],
-    requiredOrganizationContext: false,
+    requiredOrganizationContext: true,
     showInSidebar: true,
-    allowAnonymous: true,
   },
   {
     path: '/org/setup',
@@ -69,6 +69,15 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: ['ORG_ADMIN'],
+  },
+  {
+    path: '/procurement',
+    label: 'Procurement Workflow',
+    module: 'Procurement',
+    requiredPermissions: ['procurement:create'],
+    requiredOrganizationContext: true,
+    showInSidebar: false,
+    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
     path: '/procurement/projects',
@@ -353,19 +362,24 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     path: '/finance/opportunities',
     label: 'Finance Opportunities',
     module: 'Finance',
-    requiredPermissions: ['finance:review'],
+    requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: true,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
+    requiredRoleCodes: [
+      'ORG_ADMIN',
+      'PROCUREMENT_OFFICER',
+      'FINANCE_ACCOUNTANT',
+      'FINANCIER_USER',
+    ],
   },
   {
     path: '/finance/opportunities/new',
     label: 'New finance opportunity',
     module: 'Finance',
-    requiredPermissions: ['finance:review'],
+    requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: false,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
+    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
     path: '/finance/applications',
@@ -449,7 +463,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
   },
   {
     path: '/graph/projects',
-    label: 'Project Graph',
+    label: 'Network Canvas',
     module: 'Graph/Canvas',
     requiredPermissions: [],
     requiredOrganizationContext: true,
@@ -474,22 +488,49 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
       'PROCUREMENT_OFFICER',
       'FINANCIER_USER',
       'AUDITOR',
+      'DEVELOPER_INTEGRATOR',
     ],
+  },
+  {
+    path: '/operations',
+    label: 'Operations Health',
+    module: 'Operations',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: true,
+    requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
+  },
+  {
+    path: '/operations/health',
+    label: 'Operations Health Detail',
+    module: 'Operations',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: false,
+    requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
   },
 ] as const
 
 export function matchRouteMetadata(pathname: string) {
   const normalizedPath = normalizePath(pathname)
 
+  const exactRoute = routeMetadata.find(
+    (route) => !route.path.includes(':') && route.path === normalizedPath,
+  )
+
+  if (exactRoute) {
+    return exactRoute
+  }
+
   return routeMetadata.find((route) => {
-    if (route.path.includes(':')) {
-      const pattern = new RegExp(
-        `^${route.path.replace(/:[^/]+/g, '[^/]+')}$`,
-      )
-      return pattern.test(normalizedPath)
+    if (!route.path.includes(':')) {
+      return false
     }
 
-    return route.path === normalizedPath
+    const pattern = new RegExp(
+      `^${route.path.replace(/:[^/]+/g, '[^/]+')}$`,
+    )
+    return pattern.test(normalizedPath)
   })
 }
 

@@ -68,10 +68,12 @@ Final intended behavior:
 
 ![Screen 02 - Dashboard](assets/current-screen-02-dashboard.png)
 
-Status: Working
+Status: Working, upgraded in Slice 2
 
-The dashboard shows API, PostgreSQL, and Redis health. It also displays the
-active organization context and system environment.
+The dashboard now acts as a role-aware cockpit. It still shows API,
+PostgreSQL, and Redis health, and it also displays role-specific KPIs, a smart
+task inbox, organization context, pending Fabric/outbox/audit visibility, and
+recent review activity.
 
 Action that caused this state: The user logs in or opens `/dashboard`.
 
@@ -80,13 +82,19 @@ What currently works:
 - API, database, and Redis status are displayed.
 - Organization context is visible when a session exists.
 - Role-aware sidebar navigation is visible.
+- Dashboard cards change based on role claims.
+- Smart task inbox items link to existing module routes.
+- Pending Fabric and outbox states are shown as pending/failed/retry work, not
+  as successful anchoring.
 
 Unfinished or mocked:
-- The dashboard is still operationally simple.
-- It does not yet show deep alerts, deployment status, or worker backlog.
+- Dashboard KPI/task data is currently typed fixture data.
+- Deep deployment status and real worker backlog need backend dashboard
+  endpoints.
 
 Final intended behavior:
 - Keep dashboard health for operators.
+- Replace dashboard fixtures with typed API DTOs.
 - Add workflow metrics and integration backlog once UAT feedback confirms the
   most useful summary fields.
 

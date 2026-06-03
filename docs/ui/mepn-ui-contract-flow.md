@@ -8,7 +8,7 @@
 | Codename | MEPN |
 | Document type | UI Contract Flow |
 | Repository path | `docs/ui/mepn-ui-contract-flow.md` |
-| Source documents | `docs/requirement/mudarabah_eprocurement_srs.tex`, `docs/design/mepn_software_design_description.tex`, `docs/ui/skeletal-web-ui-workflow.md`, `docs/roadmap/module-roadmap.md` |
+| Source documents | `docs/requirements/mudarabah_eprocurement_srs.tex`, `docs/design/mepn_software_design_description.tex`, `docs/ui/skeletal-web-ui-workflow.md`, `docs/roadmap/module-roadmap.md` |
 | Owner | Product / UI Architect |
 | Target readers | Frontend developers, backend developers, QA, supervisor |
 | Status | Draft / Review |
@@ -778,7 +778,7 @@ This addendum upgrades the UI contract from the first implementation-ready slice
 
 | Source | Contract facts extracted |
 |---|---|
-| `docs/requirement/mudarabah_eprocurement_srs.tex` | Stakeholder needs, business requirements, functional requirements, interface requirements, logical data requirements, non-functional constraints, and use cases `UC-01` to `UC-15`. |
+| `docs/requirements/mudarabah_eprocurement_srs.tex` | Stakeholder needs, business requirements, functional requirements, interface requirements, logical data requirements, non-functional constraints, and use cases `UC-01` to `UC-15`. |
 | `docs/design/mepn_software_design_description.tex` | Modular monolith design, C4/component responsibilities, data model, API groups, security architecture, deployment architecture, reliability/backup/observability, ADR mapping. |
 | `docs/ui/skeletal-web-ui-workflow.md` | Current skeletal UI states: dashboard, organization setup, procurement, evidence packs, audit, finance application, closure pack. |
 | `docs/roadmap/module-roadmap.md` | Module ownership, routes, API areas, database entities, audit expectations, and test expectations. |

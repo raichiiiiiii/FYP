@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:unit": "echo \"No frontend unit tests configured yet\""
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -32,6 +34,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.0.15"
   }
 }

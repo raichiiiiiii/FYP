@@ -11,6 +11,13 @@ import type { AuditEvent, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
 import { useAuditEvents } from './api/useAuditEvents'
 import type { AuditSearchParams } from './api/useAuditEvents'
+import {
+  anchorStatusCssClass,
+  anchorStatusLabel,
+  summarizeAnchorStatuses,
+  toVerifiableAuditEvent,
+} from './verification/auditVerification.model'
+import type { VerifiableAuditEvent } from './verification/auditVerification.types'
 
 type AuditSearchResult = {
   items: AuditEvent[]
@@ -64,7 +71,13 @@ export function AuditScreen() {
       />
       {state.status === 'loading' ? <EmptyState>Loading audit...</EmptyState> : null}
       {state.status === 'error' ? <ErrorState message={state.message} /> : null}
-      {state.status === 'ready' ? <AuditEventList events={state.data} /> : null}
+      {state.status === 'ready' ? (
+        <>
+          <TamperEvidenceOverview events={state.data} />
+          <DocumentHashVerificationPanel events={state.data} />
+          <AuditEventList events={state.data} />
+        </>
+      ) : null}
     </>
   )
 }
@@ -240,17 +253,98 @@ export function AuditEntityScreen() {
   )
 }
 
+function TamperEvidenceOverview({ events }: { events: AuditEvent[] }) {
+  const summary = summarizeAnchorStatuses(events)
+
+  return (
+    <section className="audit-verification-summary">
+      {summary.map((item) => (
+        <article key={item.status}>
+          <span>{item.label}</span>
+          <strong>{item.count}</strong>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
+  const verifiableEvents = events
+    .map(toVerifiableAuditEvent)
+    .filter((event) => event.documentHash)
+    .slice(0, 4)
+
+  return (
+    <section className="audit-verification-panel">
+      <div className="section-heading-row">
+        <div>
+          <h2>Document hash verification</h2>
+          <p>
+            Hash and anchor fields are shown only when the backend audit metadata
+            includes them. Missing Fabric data remains pending or unavailable.
+          </p>
+        </div>
+        <Link to="/evidence/hashes">Open hash records</Link>
+      </div>
+      {verifiableEvents.length ? (
+        <div className="audit-hash-grid">
+          {verifiableEvents.map((event) => (
+            <article key={event.id}>
+              <span>
+                {event.businessObjectType} / {event.businessObjectId}
+              </span>
+              <strong className="hash-text">{event.documentHash}</strong>
+              <AnchorStatusBadge event={event} />
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState>
+          No document hashes are attached to the current audit events.
+        </EmptyState>
+      )}
+    </section>
+  )
+}
+
 function AuditEventList({ events }: { events: AuditEvent[] }) {
+  const verifiableEvents = events.map(toVerifiableAuditEvent)
+
   return events.length ? (
-    <div className="data-table data-table--audit">
-      {events.map((event) => (
+    <div className="audit-event-list">
+      {verifiableEvents.map((event) => (
         <article key={event.id}>
-          <strong>{event.eventType}</strong>
-          <span>{event.entityType ?? 'System'}</span>
-          <span>{event.actorUser?.displayName ?? 'System'}</span>
-          <span>{formatDateTime(event.createdAt)}</span>
-          {event.entityType && event.entityId ? (
-            <Link to={sourcePathFor(event.entityType, event.entityId)}>
+          <div>
+            <strong>{event.eventType}</strong>
+            <span>{event.summary}</span>
+          </div>
+          <div>
+            <span>Actor</span>
+            <strong>{event.actorDisplayName}</strong>
+          </div>
+          <div>
+            <span>Occurred</span>
+            <strong>{formatDateTime(event.occurredAt)}</strong>
+          </div>
+          <div>
+            <span>Document hash</span>
+            <strong className="hash-text">
+              {event.documentHash ?? 'No hash attached'}
+            </strong>
+          </div>
+          <div>
+            <span>Fabric anchor</span>
+            <AnchorStatusBadge event={event} />
+            <small>{event.verificationNote}</small>
+          </div>
+          <div>
+            <span>Outbox</span>
+            <strong>{outboxStatusLabel(event)}</strong>
+          </div>
+          {event.businessObjectType !== 'System' && event.businessObjectId ? (
+            <Link
+              to={sourcePathFor(event.businessObjectType, event.businessObjectId)}
+            >
               Source
             </Link>
           ) : null}
@@ -260,6 +354,26 @@ function AuditEventList({ events }: { events: AuditEvent[] }) {
   ) : (
     <EmptyState>No audit events found.</EmptyState>
   )
+}
+
+function AnchorStatusBadge({ event }: { event: VerifiableAuditEvent }) {
+  return (
+    <span className={anchorStatusCssClass(event.fabricAnchorStatus)}>
+      {anchorStatusLabel(event.fabricAnchorStatus)}
+    </span>
+  )
+}
+
+function outboxStatusLabel(event: VerifiableAuditEvent) {
+  if (event.outboxStatus === 'none') {
+    return 'No anchor job'
+  }
+
+  if (event.outboxEventId) {
+    return `${event.outboxStatus} (${event.outboxEventId})`
+  }
+
+  return event.outboxStatus
 }
 
 function sourcePathFor(entityType: string, entityId: string) {

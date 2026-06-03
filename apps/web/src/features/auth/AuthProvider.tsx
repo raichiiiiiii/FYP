@@ -130,11 +130,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persistSession])
 
   const authorization = useMemo(
-    (): AuthorizationState =>
-      status === 'loading'
-        ? { status: 'loading', roleCodes: [], permissionCodes: [] }
-        : authorizationFromSession(authSession),
-    [authSession, status],
+    (): AuthorizationState => {
+      if (status === 'loading') {
+        return { status: 'loading', roleCodes: [], permissionCodes: [] }
+      }
+
+      if (status === 'error') {
+        return {
+          status: 'error',
+          message: message ?? 'Unable to load session',
+          roleCodes: [],
+          permissionCodes: [],
+        }
+      }
+
+      return authorizationFromSession(authSession)
+    },
+    [authSession, message, status],
   )
   const appSession = useMemo(
     () => ({

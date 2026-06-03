@@ -11,16 +11,23 @@ import type { AppRoleCode, AppSession } from '../../shared/types'
 import { WorkflowStepper } from '../../shared/components/WorkflowStepper'
 import { formatCurrency, formatDateTime } from '../../shared/utils/formatting'
 import { useAuth } from '../auth/useAuth'
-import { useEvidencePacks } from '../evidence/api/useEvidencePacks'
-import { useProjects } from '../procurement/api/useProjects'
-import { usePurchaseOrders } from '../procurement/api/usePurchaseOrders'
 import { useApplications } from './api/useApplications'
 import { useClosures } from './api/useClosures'
 import { useContracts } from './api/useContracts'
 import { useDisbursements } from './api/useDisbursements'
 import { useLedgers } from './api/useLedgers'
-import { useOpportunities } from './api/useOpportunities'
 import { useProfitLoss } from './api/useProfitLoss'
+import { ApplicationsPage } from './applications/ApplicationsPage'
+import { ApplicationWorkspacePage } from './applications/workspace/ApplicationWorkspacePage'
+import {
+  calculateProfitLossSummary,
+  displayLedgerEntryType,
+  getProfitLossFinding,
+  hasGuaranteedFixedReturnPattern,
+  mapLedgerEntry,
+  mapProfitLossStatement,
+} from './ledger/ledger.model'
+import { OpportunitiesPage } from './opportunities/OpportunitiesPage'
 
 type FinanceRouteProps = {
   session: AppSession
@@ -138,6 +145,7 @@ type LedgerEntry = {
   amount: number
   currency: string
   occurredAt: string
+  sourceDocumentId?: string | null
   application?: MudarabahApplication | null
 }
 
@@ -152,6 +160,7 @@ type LossException = {
   id: string
   exceptionType: string
   amount: number
+  notes?: string | null
 }
 
 type ProfitLossStatement = {
@@ -285,6 +294,12 @@ function buildFinanceRoleScope(roleCodes: AppRoleCode[]): FinanceRoleScope {
   }
 }
 
+function canOperateFinanceRecords(roleCodes: readonly AppRoleCode[]) {
+  return roleCodes.some((roleCode) =>
+    ['ORG_ADMIN', 'FINANCIER_USER'].includes(roleCode),
+  )
+}
+
 function normalizeWorkspaceTab(tab?: string): FinanceWorkspaceTab {
   return financeWorkspaceTabs.some(([value]) => value === tab)
     ? (tab as FinanceWorkspaceTab)
@@ -392,247 +407,21 @@ function ApplicationSelector({
   )
 }
 
-function OpportunitySelector({
-  opportunities,
-  value,
-  onChange,
-}: {
-  opportunities: Opportunity[]
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="field">
-      <span>Opportunity</span>
-      <select
-        required
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">Select opportunity</option>
-        {opportunities.map((opportunity) => (
-          <option key={opportunity.id} value={opportunity.id}>
-            {opportunity.title}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
 function OpportunitiesScreen({
   session,
   navigate,
+  roleCodes,
 }: {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }) {
-  const { listProjects } = useProjects(session)
-  const { listPurchaseOrders } = usePurchaseOrders(session)
-  const { listEvidencePacks } = useEvidencePacks(session)
-  const { listOpportunities, createOpportunity: createOpportunityRecord } =
-    useOpportunities(session)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
-  const [evidencePacks, setEvidencePacks] = useState<EvidencePack[]>([])
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
-  const [projectId, setProjectId] = useState('')
-  const [purchaseOrderId, setPurchaseOrderId] = useState('')
-  const [evidencePackId, setEvidencePackId] = useState('')
-  const [title, setTitle] = useState('Restricted working capital opportunity')
-  const [estimatedCapital, setEstimatedCapital] = useState('12000')
-  const [expectedProfit, setExpectedProfit] = useState('1800')
-  const [message, setMessage] = useState<string | null>(null)
-
-  const loadData = useCallback(async () => {
-    const [projectRows, purchaseOrderRows, packRows, opportunityRows] =
-      await Promise.all([
-        listProjects<Project>(),
-        listPurchaseOrders<PurchaseOrder>(),
-        listEvidencePacks<EvidencePack>(),
-        listOpportunities<Opportunity>(),
-      ])
-
-    return {
-      projects: projectRows,
-      purchaseOrders: purchaseOrderRows,
-      evidencePacks: packRows,
-      opportunities: opportunityRows,
-    }
-  }, [listEvidencePacks, listOpportunities, listProjects, listPurchaseOrders])
-
-  async function refresh() {
-    const data = await loadData()
-    setProjects(data.projects)
-    setPurchaseOrders(data.purchaseOrders)
-    setEvidencePacks(data.evidencePacks)
-    setOpportunities(data.opportunities)
-  }
-
-  useEffect(() => {
-    let cancelled = false
-
-    loadData()
-      .then((data) => {
-        if (!cancelled) {
-          setProjects(data.projects)
-          setPurchaseOrders(data.purchaseOrders)
-          setEvidencePacks(data.evidencePacks)
-          setOpportunities(data.opportunities)
-          setProjectId((current) => current || data.projects[0]?.id || '')
-          setPurchaseOrderId(
-            (current) =>
-              current ||
-              data.purchaseOrders.find((po) => po.status === 'INVOICED')?.id ||
-              data.purchaseOrders[0]?.id ||
-              '',
-          )
-          setEvidencePackId((current) => current || data.evidencePacks[0]?.id || '')
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : 'Unable to load finance opportunities',
-          )
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [loadData])
-
-  async function createOpportunity(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setMessage(null)
-
-    try {
-      await createOpportunityRecord<Opportunity>(
-        scopedBody(session, {
-          projectId,
-          purchaseOrderId: purchaseOrderId || undefined,
-          evidencePackId: evidencePackId || undefined,
-          title,
-          estimatedCapital,
-          expectedProfit,
-          currency: 'MYR',
-        }),
-      )
-      await refresh()
-      setMessage('Opportunity created')
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : 'Unable to create opportunity',
-      )
-    }
-  }
-
   return (
-    <>
-      <PageHeader
-        eyebrow="Mudarabah finance"
-        title="Procurement opportunities"
-        action={
-          <button type="button" onClick={() => navigate('/finance/applications')}>
-            Applications
-          </button>
-        }
-      />
-      <form
-        className="form-grid"
-        onSubmit={(event) => void createOpportunity(event)}
-      >
-        <h2>Create opportunity</h2>
-        <label className="field">
-          <span>Project</span>
-          <select
-            required
-            value={projectId}
-            onChange={(event) => setProjectId(event.target.value)}
-          >
-            <option value="">Select project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Purchase order</span>
-          <select
-            value={purchaseOrderId}
-            onChange={(event) => setPurchaseOrderId(event.target.value)}
-          >
-            <option value="">No purchase order</option>
-            {purchaseOrders.map((purchaseOrder) => (
-              <option key={purchaseOrder.id} value={purchaseOrder.id}>
-                {purchaseOrder.poNumber} - {purchaseOrder.status}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Evidence pack</span>
-          <select
-            value={evidencePackId}
-            onChange={(event) => setEvidencePackId(event.target.value)}
-          >
-            <option value="">No evidence pack</option>
-            {evidencePacks.map((pack) => (
-              <option key={pack.id} value={pack.id}>
-                {pack.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Field label="Title" name="title" required value={title} onChange={setTitle} />
-        <Field
-          label="Estimated capital"
-          name="estimatedCapital"
-          type="number"
-          required
-          value={estimatedCapital}
-          onChange={setEstimatedCapital}
-        />
-        <Field
-          label="Expected profit"
-          name="expectedProfit"
-          type="number"
-          value={expectedProfit}
-          onChange={setExpectedProfit}
-        />
-        <div className="form-actions">
-          <button type="submit" disabled={!projects.length}>
-            Create opportunity
-          </button>
-          {message ? <p className="notice">{message}</p> : null}
-        </div>
-      </form>
-
-      <section className="table-section">
-        <h2>Opportunity records</h2>
-        {opportunities.length ? (
-          <div className="data-table data-table--finance">
-            {opportunities.map((opportunity) => (
-              <article key={opportunity.id}>
-                <strong>{opportunity.title}</strong>
-                <span>{opportunity.project?.name ?? 'No project'}</span>
-                <StatusTag status={opportunity.status} />
-                <span>
-                  {formatCurrency(opportunity.estimatedCapital, opportunity.currency)}
-                </span>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyNotice>No finance opportunities found.</EmptyNotice>
-        )}
-      </section>
-    </>
+    <OpportunitiesPage
+      session={session}
+      navigate={navigate}
+      roleCodes={roleCodes}
+    />
   )
 }
 
@@ -645,201 +434,37 @@ function ApplicationsScreen({
   navigate: (path: string) => void
   roleCodes: AppRoleCode[]
 }) {
-  const { listOpportunities } = useOpportunities(session)
-  const {
-    listApplications,
-    createApplication: createApplicationRecord,
-    submitApplication: submitApplicationRecord,
-  } = useApplications(session)
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
-  const [applications, setApplications] = useState<MudarabahApplication[]>([])
-  const [opportunityId, setOpportunityId] = useState('')
-  const [requestedCapital, setRequestedCapital] = useState('12000')
-  const [capitalProviderRatio, setCapitalProviderRatio] = useState('0.6')
-  const [entrepreneurRatio, setEntrepreneurRatio] = useState('0.4')
-  const [message, setMessage] = useState<string | null>(null)
-  const canCreateApplication = roleCodes.some((roleCode) =>
-    ['ORG_ADMIN', 'FINANCIER_USER'].includes(roleCode),
-  )
-
-  const loadData = useCallback(async () => {
-    const [opportunityRows, applicationRows] = await Promise.all([
-      listOpportunities<Opportunity>(),
-      listApplications<MudarabahApplication>(),
-    ])
-
-    return { opportunities: opportunityRows, applications: applicationRows }
-  }, [listApplications, listOpportunities])
-
-  async function refresh() {
-    const data = await loadData()
-    setOpportunities(data.opportunities)
-    setApplications(data.applications)
-  }
-
-  useEffect(() => {
-    let cancelled = false
-
-    loadData()
-      .then((data) => {
-        if (!cancelled) {
-          setOpportunities(data.opportunities)
-          setApplications(data.applications)
-          setOpportunityId(
-            (current) => current || data.opportunities[0]?.id || '',
-          )
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setMessage(
-            error instanceof Error ? error.message : 'Unable to load applications',
-          )
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [loadData])
-
-  async function createApplication(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setMessage(null)
-
-    try {
-      const created = await createApplicationRecord<MudarabahApplication>(
-        scopedBody(session, {
-          opportunityId,
-          applicantUserId: session.actorUserId,
-          requestedCapital,
-          capitalProviderRatio,
-          entrepreneurRatio,
-          currency: 'MYR',
-        }),
-      )
-      await refresh()
-      setMessage('Application created')
-      navigate(`/finance/applications/${created.id}`)
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : 'Unable to create application',
-      )
-    }
-  }
-
-  async function submitApplication(id: string) {
-    setMessage(null)
-
-    try {
-      await submitApplicationRecord<MudarabahApplication>(id, {
-        actorUserId: session.actorUserId,
-      })
-      await refresh()
-      setMessage('Application submitted')
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : 'Unable to submit application',
-      )
-    }
-  }
-
   return (
-    <>
-      <PageHeader eyebrow="Mudarabah finance" title="Capital applications" />
-      {!canCreateApplication ? (
-        <p className="notice">
-          This role can review application status, evidence, and assigned review
-          workspaces. Application creation is reserved for finance operators.
-        </p>
-      ) : null}
-      {canCreateApplication ? (
-      <form
-        className="form-grid"
-        onSubmit={(event) => void createApplication(event)}
-      >
-        <h2>Create application</h2>
-        <OpportunitySelector
-          opportunities={opportunities}
-          value={opportunityId}
-          onChange={setOpportunityId}
-        />
-        <Field
-          label="Requested capital"
-          name="requestedCapital"
-          type="number"
-          required
-          value={requestedCapital}
-          onChange={setRequestedCapital}
-        />
-        <Field
-          label="Capital provider ratio"
-          name="capitalProviderRatio"
-          type="number"
-          required
-          value={capitalProviderRatio}
-          onChange={setCapitalProviderRatio}
-        />
-        <Field
-          label="Entrepreneur ratio"
-          name="entrepreneurRatio"
-          type="number"
-          required
-          value={entrepreneurRatio}
-          onChange={setEntrepreneurRatio}
-        />
-        <div className="form-actions">
-          <button type="submit" disabled={!opportunities.length}>
-            Create application
-          </button>
-          {message ? <p className="notice">{message}</p> : null}
-        </div>
-      </form>
-      ) : message ? (
-        <p className="notice">{message}</p>
-      ) : null}
-
-      <section className="table-section">
-        <h2>Application records</h2>
-        {applications.length ? (
-          <div className="data-table data-table--finance-lifecycle">
-            {applications.map((application) => (
-              <article key={application.id}>
-                <div>
-                  <strong>{application.opportunity?.title ?? application.id}</strong>
-                  <span>
-                    {formatCurrency(application.requestedCapital, application.currency)}
-                  </span>
-                </div>
-                <StatusTag status={application.status} />
-                <FinanceLifecycleTrack status={application.status} />
-                <div className="inline-actions">
-                  <button
-                    type="button"
-                    disabled={application.status !== 'DRAFT'}
-                    onClick={() => void submitApplication(application.id)}
-                  >
-                    Submit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/finance/applications/${application.id}`)}
-                  >
-                    Open
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyNotice>No applications found.</EmptyNotice>
-        )}
-      </section>
-    </>
+    <ApplicationsPage
+      session={session}
+      navigate={navigate}
+      roleCodes={roleCodes}
+    />
   )
 }
 
 function ApplicationDetailScreen({
+  session,
+  applicationId,
+  workspaceTab,
+  roleCodes,
+}: {
+  session: AppSession
+  applicationId: string
+  workspaceTab?: string
+  roleCodes: AppRoleCode[]
+}) {
+  return (
+    <ApplicationWorkspacePage
+      session={session}
+      applicationId={applicationId}
+      workspaceTab={workspaceTab}
+      roleCodes={roleCodes}
+    />
+  )
+}
+
+export function LegacyApplicationDetailScreen({
   session,
   applicationId,
   workspaceTab,
@@ -1794,7 +1419,13 @@ function ContractsScreen({ session }: { session: AppSession }) {
   )
 }
 
-function LedgersScreen({ session }: { session: AppSession }) {
+function LedgersScreen({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { listApplications } = useApplications(session)
   const { listLedgerEntries, createLedgerEntry } = useLedgers(session)
   const [applications, setApplications] = useState<MudarabahApplication[]>([])
@@ -1804,6 +1435,7 @@ function LedgersScreen({ session }: { session: AppSession }) {
   const [description, setDescription] = useState('Project revenue recorded')
   const [amount, setAmount] = useState('14000')
   const [message, setMessage] = useState<string | null>(null)
+  const canMutate = canOperateFinanceRecords(roleCodes)
 
   const loadData = useCallback(async () => {
     const [applicationRows, entryRows] = await Promise.all([
@@ -1855,6 +1487,11 @@ function LedgersScreen({ session }: { session: AppSession }) {
     event.preventDefault()
     setMessage(null)
 
+    if (!canMutate) {
+      setMessage('Ledger entry recording is restricted to finance reviewers.')
+      return
+    }
+
     try {
       await createLedgerEntry<LedgerEntry>(
         scopedBody(session, {
@@ -1874,60 +1511,181 @@ function LedgersScreen({ session }: { session: AppSession }) {
     }
   }
 
+  const selectedApplication = applications.find(
+    (application) => application.id === applicationId,
+  )
+  const mappedEntries = entries.map(mapLedgerEntry)
+  const selectedEntries = applicationId
+    ? mappedEntries.filter((entry) => entry.applicationId === applicationId)
+    : mappedEntries
+  const ledgerCurrency =
+    selectedApplication?.currency || selectedEntries[0]?.currency || 'MYR'
+  const preliminarySummary = calculateProfitLossSummary({
+    applicationId: applicationId || selectedApplication?.id || 'unselected',
+    entries: selectedEntries,
+    currency: ledgerCurrency,
+    profitShareRatio: {
+      rabbUlMal: selectedApplication?.capitalProviderRatio ?? 0.6,
+      mudarib: selectedApplication?.entrepreneurRatio ?? 0.4,
+    },
+  })
+
   return (
     <>
       <PageHeader eyebrow="Project ledger" title="Ledger entries" />
-      <form className="form-grid" onSubmit={(event) => void createEntry(event)}>
-        <h2>Record entry</h2>
-        <ApplicationSelector
-          applications={applications}
-          value={applicationId}
-          onChange={setApplicationId}
-        />
-        <label className="field">
-          <span>Entry type</span>
-          <select
-            value={entryType}
-            onChange={(event) => setEntryType(event.target.value)}
-          >
-            <option value="REVENUE">Revenue</option>
-            <option value="COST">Cost</option>
-            <option value="EXPENSE">Expense</option>
-          </select>
-        </label>
-        <Field
-          label="Description"
-          name="description"
-          required
-          value={description}
-          onChange={setDescription}
-        />
-        <Field
-          label="Amount"
-          name="amount"
-          type="number"
-          required
-          value={amount}
-          onChange={setAmount}
-        />
-        <div className="form-actions">
-          <button type="submit" disabled={!applications.length}>
-            Record entry
-          </button>
-          {message ? <p className="notice">{message}</p> : null}
-        </div>
-      </form>
+      <section className="finance-ledger-summary" aria-label="Preliminary profit and loss">
+        <article>
+          <span>Total revenue</span>
+          <strong>
+            {formatCurrency(
+              preliminarySummary.totalRevenue,
+              preliminarySummary.currency,
+            )}
+          </strong>
+        </article>
+        <article>
+          <span>Allowed costs</span>
+          <strong>
+            {formatCurrency(
+              preliminarySummary.totalAllowedCost,
+              preliminarySummary.currency,
+            )}
+          </strong>
+        </article>
+        <article>
+          <span>Net profit/loss</span>
+          <strong>
+            {formatCurrency(
+              preliminarySummary.netProfitOrLoss,
+              preliminarySummary.currency,
+            )}
+          </strong>
+        </article>
+        <article>
+          <span>P/L status</span>
+          <StatusTag status={preliminarySummary.status.toUpperCase()} />
+        </article>
+      </section>
+
+      <section className="finance-ledger-grid">
+        <form
+          className="form-grid finance-ledger-form"
+          onSubmit={(event) => void createEntry(event)}
+        >
+          <h2>Record project accounting evidence</h2>
+          <ApplicationSelector
+            applications={applications}
+            value={applicationId}
+            onChange={setApplicationId}
+          />
+          <label className="field">
+            <span>Entry type</span>
+            <select
+              value={entryType}
+              onChange={(event) => setEntryType(event.target.value)}
+            >
+              <option value="REVENUE">Buyer receipt / revenue evidence</option>
+              <option value="COST">Supplier payment / procurement cost</option>
+              <option value="EXPENSE">Allowed expense</option>
+              <option value="CAPITAL">Capital disbursement reference</option>
+            </select>
+          </label>
+          <Field
+            label="Description"
+            name="description"
+            required
+            value={description}
+            onChange={setDescription}
+          />
+          <Field
+            label="Amount"
+            name="amount"
+            type="number"
+            required
+            value={amount}
+            onChange={setAmount}
+          />
+          <div className="form-actions">
+            <button type="submit" disabled={!applications.length || !canMutate}>
+              Record entry
+            </button>
+            {message ? <p className="notice">{message}</p> : null}
+            {!canMutate ? (
+              <p className="notice">
+                Read-only view. Ledger mutations are restricted to organization
+                admins and financier users.
+              </p>
+            ) : null}
+          </div>
+        </form>
+
+        <aside className="finance-pl-panel">
+          <h2>Distribution preview</h2>
+          <p>{getProfitLossFinding(preliminarySummary)}</p>
+          <dl>
+            <div>
+              <dt>Rabb-ul-Mal ratio</dt>
+              <dd>{preliminarySummary.profitShareRatio.rabbUlMal}</dd>
+            </div>
+            <div>
+              <dt>Mudarib ratio</dt>
+              <dd>{preliminarySummary.profitShareRatio.mudarib}</dd>
+            </div>
+            <div>
+              <dt>Rabb-ul-Mal share</dt>
+              <dd>
+                {formatCurrency(
+                  preliminarySummary.distribution?.rabbUlMalAmount,
+                  preliminarySummary.currency,
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Mudarib share</dt>
+              <dd>
+                {formatCurrency(
+                  preliminarySummary.distribution?.mudaribAmount,
+                  preliminarySummary.currency,
+                )}
+              </dd>
+            </div>
+          </dl>
+          <p className="notice">
+            No fixed return is calculated. Distribution appears only when
+            realized project profit is positive.
+          </p>
+          {preliminarySummary.evidenceLineage.length ? (
+            <div className="finance-evidence-list">
+              <h3>Evidence lineage</h3>
+              {preliminarySummary.evidenceLineage.map((link) => (
+                <span key={link.id}>
+                  {link.label} · {link.role.replace('_', ' ')}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <EmptyNotice>No linked source evidence on ledger entries yet.</EmptyNotice>
+          )}
+        </aside>
+      </section>
 
       <section className="table-section">
         <h2>Ledger records</h2>
-        {entries.length ? (
-          <div className="data-table data-table--finance">
-            {entries.map((entry) => (
+        {selectedEntries.length ? (
+          <div className="data-table data-table--ledger">
+            {selectedEntries.map((entry) => (
               <article key={entry.id}>
-                <strong>{entry.entryType}</strong>
-                <span>{entry.description}</span>
+                <div>
+                  <strong>{displayLedgerEntryType(entry.type)}</strong>
+                  <span>{entry.description}</span>
+                </div>
                 <span>{formatCurrency(entry.amount, entry.currency)}</span>
                 <span>{formatDateTime(entry.occurredAt)}</span>
+                <span>
+                  {entry.sourceDocumentLabel ||
+                    entry.sourceDocumentId ||
+                    'No linked evidence'}
+                </span>
               </article>
             ))}
           </div>
@@ -1939,7 +1697,13 @@ function LedgersScreen({ session }: { session: AppSession }) {
   )
 }
 
-function ProfitLossScreen({ session }: { session: AppSession }) {
+function ProfitLossScreen({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { listApplications } = useApplications(session)
   const {
     listProfitLossStatements,
@@ -1951,6 +1715,7 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
   const [revenue, setRevenue] = useState('')
   const [costs, setCosts] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const canMutate = canOperateFinanceRecords(roleCodes)
 
   const loadData = useCallback(async () => {
     const [applicationRows, statementRows] = await Promise.all([
@@ -2002,6 +1767,11 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
     event.preventDefault()
     setMessage(null)
 
+    if (!canMutate) {
+      setMessage('Profit/loss calculation is restricted to finance reviewers.')
+      return
+    }
+
     try {
       await createProfitLossStatement<ProfitLossStatement>(
         scopedBody(session, {
@@ -2020,6 +1790,8 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
       )
     }
   }
+
+  const summaries = statements.map(mapProfitLossStatement)
 
   return (
     <>
@@ -2049,27 +1821,115 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
           onChange={setCosts}
         />
         <div className="form-actions">
-          <button type="submit" disabled={!applications.length}>
+          <button type="submit" disabled={!applications.length || !canMutate}>
             Generate statement
           </button>
           {message ? <p className="notice">{message}</p> : null}
+          {!canMutate ? (
+            <p className="notice">
+              Read-only view. Statement generation is restricted to organization
+              admins and financier users.
+            </p>
+          ) : null}
         </div>
       </form>
 
       <section className="table-section">
         <h2>Statement records</h2>
-        {statements.length ? (
-          <div className="data-table data-table--finance">
-            {statements.map((statement) => (
-              <article key={statement.id}>
-                <strong>
-                  {statement.application?.opportunity?.title ?? statement.applicationId}
-                </strong>
-                <span>Revenue {formatCurrency(statement.revenue)}</span>
-                <span>Costs {formatCurrency(statement.costs)}</span>
-                <span>Net {formatCurrency(statement.netProfit)}</span>
-              </article>
-            ))}
+        {summaries.length ? (
+          <div className="finance-pl-list">
+            {summaries.map((summary, index) => {
+              const sourceStatement = statements[index]
+              const fixedReturnDetected = hasGuaranteedFixedReturnPattern({
+                summary,
+              })
+
+              return (
+                <article key={sourceStatement.id || summary.applicationId}>
+                  <div className="finance-pl-header">
+                    <div>
+                      <strong>
+                        {sourceStatement.application?.opportunity?.title ??
+                          summary.applicationId}
+                      </strong>
+                      <span>{getProfitLossFinding(summary)}</span>
+                    </div>
+                    <StatusTag status={summary.status.toUpperCase()} />
+                  </div>
+                  <div className="finance-ledger-summary">
+                    <article>
+                      <span>Revenue</span>
+                      <strong>
+                        {formatCurrency(
+                          summary.totalRevenue,
+                          summary.currency,
+                        )}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Allowed costs</span>
+                      <strong>
+                        {formatCurrency(
+                          summary.totalAllowedCost,
+                          summary.currency,
+                        )}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Net</span>
+                      <strong>
+                        {formatCurrency(
+                          summary.netProfitOrLoss,
+                          summary.currency,
+                        )}
+                      </strong>
+                    </article>
+                    <article>
+                      <span>Fixed return check</span>
+                      <strong>{fixedReturnDetected ? 'Blocked' : 'Clear'}</strong>
+                    </article>
+                  </div>
+                  {summary.distribution ? (
+                    <div className="finance-distribution-grid">
+                      <article>
+                        <span>Rabb-ul-Mal distribution</span>
+                        <strong>
+                          {formatCurrency(
+                            summary.distribution.rabbUlMalAmount,
+                            summary.currency,
+                          )}
+                        </strong>
+                      </article>
+                      <article>
+                        <span>Mudarib distribution</span>
+                        <strong>
+                          {formatCurrency(
+                            summary.distribution.mudaribAmount,
+                            summary.currency,
+                          )}
+                        </strong>
+                      </article>
+                    </div>
+                  ) : (
+                    <p className="notice">
+                      No profit distribution is shown because realized profit is
+                      not positive.
+                    </p>
+                  )}
+                  {summary.lossExceptions.length ? (
+                    <div className="finance-evidence-list">
+                      <h3>Loss exception path</h3>
+                      {summary.lossExceptions.map((exception) => (
+                        <span key={exception.id || exception.exceptionType}>
+                          {exception.exceptionType} ·{' '}
+                          {formatCurrency(exception.amount, summary.currency)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
           </div>
         ) : (
           <EmptyNotice>No statements found.</EmptyNotice>
@@ -2079,7 +1939,13 @@ function ProfitLossScreen({ session }: { session: AppSession }) {
   )
 }
 
-function ClosuresScreen({ session }: { session: AppSession }) {
+function ClosuresScreen({
+  session,
+  roleCodes,
+}: {
+  session: AppSession
+  roleCodes: AppRoleCode[]
+}) {
   const { listApplications } = useApplications(session)
   const { listClosures, createClosure: createClosureRecord } =
     useClosures(session)
@@ -2088,6 +1954,7 @@ function ClosuresScreen({ session }: { session: AppSession }) {
   const [applicationId, setApplicationId] = useState(getQueryParam('applicationId'))
   const [confirmingExport, setConfirmingExport] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const canMutate = canOperateFinanceRecords(roleCodes)
 
   const loadData = useCallback(async () => {
     const [applicationRows, closureRows] = await Promise.all([
@@ -2137,6 +2004,12 @@ function ClosuresScreen({ session }: { session: AppSession }) {
 
   function requestClosureExport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!canMutate) {
+      setMessage('Closure export is restricted to finance reviewers.')
+      return
+    }
+
     setConfirmingExport(true)
   }
 
@@ -2173,10 +2046,16 @@ function ClosuresScreen({ session }: { session: AppSession }) {
           onChange={setApplicationId}
         />
         <div className="form-actions">
-          <button type="submit" disabled={!applications.length}>
+          <button type="submit" disabled={!applications.length || !canMutate}>
             Export closure
           </button>
           {message ? <p className="notice">{message}</p> : null}
+          {!canMutate ? (
+            <p className="notice">
+              Read-only view. Closure export is restricted to organization
+              admins and financier users.
+            </p>
+          ) : null}
         </div>
       </form>
 
@@ -2192,14 +2071,25 @@ function ClosuresScreen({ session }: { session: AppSession }) {
       <section className="table-section">
         <h2>Closure records</h2>
         {closures.length ? (
-          <div className="data-table data-table--finance">
+          <div className="data-table data-table--closure">
             {closures.map((closure) => (
               <article key={closure.id}>
-                <strong>
-                  {closure.application?.opportunity?.title ?? closure.applicationId}
-                </strong>
-                <span>{closure.evidencePack?.title ?? 'No evidence pack'}</span>
-                <StatusTag status="CLOSED" />
+                <div>
+                  <strong>
+                    {closure.application?.opportunity?.title ??
+                      closure.applicationId}
+                  </strong>
+                  <span>
+                    {closure.evidencePack?.title ??
+                      'Evidence pack not attached'}
+                  </span>
+                </div>
+                <StatusTag status={closure.status || 'CLOSED'} />
+                <span>
+                  Latest P/L{' '}
+                  {closure.application?.profitLossStatements?.[0]?.id ??
+                    'not included in response'}
+                </span>
                 <span>{formatDateTime(closure.exportedAt)}</span>
               </article>
             ))}
@@ -2250,11 +2140,23 @@ export function FinanceRoute({
     <Routes>
       <Route
         path="opportunities"
-        element={<OpportunitiesScreen session={session} navigate={navigate} />}
+        element={
+          <OpportunitiesScreen
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
       />
       <Route
         path="opportunities/new"
-        element={<OpportunitiesScreen session={session} navigate={navigate} />}
+        element={
+          <OpportunitiesScreen
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
+        }
       />
       <Route
         path="applications"
@@ -2279,12 +2181,18 @@ export function FinanceRoute({
         }
       />
       <Route path="contracts" element={<ContractsScreen session={session} />} />
-      <Route path="ledgers" element={<LedgersScreen session={session} />} />
+      <Route
+        path="ledgers"
+        element={<LedgersScreen session={session} roleCodes={roleCodes} />}
+      />
       <Route
         path="profit-loss"
-        element={<ProfitLossScreen session={session} />}
+        element={<ProfitLossScreen session={session} roleCodes={roleCodes} />}
       />
-      <Route path="closures" element={<ClosuresScreen session={session} />} />
+      <Route
+        path="closures"
+        element={<ClosuresScreen session={session} roleCodes={roleCodes} />}
+      />
       <Route path="*" element={null} />
     </Routes>
   )
