@@ -27,6 +27,14 @@ import {
   mapProfitLossStatement,
 } from './ledger/ledger.model'
 import { OpportunitiesPage } from './opportunities/OpportunitiesPage'
+import {
+  blockedReason,
+  buildWorkspaceRoleGuidance,
+  displayFinanceState,
+  formatRatio,
+  summarizeChecklist,
+  summarizeWorkspaceLedger,
+} from './financeWorkspaceDisplay.model'
 
 type FinanceRouteProps = {
   session: AppSession
@@ -750,10 +758,38 @@ export function LegacyApplicationDetailScreen({
   const showProfitLoss = showOverview || selectedTab === 'profit-loss'
   const showClosure = showOverview || selectedTab === 'closure'
   const showAudit = showOverview || selectedTab === 'audit'
+  const evidenceReadiness = summarizeChecklist(checklist)
+  const ledgerSummary = application
+    ? summarizeWorkspaceLedger(application)
+    : null
+  const roleGuidance = application
+    ? buildWorkspaceRoleGuidance(roleScope, application.status, evidenceReadiness)
+    : null
+  const currentLifecyclePosition = application
+    ? Math.max(financeLifecycleStates.indexOf(application.status), 0) + 1
+    : 0
+  const expectedRevenue =
+    Number(application?.opportunity?.estimatedCapital ?? 0) +
+    Number(application?.opportunity?.expectedProfit ?? 0)
+  const expectedMargin = expectedRevenue
+    ? Math.round(
+        (Number(application?.opportunity?.expectedProfit ?? 0) /
+          expectedRevenue) *
+          100,
+      )
+    : 0
 
   return (
     <>
-      <PageHeader eyebrow="Mudarabah workflow" title="Application workspace" />
+      <PageHeader
+        eyebrow="Mudarabah workflow"
+        title="Application workspace"
+        action={
+          <NavLink className="button button--secondary" to="/finance/applications">
+            Back to pipeline
+          </NavLink>
+        }
+      />
       {state.status === 'loading' ? (
         <EmptyNotice>Loading application...</EmptyNotice>
       ) : null}
@@ -763,6 +799,39 @@ export function LegacyApplicationDetailScreen({
       {message ? <p className="notice">{message}</p> : null}
       {application ? (
         <>
+          <section className="finance-workspace-hero">
+            <div className="finance-workspace-hero__main">
+              <span className="finance-workspace-kicker">
+                {application.id}
+              </span>
+              <h2>
+                {application.opportunity?.title ?? application.opportunityId}
+              </h2>
+              <p>
+                {application.applicantUser?.displayName ||
+                  application.applicantUser?.email ||
+                  'Applicant pending'}{' '}
+                uses procurement evidence to support restricted mudarabah
+                capital.
+              </p>
+              <div className="finance-workspace-tags">
+                <StatusTag status={application.status} />
+                <span>{currentLifecyclePosition}/{financeLifecycleStates.length} lifecycle gates</span>
+                <span>{roleCodes.join(', ') || 'No assigned role'}</span>
+              </div>
+            </div>
+            <div className="finance-workspace-hero__side">
+              <span>Requested capital</span>
+              <strong>
+                {formatCurrency(application.requestedCapital, application.currency)}
+              </strong>
+              <small>
+                Profit ratio {formatRatio(application.capitalProviderRatio)} /{' '}
+                {formatRatio(application.entrepreneurRatio)}
+              </small>
+            </div>
+          </section>
+
           <nav className="module-tabs" aria-label="Finance workspace tabs">
             {financeWorkspaceTabs.map(([value, label]) => (
               <NavLink
@@ -778,44 +847,95 @@ export function LegacyApplicationDetailScreen({
               </NavLink>
             ))}
           </nav>
-          <section className="details-grid finance-details">
+
+          <section className="finance-workspace-summary">
+            <article className="finance-workspace-guidance">
+              <span>Role guidance</span>
+              <strong>{roleGuidance?.title}</strong>
+              <p>{roleGuidance?.message}</p>
+            </article>
             <article>
-              <span>Opportunity</span>
-              <strong>{application.opportunity?.title ?? application.opportunityId}</strong>
+              <span>Evidence readiness</span>
+              <strong>{evidenceReadiness.progress}%</strong>
+              <div
+                className="finance-readiness-bar"
+                aria-label="Evidence readiness progress"
+              >
+                <span style={{ width: `${evidenceReadiness.progress}%` }} />
+              </div>
+              <small>
+                {evidenceReadiness.readyCount}/{evidenceReadiness.total || 0}{' '}
+                complete or waived
+              </small>
+            </article>
+            <article>
+              <span>Expected economics</span>
+              <strong>{formatCurrency(expectedRevenue, application.currency)}</strong>
+              <small>
+                Expected profit margin {expectedMargin}% from current opportunity
+                data.
+              </small>
             </article>
             <article>
               <span>Status</span>
-              <strong>{application.status}</strong>
-            </article>
-            <article>
-              <span>Capital</span>
-              <strong>
-                {formatCurrency(application.requestedCapital, application.currency)}
-              </strong>
-            </article>
-            <article>
-              <span>Evidence checklist</span>
-              <strong>{checklist?.status ?? 'Not generated'}</strong>
-            </article>
-            <article>
-              <span>Role context</span>
-              <strong>{roleCodes.join(', ') || 'No assigned role'}</strong>
+              <strong>{displayFinanceState(application.status)}</strong>
+              <small>
+                Contract, disbursement, ledger, and closure remain backend-gated.
+              </small>
             </article>
           </section>
-          <section className="table-section">
-            <h2>Lifecycle</h2>
+
+          <section className="finance-workspace-lifecycle">
+            <div>
+              <span>Lifecycle</span>
+              <h2>Gate-by-gate progress</h2>
+            </div>
             <FinanceLifecycleTrack status={application.status} />
           </section>
-          {roleScope.isAuditor ? (
-            <p className="notice">
-              Auditor workspace is read-only: evidence, audit, hashes, and closure
-              state are visible, while finance mutations stay unavailable.
-            </p>
-          ) : null}
-          <section className="split-grid">
+
+          <section className="split-grid finance-workspace-grid">
             {showEvidence ? (
-            <form className="form-grid">
-              <h2>Evidence</h2>
+            <form className="form-grid finance-workspace-panel">
+              <div className="finance-workspace-panel-header">
+                <div>
+                  <span>Evidence checklist</span>
+                  <h2>Evidence readiness</h2>
+                </div>
+                <strong>{evidenceReadiness.progress}% ready</strong>
+              </div>
+              <div className="finance-readiness-bar">
+                <span style={{ width: `${evidenceReadiness.progress}%` }} />
+              </div>
+              <div className="finance-workspace-mini-grid">
+                <article>
+                  <span>Complete</span>
+                  <strong>{evidenceReadiness.completed}</strong>
+                </article>
+                <article>
+                  <span>Waived</span>
+                  <strong>{evidenceReadiness.waived}</strong>
+                </article>
+                <article>
+                  <span>Missing</span>
+                  <strong>{evidenceReadiness.missing}</strong>
+                </article>
+                <article>
+                  <span>Rejected</span>
+                  <strong>{evidenceReadiness.rejected}</strong>
+                </article>
+              </div>
+              {evidenceReadiness.missing ? (
+                <p className="finance-blocked-note">
+                  Incomplete checklist items can block due diligence and final
+                  application approval. Use linked procurement evidence; do not
+                  substitute UI-only evidence.
+                </p>
+              ) : (
+                <p className="finance-safe-note">
+                  Evidence is complete or waived according to the current
+                  backend checklist response.
+                </p>
+              )}
               <div className="form-actions">
                 {roleScope.canSubmitEvidence ? (
                   <>
@@ -835,6 +955,21 @@ export function LegacyApplicationDetailScreen({
                     >
                       Generate checklist
                     </button>
+                    {blockedReason(
+                      ['SUBMITTED', 'EVIDENCE_PENDING'].includes(
+                        application.status,
+                      ),
+                      'Checklist generation is only available after submission or while evidence is pending.',
+                    ) ? (
+                      <span className="action-reason">
+                        {blockedReason(
+                          ['SUBMITTED', 'EVIDENCE_PENDING'].includes(
+                            application.status,
+                          ),
+                          'Checklist generation is only available after submission or while evidence is pending.',
+                        )}
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       disabled={!checklist?.items?.length}
@@ -842,18 +977,33 @@ export function LegacyApplicationDetailScreen({
                     >
                       Complete items
                     </button>
+                    {!checklist?.items?.length ? (
+                      <span className="action-reason">
+                        Generate the backend checklist before completing items.
+                      </span>
+                    ) : null}
                   </>
                 ) : (
                   <span>Read-only evidence review</span>
                 )}
               </div>
               {checklist?.items?.length ? (
-                <div className="data-table data-table--checklist">
+                <div className="finance-evidence-checklist">
                   {checklist.items.map((item) => (
-                    <article key={item.id}>
-                      <strong>{item.label}</strong>
-                      <span>{item.requiredCode}</span>
+                    <article
+                      className={`finance-evidence-item finance-evidence-item--${item.status.toLowerCase()}`}
+                      key={item.id}
+                    >
+                      <div>
+                        <strong>{item.label}</strong>
+                        <span>{item.requiredCode}</span>
+                      </div>
                       <StatusTag status={item.status} />
+                      <small>
+                        {item.evidenceItem
+                          ? `Linked evidence ${item.evidenceItem.id}`
+                          : 'No linked evidence item yet'}
+                      </small>
                     </article>
                   ))}
                 </div>
@@ -863,8 +1013,66 @@ export function LegacyApplicationDetailScreen({
             </form>
             ) : null}
             {showDueDiligence || showShariah ? (
-            <form className="form-grid">
-              <h2>Reviews</h2>
+            <form className="form-grid finance-workspace-panel">
+              <div className="finance-workspace-panel-header">
+                <div>
+                  <span>Reviewer gates</span>
+                  <h2>Due diligence and Shariah review</h2>
+                </div>
+                <StatusTag
+                  status={
+                    latestShariahReview?.status ||
+                    latestDueDiligence?.status ||
+                    'PENDING'
+                  }
+                />
+              </div>
+              <div className="finance-review-grid">
+                {showDueDiligence ? (
+                  <article className="finance-review-card finance-review-card--due">
+                    <div>
+                      <span>Financier due diligence</span>
+                      <strong>{latestDueDiligence?.riskRating ?? 'Pending'}</strong>
+                    </div>
+                    <StatusTag status={latestDueDiligence?.status ?? 'PENDING'} />
+                    <p>
+                      Review buyer credibility, supplier reliability, cost
+                      reasonableness, delivery risk, and expected realization
+                      assumptions.
+                    </p>
+                  </article>
+                ) : null}
+                {showShariah ? (
+                  <article className="finance-review-card finance-review-card--shariah">
+                    <div>
+                      <span>Shariah/compliance review</span>
+                      <strong>{latestShariahReview?.decision ?? 'Pending'}</strong>
+                    </div>
+                    <StatusTag status={latestShariahReview?.status ?? 'PENDING'} />
+                    <p>
+                      Validate eligible goods/services, restricted use, profit
+                      ratio, allowed expenses, loss treatment, and no guaranteed
+                      fixed return.
+                    </p>
+                  </article>
+                ) : null}
+              </div>
+              {latestDueDiligence?.status !== 'APPROVED' ? (
+                <p className="finance-blocked-note">
+                  Shariah review and final approval remain blocked until due
+                  diligence is approved by an authorized financier reviewer.
+                </p>
+              ) : latestShariahReview?.status !== 'APPROVED' ? (
+                <p className="finance-blocked-note">
+                  Final approval and contract generation remain blocked until
+                  Shariah review is approved.
+                </p>
+              ) : (
+                <p className="finance-safe-note">
+                  Both reviewer gates are approved in the current backend
+                  response. Final approval is still a separate backend action.
+                </p>
+              )}
               <div className="form-actions">
                 {roleScope.canReviewFinance ? (
                   <button
@@ -890,6 +1098,16 @@ export function LegacyApplicationDetailScreen({
                     Approve due diligence
                   </button>
                 ) : null}
+                {roleScope.canReviewFinance &&
+                (!['DUE_DILIGENCE_IN_REVIEW', 'SHARIAH_IN_REVIEW'].includes(
+                  application.status,
+                ) ||
+                  latestDueDiligence?.status === 'APPROVED') ? (
+                  <span className="action-reason">
+                    Due diligence action is available only in the due diligence
+                    review gate and is disabled once approved.
+                  </span>
+                ) : null}
                 {roleScope.canReviewShariah ? (
                   <button
                     type="button"
@@ -912,6 +1130,14 @@ export function LegacyApplicationDetailScreen({
                     Approve Shariah
                   </button>
                 ) : null}
+                {roleScope.canReviewShariah &&
+                (latestDueDiligence?.status !== 'APPROVED' ||
+                  latestShariahReview?.status === 'APPROVED') ? (
+                  <span className="action-reason">
+                    Shariah action requires approved due diligence and no prior
+                    approved Shariah review.
+                  </span>
+                ) : null}
                 {roleScope.canReviewFinance ? (
                   <button
                     type="button"
@@ -930,27 +1156,41 @@ export function LegacyApplicationDetailScreen({
                     Approve application
                   </button>
                 ) : null}
-              </div>
-              <div className="data-table data-table--checklist">
-                <article>
-                  <strong>Due diligence</strong>
-                  <span>{latestDueDiligence?.riskRating ?? 'Pending'}</span>
-                  <StatusTag status={latestDueDiligence?.status ?? 'PENDING'} />
-                </article>
-                <article>
-                  <strong>Shariah review</strong>
-                  <span>{latestShariahReview?.decision ?? 'Pending'}</span>
-                  <StatusTag status={latestShariahReview?.status ?? 'PENDING'} />
-                </article>
+                {roleScope.canReviewFinance &&
+                (latestDueDiligence?.status !== 'APPROVED' ||
+                  latestShariahReview?.status !== 'APPROVED' ||
+                  application.status === 'APPROVED') ? (
+                  <span className="action-reason">
+                    Final approval requires both reviewer decisions to be
+                    approved and cannot re-approve an approved application.
+                  </span>
+                ) : null}
               </div>
             </form>
             ) : null}
             {showContract ? (
               <form
-                className="form-grid"
+                className="form-grid finance-workspace-panel"
                 onSubmit={(event) => void createContractForApplication(event)}
               >
-                <h2>Contract</h2>
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Restricted contract</span>
+                    <h2>Contract and e-signature package</h2>
+                  </div>
+                  <StatusTag status={latestContract?.status ?? 'NOT_CREATED'} />
+                </div>
+                {application.status !== 'APPROVED' ? (
+                  <p className="finance-blocked-note">
+                    Contract creation remains blocked until the application is
+                    approved after financier and Shariah review gates.
+                  </p>
+                ) : (
+                  <p className="finance-safe-note">
+                    Application is approved. Contract creation will still be
+                    validated by the backend before any record is created.
+                  </p>
+                )}
                 <Field
                   label="Restricted use"
                   name="restrictedUse"
@@ -974,6 +1214,11 @@ export function LegacyApplicationDetailScreen({
                       >
                         Create contract
                       </button>
+                      {application.status !== 'APPROVED' ? (
+                        <span className="action-reason">
+                          Requires application status APPROVED.
+                        </span>
+                      ) : null}
                       <button
                         type="button"
                         disabled={!latestContract}
@@ -985,6 +1230,12 @@ export function LegacyApplicationDetailScreen({
                       >
                         Generate document
                       </button>
+                      {!latestContract ? (
+                        <span className="action-reason">
+                          Create the backend contract record before requesting
+                          a document/e-sign package.
+                        </span>
+                      ) : null}
                       <button
                         type="button"
                         disabled={latestContract?.status !== 'PENDING_SIGNATURE'}
@@ -994,13 +1245,19 @@ export function LegacyApplicationDetailScreen({
                       >
                         Mark signed
                       </button>
+                      {latestContract?.status !== 'PENDING_SIGNATURE' ? (
+                        <span className="action-reason">
+                          Mark signed is available only when the contract is
+                          pending signature.
+                        </span>
+                      ) : null}
                     </>
                   ) : (
                     <span>Contract terms are read-only for this role.</span>
                   )}
                 </div>
-                <div className="data-table data-table--checklist">
-                  <article>
+                <div className="finance-status-stack">
+                  <article className="finance-status-row">
                     <strong>{latestContract?.contractNumber ?? 'No contract'}</strong>
                     <span>
                       {latestContract?.restrictedUse ?? 'Contract not created'}
@@ -1012,10 +1269,27 @@ export function LegacyApplicationDetailScreen({
             ) : null}
             {showDisbursement ? (
               <form
-                className="form-grid"
+                className="form-grid finance-workspace-panel"
                 onSubmit={(event) => void recordDisbursement(event)}
               >
-                <h2>Disbursement</h2>
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Controlled capital release</span>
+                    <h2>Disbursement</h2>
+                  </div>
+                  <StatusTag status={latestDisbursement ? 'RECORDED' : 'PENDING'} />
+                </div>
+                {latestContract?.status !== 'EXECUTED' ? (
+                  <p className="finance-blocked-note">
+                    Disbursement remains blocked until the restricted contract is
+                    executed and recorded as EXECUTED.
+                  </p>
+                ) : (
+                  <p className="finance-safe-note">
+                    Contract is executed. Any disbursement record still passes
+                    through backend validation and audit creation.
+                  </p>
+                )}
                 <Field
                   label="Disbursement amount"
                   name="disbursementAmount"
@@ -1041,8 +1315,8 @@ export function LegacyApplicationDetailScreen({
                     <span>Disbursement is read-only for this role.</span>
                   )}
                 </div>
-                <div className="data-table data-table--checklist">
-                  <article>
+                <div className="finance-status-stack">
+                  <article className="finance-status-row">
                     <strong>
                       {latestDisbursement
                         ? formatCurrency(
@@ -1058,8 +1332,52 @@ export function LegacyApplicationDetailScreen({
               </form>
             ) : null}
             {showLedger ? (
-              <form className="form-grid" onSubmit={(event) => void recordLedgerEntry(event)}>
-                <h2>Ledger</h2>
+              <form
+                className="form-grid finance-workspace-panel"
+                onSubmit={(event) => void recordLedgerEntry(event)}
+              >
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Project monitoring</span>
+                    <h2>Ledger evidence</h2>
+                  </div>
+                  <NavLink
+                    className="button button--secondary"
+                    to={`/finance/ledgers?applicationId=${application.id}`}
+                  >
+                    Open ledger
+                  </NavLink>
+                </div>
+                <div className="finance-workspace-mini-grid">
+                  <article>
+                    <span>Revenue</span>
+                    <strong>
+                      {formatCurrency(ledgerSummary?.revenue, application.currency)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Allowed costs</span>
+                    <strong>
+                      {formatCurrency(ledgerSummary?.costs, application.currency)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Capital</span>
+                    <strong>
+                      {formatCurrency(ledgerSummary?.capital, application.currency)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Entries</span>
+                    <strong>{ledgerSummary?.entries ?? 0}</strong>
+                  </article>
+                </div>
+                {!['DISBURSED', 'MONITORING'].includes(application.status) ? (
+                  <p className="finance-blocked-note">
+                    Ledger entry creation starts after controlled disbursement.
+                    Earlier states are visible for review only.
+                  </p>
+                ) : null}
                 <label className="field">
                   <span>Entry type</span>
                   <select
@@ -1118,10 +1436,46 @@ export function LegacyApplicationDetailScreen({
             ) : null}
             {showProfitLoss ? (
               <form
-                className="form-grid"
+                className="form-grid finance-workspace-panel"
                 onSubmit={(event) => void generateProfitLoss(event)}
               >
-                <h2>Profit/Loss</h2>
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Profit/loss</span>
+                    <h2>Distribution preview and calculation gate</h2>
+                  </div>
+                  <NavLink
+                    className="button button--secondary"
+                    to={`/finance/profit-loss?applicationId=${application.id}`}
+                  >
+                    Open P/L
+                  </NavLink>
+                </div>
+                <div className="finance-workspace-mini-grid">
+                  <article>
+                    <span>Net from ledger</span>
+                    <strong>
+                      {formatCurrency(ledgerSummary?.net, application.currency)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Rabb-ul-Mal share</span>
+                    <strong>{formatRatio(application.capitalProviderRatio)}</strong>
+                  </article>
+                  <article>
+                    <span>Mudarib share</span>
+                    <strong>{formatRatio(application.entrepreneurRatio)}</strong>
+                  </article>
+                  <article>
+                    <span>Fixed return check</span>
+                    <strong>Not calculated</strong>
+                  </article>
+                </div>
+                <p className="finance-safe-note">
+                  This workspace does not calculate a guaranteed fixed return.
+                  Distribution is shown only after positive realized project
+                  profit and approved ratio-based calculation.
+                </p>
                 <Field
                   label="Revenue override"
                   name="profitRevenue"
@@ -1152,8 +1506,8 @@ export function LegacyApplicationDetailScreen({
                     <span>Profit/loss is read-only for this role.</span>
                   )}
                 </div>
-                <div className="data-table data-table--checklist">
-                  <article>
+                <div className="finance-status-stack">
+                  <article className="finance-status-row">
                     <strong>
                       Net{' '}
                       {latestProfitLoss
@@ -1170,8 +1524,30 @@ export function LegacyApplicationDetailScreen({
               </form>
             ) : null}
             {showClosure ? (
-              <section className="form-grid">
-                <h2>Closure</h2>
+              <section className="form-grid finance-workspace-panel">
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Closure evidence</span>
+                    <h2>Closure pack</h2>
+                  </div>
+                  <NavLink
+                    className="button button--secondary"
+                    to={`/finance/closures?applicationId=${application.id}`}
+                  >
+                    Open closures
+                  </NavLink>
+                </div>
+                {application.status !== 'PROFIT_LOSS_CALCULATED' ? (
+                  <p className="finance-blocked-note">
+                    Closure export remains blocked until profit/loss has been
+                    calculated and reviewer evidence is ready.
+                  </p>
+                ) : (
+                  <p className="finance-safe-note">
+                    Profit/loss is calculated. Closure export still records a
+                    backend closure pack and audit event.
+                  </p>
+                )}
                 <div className="form-actions">
                   {roleScope.canExportClosure ? (
                     <button
@@ -1185,8 +1561,8 @@ export function LegacyApplicationDetailScreen({
                     <span>Closure pack is read-only for this role.</span>
                   )}
                 </div>
-                <div className="data-table data-table--checklist">
-                  <article>
+                <div className="finance-status-stack">
+                  <article className="finance-status-row">
                     <strong>{latestClosure?.id ?? 'No closure pack'}</strong>
                     <span>
                       {latestClosure
@@ -1199,12 +1575,22 @@ export function LegacyApplicationDetailScreen({
               </section>
             ) : null}
             {showAudit ? (
-              <section className="form-grid">
-                <h2>Audit</h2>
+              <section className="form-grid finance-workspace-panel">
+                <div className="finance-workspace-panel-header">
+                  <div>
+                    <span>Audit and verification</span>
+                    <h2>Audit timeline</h2>
+                  </div>
+                  <StatusTag status="LOCAL_AUDIT" />
+                </div>
                 <p className="notice">
                   Audit timeline links back to this application and the procurement
                   opportunity. Reviewers can use it to verify approvals, contract
                   state, ledger events, and closure export.
+                </p>
+                <p className="finance-blocked-note">
+                  Fabric verification is not implied here. Anchor status must
+                  come from audit/hash/outbox records, not from UI presentation.
                 </p>
                 <div className="form-actions">
                   <NavLink
