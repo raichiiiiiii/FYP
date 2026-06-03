@@ -59,8 +59,11 @@ test('SRS-FIN-001 finance application moves through evidence, review, and approv
   ).toBeVisible();
   await page.getByRole('button', { name: 'Generate checklist' }).click();
   await expect(page.getByText('Checklist generated')).toBeVisible();
+  const evidenceReadiness = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'Evidence readiness' }),
+  });
   await expect(
-    page.locator('article').filter({ hasText: 'Evidence checklist' }),
+    evidenceReadiness.locator('article').filter({ hasText: 'Project summary' }),
   ).toContainText('COMPLETED');
 
   await page.getByRole('button', { name: 'Approve due diligence' }).click();

@@ -14,6 +14,7 @@ export function DataTable<T>({
   emptyTitle,
   emptyDescription,
   variant,
+  ariaLabel,
 }: {
   rows: T[]
   columns: DataTableColumn<T>[]
@@ -21,33 +22,68 @@ export function DataTable<T>({
   emptyTitle: string
   emptyDescription?: string
   variant?: string
+  ariaLabel?: string
 }) {
   if (!rows.length) {
     return <EmptyState title={emptyTitle}>{emptyDescription}</EmptyState>
   }
+
+  const gridTemplateColumns = `repeat(${columns.length}, minmax(0, 1fr))`
 
   return (
     <div
       className={['data-table', variant ? `data-table--${variant}` : '']
         .filter(Boolean)
         .join(' ')}
+      role="table"
+      aria-label={ariaLabel ?? emptyTitle}
     >
-      {rows.map((row) => (
-        <article
-          key={getRowKey(row)}
-          style={{
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {columns.map((column, index) =>
-            index === 0 ? (
-              <strong key={column.key}>{column.render(row)}</strong>
-            ) : (
-              <span key={column.key}>{column.render(row)}</span>
-            ),
-          )}
-        </article>
-      ))}
+      <div
+        className="data-table__header"
+        role="row"
+        style={{ gridTemplateColumns }}
+      >
+        {columns.map((column) => (
+          <span key={column.key} role="columnheader">
+            {column.header}
+          </span>
+        ))}
+      </div>
+      <div className="data-table__body" role="rowgroup">
+        {rows.map((row) => (
+          <article
+            key={getRowKey(row)}
+            role="row"
+            style={{ gridTemplateColumns }}
+          >
+            {columns.map((column, index) => (
+              <div
+                key={column.key}
+                className={
+                  index === 0
+                    ? 'data-table__cell data-table__cell--primary'
+                    : 'data-table__cell'
+                }
+                data-label={column.header}
+                role="cell"
+              >
+                {renderCellContent(column.render(row), index)}
+              </div>
+            ))}
+          </article>
+        ))}
+      </div>
     </div>
   )
+}
+
+function renderCellContent(content: ReactNode, columnIndex: number) {
+  if (
+    columnIndex === 0 &&
+    (typeof content === 'string' || typeof content === 'number')
+  ) {
+    return <strong>{content}</strong>
+  }
+
+  return content
 }

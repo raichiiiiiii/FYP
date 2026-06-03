@@ -1,4 +1,9 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
 
 type BaseFieldProps = {
@@ -16,21 +21,38 @@ export function FormField({
   hint,
   registration,
   required,
+  id,
   ...inputProps
 }: BaseFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  const generatedId = useId()
+  const fieldId = id ?? `${name}-${generatedId}`
+  const hintId = hint ? `${fieldId}-hint` : undefined
+  const errorId = error ? `${fieldId}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+
   return (
-    <label className="field">
+    <label className="field" htmlFor={fieldId}>
       <span>{label}</span>
       <input
-        id={name}
+        id={fieldId}
         name={name}
         aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
+        aria-errormessage={errorId}
         aria-required={required || undefined}
         {...registration}
         {...inputProps}
       />
-      {hint ? <small className="field-hint">{hint}</small> : null}
-      {error ? <em className="field-error">{error}</em> : null}
+      {hint ? (
+        <small className="field-hint" id={hintId}>
+          {hint}
+        </small>
+      ) : null}
+      {error ? (
+        <em className="field-error" id={errorId} role="alert">
+          {error}
+        </em>
+      ) : null}
     </label>
   )
 }
@@ -42,21 +64,38 @@ export function TextAreaField({
   hint,
   registration,
   required,
+  id,
   ...textareaProps
 }: BaseFieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const generatedId = useId()
+  const fieldId = id ?? `${name}-${generatedId}`
+  const hintId = hint ? `${fieldId}-hint` : undefined
+  const errorId = error ? `${fieldId}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+
   return (
-    <label className="field">
+    <label className="field" htmlFor={fieldId}>
       <span>{label}</span>
       <textarea
-        id={name}
+        id={fieldId}
         name={name}
         aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
+        aria-errormessage={errorId}
         aria-required={required || undefined}
         {...registration}
         {...textareaProps}
       />
-      {hint ? <small className="field-hint">{hint}</small> : null}
-      {error ? <em className="field-error">{error}</em> : null}
+      {hint ? (
+        <small className="field-hint" id={hintId}>
+          {hint}
+        </small>
+      ) : null}
+      {error ? (
+        <em className="field-error" id={errorId} role="alert">
+          {error}
+        </em>
+      ) : null}
     </label>
   )
 }

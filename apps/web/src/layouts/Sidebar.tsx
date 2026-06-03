@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { getVisibleSidebarRoutes } from '../app/authorization'
@@ -6,6 +7,7 @@ import { useAppSession } from '../app/session'
 
 export function Sidebar() {
   const { authorization, session } = useAppSession()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const visibleRoutes = getVisibleSidebarRoutes(routeMetadata, session, authorization)
   const modules = [...new Set(visibleRoutes.map((route) => route.module))]
   const primaryRole = authorization.roleCodes[0]
@@ -21,7 +23,7 @@ export function Sidebar() {
       : '/dashboard'
 
   return (
-    <aside className="sidebar">
+    <aside className={mobileOpen ? 'sidebar sidebar--mobile-open' : 'sidebar'}>
       <div className="sidebar-brand">
         <div className="sidebar-logo" aria-hidden="true">
           M
@@ -46,7 +48,25 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav aria-label="Main navigation">
+      <button
+        type="button"
+        className="sidebar-mobile-toggle"
+        aria-controls="main-navigation"
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen((isOpen) => !isOpen)}
+      >
+        {mobileOpen ? 'Hide navigation' : 'Show navigation'}
+      </button>
+
+      <nav
+        id="main-navigation"
+        className={
+          mobileOpen
+            ? 'sidebar-navigation sidebar-navigation--open'
+            : 'sidebar-navigation'
+        }
+        aria-label="Main navigation"
+      >
         {modules.map((module) => (
           <section key={module} className="sidebar-section">
             <span className="sidebar-module">
@@ -64,6 +84,7 @@ export function Sidebar() {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     isActive ? 'nav-item active' : 'nav-item'
                   }
@@ -87,7 +108,9 @@ export function Sidebar() {
           Review audit, outbox, and anchor states from backend-backed status
           screens.
         </p>
-        <NavLink to={statusTarget}>Open status</NavLink>
+        <NavLink to={statusTarget} onClick={() => setMobileOpen(false)}>
+          Open status
+        </NavLink>
       </div>
     </aside>
   )

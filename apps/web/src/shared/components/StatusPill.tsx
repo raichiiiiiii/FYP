@@ -9,7 +9,10 @@ export function StatusPill({
   status: DependencyStatus | HealthResponse['status']
 }) {
   return (
-    <div className={`status-pill status-pill--${status}`}>
+    <div
+      className={`status-pill status-pill--${status}`}
+      aria-label={`${label}: ${statusLabel(status)}`}
+    >
       <span aria-hidden="true" />
       <strong>{label}</strong>
       <em>{statusLabel(status)}</em>

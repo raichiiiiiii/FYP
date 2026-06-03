@@ -90,7 +90,12 @@ test('SRS-EVID-001 evidence pack, hash verification, and audit timeline work fro
   ).toBeVisible();
   await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByText('Hash verification passed')).toBeVisible();
-  await expect(page.getByText('Mock Fabric anchor')).toBeVisible();
+  await expect(page.getByText('FABRIC_MOCK')).toBeVisible();
+  await expect(
+    page.getByText(
+      'Anchor work is pending or not yet verified. Local hash evidence remains available for review.',
+    ),
+  ).toBeVisible();
 
   await page.goto('/evidence/timeline');
   await page.getByLabel('Entity type').fill('PurchaseOrder');

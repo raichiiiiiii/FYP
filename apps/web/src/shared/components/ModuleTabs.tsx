@@ -6,7 +6,11 @@ export function ModuleTabs({
   tabs: Array<{ path: string; label: string }>
 }) {
   return (
-    <nav className="module-tabs" aria-label="Module sections">
+    <nav
+      className="module-tabs"
+      aria-label="Module sections"
+      aria-orientation="horizontal"
+    >
       {tabs.map((tab) => (
         <NavLink
           key={tab.path}

@@ -1,4 +1,4 @@
-import type { ReactNode, SelectHTMLAttributes } from 'react'
+import { useId, type ReactNode, type SelectHTMLAttributes } from 'react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
 
 export type SelectOption = {
@@ -11,27 +11,38 @@ export function SelectField({
   name,
   options,
   error,
+  hint,
   placeholder,
   registration,
   children,
   required,
+  id,
   ...selectProps
 }: SelectHTMLAttributes<HTMLSelectElement> & {
   label: string
   name: string
   options?: SelectOption[]
   error?: string
+  hint?: ReactNode
   placeholder?: string
   registration?: UseFormRegisterReturn
   children?: ReactNode
 }) {
+  const generatedId = useId()
+  const fieldId = id ?? `${name}-${generatedId}`
+  const hintId = hint ? `${fieldId}-hint` : undefined
+  const errorId = error ? `${fieldId}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+
   return (
-    <label className="field">
+    <label className="field" htmlFor={fieldId}>
       <span>{label}</span>
       <select
-        id={name}
+        id={fieldId}
         name={name}
         aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
+        aria-errormessage={errorId}
         aria-required={required || undefined}
         {...registration}
         {...selectProps}
@@ -44,7 +55,16 @@ export function SelectField({
         ))}
         {children}
       </select>
-      {error ? <em className="field-error">{error}</em> : null}
+      {hint ? (
+        <small className="field-hint" id={hintId}>
+          {hint}
+        </small>
+      ) : null}
+      {error ? (
+        <em className="field-error" id={errorId} role="alert">
+          {error}
+        </em>
+      ) : null}
     </label>
   )
 }
