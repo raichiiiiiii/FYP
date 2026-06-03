@@ -166,6 +166,10 @@ export function IntegrationsRoute({
 
   const data = dataState.status === 'ready' ? dataState.data : emptyData
   const statusCounts = useMemo(() => countStatuses(data.outbox), [data.outbox])
+  const reliability = useMemo(
+    () => summarizeOutboxReliability(data.outbox),
+    [data.outbox],
+  )
   const integrationStatuses = useMemo(
     () =>
       dataState.status === 'ready'
@@ -312,7 +316,27 @@ export function IntegrationsRoute({
   return (
     <>
       <PageHeader eyebrow="Integrations" title="Outbox adapter control" />
-      <section className="details-grid">
+      <section className="integration-hero" aria-label="Integration boundary">
+        <div>
+          <span>Adapter boundary</span>
+          <h2>External effects are queued, retried, and reconciled.</h2>
+          <p>
+            Fabric, ERP, e-signature, finance API, and webhook requests are
+            routed through the durable outbox. Current providers are mock
+            adapters unless a backend health probe or reconciliation record
+            explicitly says otherwise.
+          </p>
+        </div>
+        <div className="integration-hero-warning">
+          <strong>Mock-first integration mode</strong>
+          <p>
+            Do not treat completed mock reconciliation as proof that a real
+            external provider is configured or healthy.
+          </p>
+        </div>
+      </section>
+
+      <section className="details-grid integration-summary-grid">
         <article>
           <span>Pending</span>
           <strong>{statusCounts.PENDING}</strong>
@@ -329,13 +353,65 @@ export function IntegrationsRoute({
           <span>Failed</span>
           <strong>{statusCounts.FAILED}</strong>
         </article>
+        <article>
+          <span>Completed</span>
+          <strong>{statusCounts.COMPLETED}</strong>
+        </article>
+        <article>
+          <span>Idempotent requests</span>
+          <strong>{reliability.idempotencyKeyCount}</strong>
+        </article>
       </section>
 
       {integrationStatuses.length ? (
         <IntegrationStatusCards statuses={integrationStatuses} />
       ) : null}
 
+      <section className="integration-ops-grid" aria-label="Integration controls summary">
+        <article>
+          <span>Retry model</span>
+          <strong>Idempotent outbox</strong>
+          <p>
+            Retrying an event re-attempts the external side effect only. The
+            idempotency key protects the underlying business record from
+            duplicate provider effects.
+          </p>
+        </article>
+        <article>
+          <span>Worker visibility</span>
+          <strong>
+            {reliability.actionRequiredCount
+              ? `${reliability.actionRequiredCount} need review`
+              : 'No failed retries visible'}
+          </strong>
+          <p>
+            Worker health is inferred from outbox movement here. A dedicated
+            worker health endpoint is still required before production readiness
+            can be claimed.
+          </p>
+        </article>
+        <article>
+          <span>Reconciliation</span>
+          <strong>{data.reconciliation.length} records</strong>
+          <p>
+            Reconciliation rows link MEPN events to mock external references or
+            failed provider attempts. They are evidence of processing, not live
+            provider monitoring.
+          </p>
+        </article>
+      </section>
+
       {canRequestActions ? (
+        <>
+          <section className="integration-section-heading">
+            <span className="eyebrow">Mock adapter requests</span>
+            <h2>Queue external side effects</h2>
+            <p>
+              These controls create outbox events and audit-backed requests.
+              They do not call real Fabric, ERP, e-signature, or finance
+              providers in the current MVP.
+            </p>
+          </section>
         <section className="integration-action-grid">
           <IntegrationActionPanel title="Mock Fabric anchor">
             <Field
@@ -581,6 +657,7 @@ export function IntegrationsRoute({
             </button>
           </IntegrationActionPanel>
         </section>
+        </>
       ) : (
         <EmptyState title="Read-only integration view">
           Your role can inspect integration status, retry visibility, and
@@ -622,6 +699,9 @@ function IntegrationActionPanel({
   return (
     <section className="form-grid integration-action-panel">
       <h2>{title}</h2>
+      <p className="integration-action-note">
+        This queues an outbox event for the mock adapter boundary.
+      </p>
       {children}
     </section>
   )
@@ -653,7 +733,12 @@ function JsonField({
 function OutboxTable({ events }: { events: OutboxEventView[] }) {
   return (
     <section className="table-section">
-      <h2>Outbox events</h2>
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">Retry and idempotency</span>
+          <h2>Outbox events</h2>
+        </div>
+      </div>
       {events.length ? (
         <div className="data-table data-table--integrations">
           {events.map((event) => (
@@ -677,8 +762,20 @@ function OutboxTable({ events }: { events: OutboxEventView[] }) {
                 <strong>{event.attempts}</strong>
               </div>
               <div>
-                <span>Queued</span>
-                <strong>{formatDateTime(event.createdAt)}</strong>
+                <span>Next run</span>
+                <strong>{formatDateTime(event.nextRunAt)}</strong>
+              </div>
+              <div>
+                <span>Idempotency key</span>
+                <strong>{event.idempotencyKey || 'Not supplied'}</strong>
+              </div>
+              <div>
+                <span>Reconciliation</span>
+                <strong>
+                  {event.reconciliationRecord
+                    ? event.reconciliationRecord.status
+                    : 'Pending worker'}
+                </strong>
               </div>
               <div>
                 <span>Error</span>
@@ -701,7 +798,12 @@ function ReconciliationTable({
 }) {
   return (
     <section className="table-section">
-      <h2>Reconciliation records</h2>
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">External reference mapping</span>
+          <h2>Reconciliation records</h2>
+        </div>
+      </div>
       {records.length ? (
         <div className="data-table data-table--reconciliation">
           {records.map((record) => (
@@ -728,6 +830,10 @@ function ReconciliationTable({
                 <span>Attempts</span>
                 <strong>{record.attempts}</strong>
               </div>
+              <div>
+                <span>Error</span>
+                <strong>{record.lastError || 'None'}</strong>
+              </div>
             </article>
           ))}
         </div>
@@ -747,7 +853,12 @@ function WebhookSubscriptionTable({
 }) {
   return (
     <section className="table-section">
-      <h2>Webhook subscriptions</h2>
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">Mock webhook delivery</span>
+          <h2>Webhook subscriptions</h2>
+        </div>
+      </div>
       {subscriptions.length ? (
         <div className="data-table data-table--webhooks">
           {subscriptions.map((subscription) => (
@@ -832,6 +943,21 @@ function countStatuses(events: OutboxEventView[]) {
       PROCESSING: 0,
       RETRYING: 0,
       FAILED: 0,
+      COMPLETED: 0,
     } as Record<string, number>,
   )
+}
+
+function summarizeOutboxReliability(events: OutboxEventView[]) {
+  const actionRequiredCount = events.filter((event) =>
+    ['FAILED', 'RETRYING'].includes(event.displayStatus),
+  ).length
+  const idempotencyKeyCount = events.filter((event) =>
+    Boolean(event.idempotencyKey),
+  ).length
+
+  return {
+    actionRequiredCount,
+    idempotencyKeyCount,
+  }
 }

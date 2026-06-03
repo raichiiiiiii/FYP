@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../../layouts/PageHeader'
 import { apiRequest } from '../../shared/api/client'
 import { getErrorMessage } from '../../shared/api/errors'
-import { EmptyState } from '../../shared/components/EmptyState'
 import { ErrorState } from '../../shared/components/ErrorState'
 import { LoadingState } from '../../shared/components/LoadingState'
 import { StatusBadge } from '../../shared/components/StatusBadge'
@@ -133,6 +132,18 @@ export function OperationsRoute({ session }: { session: AppSession }) {
     () => summarizeOperationalHealth(healthItems),
     [healthItems],
   )
+  const outboxSummary = useMemo(
+    () => ({
+      pending: data?.outbox.filter((event) => event.displayStatus === 'PENDING')
+        .length ?? 0,
+      retrying: data?.outbox.filter((event) => event.displayStatus === 'RETRYING')
+        .length ?? 0,
+      failed: data?.outbox.filter((event) => event.displayStatus === 'FAILED')
+        .length ?? 0,
+      total: data?.outbox.length ?? 0,
+    }),
+    [data],
+  )
 
   return (
     <>
@@ -156,6 +167,29 @@ export function OperationsRoute({ session }: { session: AppSession }) {
 
       {data ? (
         <>
+          <section className="operations-hero" aria-label="Deployment operations context">
+            <div>
+              <span>Self-hosted prototype node</span>
+              <h2>Docker Compose runtime for review and staging.</h2>
+              <p>
+                This view combines live API/database/Redis checks with honest
+                readiness notes for services that do not yet expose health
+                endpoints. It is not a regulated production operations console.
+              </p>
+            </div>
+            <div className="operations-hero-status">
+              <strong>
+                {readiness.productionReady
+                  ? 'No open readiness blockers'
+                  : 'Production readiness blocked'}
+              </strong>
+              <p>
+                HTTPS, backup automation, object-storage probes, and worker
+                health checks must be completed before production use.
+              </p>
+            </div>
+          </section>
+
           <section className="operations-readiness">
             <article>
               <span>Prototype readiness</span>
@@ -178,6 +212,48 @@ export function OperationsRoute({ session }: { session: AppSession }) {
                 {data.health?.timestamp
                   ? formatDateTime(data.health.timestamp)
                   : 'Unavailable'}
+              </p>
+            </article>
+          </section>
+
+          <section className="operations-command-grid" aria-label="Operator runbook summary">
+            <article>
+              <span>Deployment runbook</span>
+              <strong>Azure Student VM</strong>
+              <p>
+                Follow `docs/deployment/azure-student-vm-deployment.md` for VM
+                setup, compose commands, smoke tests, rollback, and limitations.
+              </p>
+            </article>
+            <article>
+              <span>Public ports</span>
+              <strong>80 open / 443 pending</strong>
+              <p>
+                Current prototype traffic enters through the reverse proxy on
+                HTTP. PostgreSQL, Redis, MinIO, API, and Vite ports should stay
+                internal.
+              </p>
+            </article>
+            <article>
+              <span>Worker and queue</span>
+              <strong>
+                {outboxSummary.total
+                  ? `${outboxSummary.total} outbox records visible`
+                  : 'No outbox backlog visible'}
+              </strong>
+              <p>
+                Pending {outboxSummary.pending} / retrying{' '}
+                {outboxSummary.retrying} / failed {outboxSummary.failed}.
+                Worker health is not directly probed yet.
+              </p>
+            </article>
+            <article>
+              <span>Secrets and providers</span>
+              <strong>Configured outside Git</strong>
+              <p>
+                `.env.production` remains on the VM. Real Fabric, ERP,
+                e-signature, and finance-provider secrets are not represented
+                by this UI unless backend health checks are added.
               </p>
             </article>
           </section>
@@ -224,12 +300,38 @@ export function OperationsRoute({ session }: { session: AppSession }) {
           />
 
           <section className="table-section">
-            <h2>Backup and restore status</h2>
-            <EmptyState title="Backup endpoint not connected">
-              Backup freshness, restore-test status, and RPO/RTO reporting are
-              required before production readiness can be confirmed. This page
-              does not claim those controls are healthy.
-            </EmptyState>
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Backup and disaster recovery</span>
+                <h2>Backup and restore status</h2>
+              </div>
+            </div>
+            <section className="operations-backup-grid">
+              <article>
+                <span>RPO target</span>
+                <strong>24 hours</strong>
+                <p>
+                  The deployment guide documents a prototype target only. No
+                  automated freshness endpoint is connected here.
+                </p>
+              </article>
+              <article>
+                <span>RTO target</span>
+                <strong>8 hours</strong>
+                <p>
+                  Restore commands are documented, but restore-test evidence is
+                  not currently API-backed.
+                </p>
+              </article>
+              <article>
+                <span>Current status</span>
+                <strong>Not configured</strong>
+                <p>
+                  This UI intentionally blocks production readiness until backup
+                  freshness and restore tests are observable.
+                </p>
+              </article>
+            </section>
           </section>
         </>
       ) : null}

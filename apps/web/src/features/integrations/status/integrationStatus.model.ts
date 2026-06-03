@@ -24,6 +24,11 @@ export type IntegrationStatusCard = {
   lastCheckedAt?: string
   message: string
   evidence: 'health_check' | 'outbox' | 'reconciliation' | 'configuration'
+  mode:
+    | 'internal_queue'
+    | 'mock_adapter'
+    | 'configuration_only'
+    | 'historical_reconciliation'
 }
 
 export type IntegrationQueueEvent = {
@@ -282,6 +287,17 @@ export function integrationHealthLabel(status: IntegrationHealthStatus) {
   return labels[status]
 }
 
+export function integrationModeLabel(mode: IntegrationStatusCard['mode']) {
+  const labels: Record<IntegrationStatusCard['mode'], string> = {
+    internal_queue: 'Internal queue',
+    mock_adapter: 'Mock adapter',
+    configuration_only: 'Configuration only',
+    historical_reconciliation: 'Historical reconciliation',
+  }
+
+  return labels[mode]
+}
+
 function buildOutboxStatus(
   outbox: IntegrationQueueEvent[],
 ): IntegrationStatusCard {
@@ -303,6 +319,7 @@ function buildOutboxStatus(
       status: 'degraded',
       message: `${failed.length} integration event(s) failed and require attention.`,
       evidence: 'outbox',
+      mode: 'internal_queue',
       lastCheckedAt: latestDate(failed),
     }
   }
@@ -315,6 +332,7 @@ function buildOutboxStatus(
       status: 'degraded',
       message: `${retrying.length} event(s) are retrying with idempotent side effects.`,
       evidence: 'outbox',
+      mode: 'internal_queue',
       lastCheckedAt: latestDate(retrying),
     }
   }
@@ -327,6 +345,7 @@ function buildOutboxStatus(
       status: 'pending',
       message: `${pending.length} event(s) are waiting for worker processing.`,
       evidence: 'outbox',
+      mode: 'internal_queue',
       lastCheckedAt: latestDate(pending),
     }
   }
@@ -338,6 +357,7 @@ function buildOutboxStatus(
     status: 'healthy',
     message: 'Outbox API loaded and no pending, retrying, or failed events exist.',
     evidence: 'outbox',
+    mode: 'internal_queue',
     lastCheckedAt: latestDate(outbox),
   }
 }
@@ -396,6 +416,7 @@ function buildAdapterStatus({
         failedReconciliation[0]?.lastError ??
         'A related integration event failed.',
       evidence: failedOutbox.length ? 'outbox' : 'reconciliation',
+      mode: 'mock_adapter',
       lastCheckedAt: latestDate([...failedOutbox, ...failedReconciliation]),
     }
   }
@@ -408,6 +429,7 @@ function buildAdapterStatus({
       status: 'degraded',
       message: `${retryingOutbox.length} related event(s) are retrying.`,
       evidence: 'outbox',
+      mode: 'mock_adapter',
       lastCheckedAt: latestDate(retryingOutbox),
     }
   }
@@ -420,6 +442,7 @@ function buildAdapterStatus({
       status: 'pending',
       message: `${pendingOutbox.length} related event(s) are queued or processing.`,
       evidence: 'outbox',
+      mode: 'mock_adapter',
       lastCheckedAt: latestDate(pendingOutbox),
     }
   }
@@ -433,6 +456,7 @@ function buildAdapterStatus({
       message:
         'Latest reconciliation succeeded. This is historical evidence, not a live adapter probe.',
       evidence: 'reconciliation',
+      mode: 'historical_reconciliation',
       lastCheckedAt: latestDate(successfulReconciliation),
     }
   }
@@ -444,6 +468,7 @@ function buildAdapterStatus({
     status: configuredStatus,
     message: fallbackMessage,
     evidence: 'configuration',
+    mode: 'configuration_only',
     lastCheckedAt: configuredAt,
   }
 }

@@ -3,6 +3,7 @@ import { formatDateTime } from '../../../shared/utils/formatting'
 import {
   type IntegrationStatusCard,
   integrationHealthLabel,
+  integrationModeLabel,
 } from './integrationStatus.model'
 
 export function IntegrationStatusCards({
@@ -32,6 +33,9 @@ export function IntegrationStatusCards({
             </div>
             <strong>{integrationHealthLabel(status.status)}</strong>
             <p>{status.message}</p>
+            <span className={`status-card-mode status-card-mode--${status.mode}`}>
+              {integrationModeLabel(status.mode)}
+            </span>
             <small>
               Evidence: {status.evidence}
               {status.lastCheckedAt

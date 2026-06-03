@@ -29,8 +29,14 @@ describe('integration and operations status model', () => {
     expect(statuses.find((status) => status.id === 'outbox')?.status).toBe(
       'healthy',
     )
+    expect(statuses.find((status) => status.id === 'outbox')?.mode).toBe(
+      'internal_queue',
+    )
     expect(statuses.find((status) => status.id === 'erp')?.status).toBe(
       'not_configured',
+    )
+    expect(statuses.find((status) => status.id === 'erp')?.mode).toBe(
+      'configuration_only',
     )
     expect(statuses.find((status) => status.id === 'fabric')?.status).toBe(
       'not_configured',
@@ -57,6 +63,7 @@ describe('integration and operations status model', () => {
     const fabric = statuses.find((status) => status.id === 'fabric')
 
     expect(fabric?.status).toBe('degraded')
+    expect(fabric?.mode).toBe('mock_adapter')
     expect(fabric?.message).toBe('Fabric gateway timeout')
     expect(statuses.find((status) => status.id === 'outbox')?.status).toBe(
       'degraded',
@@ -81,6 +88,7 @@ describe('integration and operations status model', () => {
 
     expect(erp?.status).toBe('healthy')
     expect(erp?.evidence).toBe('reconciliation')
+    expect(erp?.mode).toBe('historical_reconciliation')
     expect(erp?.message).toContain('historical evidence')
   })
 
@@ -141,6 +149,7 @@ describe('integration and operations status model', () => {
 
     expect(html).toContain('ERP adapter')
     expect(html).toContain('Degraded')
+    expect(html).toContain('Mock adapter')
     expect(html).toContain('not_configured')
   })
 })

@@ -2211,9 +2211,143 @@ textarea {
   margin-top: 24px;
 }
 
+.integration-hero,
+.operations-hero {
+  align-items: stretch;
+  background:
+    linear-gradient(135deg, rgba(33, 92, 84, 0.1), rgba(125, 122, 61, 0.08)),
+    #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 340px);
+  margin-bottom: 18px;
+  padding: 22px;
+}
+
+.integration-hero span,
+.operations-hero span,
+.integration-ops-grid span,
+.operations-command-grid span,
+.operations-backup-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.integration-hero h2,
+.operations-hero h2,
+.integration-hero p,
+.operations-hero p,
+.integration-ops-grid p,
+.operations-command-grid p,
+.operations-backup-grid p {
+  margin: 0;
+}
+
+.integration-hero h2,
+.operations-hero h2 {
+  color: var(--text-strong);
+  font-size: 22px;
+  margin-top: 8px;
+}
+
+.integration-hero p,
+.operations-hero p,
+.integration-ops-grid p,
+.operations-command-grid p,
+.operations-backup-grid p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.integration-hero-warning,
+.operations-hero-status {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(150, 168, 180, 0.38);
+  border-left: 5px solid #efd58f;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.integration-hero-warning strong,
+.operations-hero-status strong,
+.integration-ops-grid strong,
+.operations-command-grid strong,
+.operations-backup-grid strong {
+  color: var(--text-strong);
+}
+
+.integration-summary-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.integration-ops-grid,
+.operations-command-grid,
+.operations-backup-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.integration-ops-grid,
+.operations-command-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.operations-backup-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.integration-ops-grid article,
+.operations-command-grid article,
+.operations-backup-grid article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.operations-command-grid article {
+  min-height: 160px;
+}
+
+.integration-section-heading {
+  display: grid;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.integration-section-heading h2 {
+  color: var(--text-strong);
+  font-size: 18px;
+  margin: 0;
+}
+
+.integration-section-heading p {
+  color: var(--muted);
+  margin: 0;
+  max-width: 760px;
+}
+
 .integration-action-panel {
   align-content: start;
   margin-top: 0;
+}
+
+.integration-action-note {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .status-card-section {
@@ -2277,6 +2411,36 @@ textarea {
   margin: 0;
 }
 
+.status-card-mode {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  justify-self: start;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.status-card-mode--internal_queue {
+  background: #e8f3ff;
+  color: #406f9f;
+}
+
+.status-card-mode--mock_adapter {
+  background: #fff4da;
+  color: #765414;
+}
+
+.status-card-mode--configuration_only {
+  background: #eef3f7;
+  color: #51616c;
+}
+
+.status-card-mode--historical_reconciliation {
+  background: #e6f5ee;
+  color: #176342;
+}
+
 .status-card--healthy {
   border-color: #b9dfcf;
 }
@@ -2324,6 +2488,12 @@ textarea {
 .operations-readiness p {
   color: var(--muted);
   margin: 0;
+}
+
+.operations-hero {
+  background:
+    linear-gradient(135deg, rgba(64, 111, 159, 0.1), rgba(33, 92, 84, 0.08)),
+    #ffffff;
 }
 
 .table-section {
@@ -2625,11 +2795,11 @@ textarea {
 
 .data-table--integrations article {
   align-items: start;
-  grid-template-columns: 1.35fr 1.25fr 0.72fr 0.45fr 0.92fr 1.1fr;
+  grid-template-columns: 1.2fr 1.15fr 0.72fr 0.45fr 0.9fr 1.05fr 0.75fr 1fr;
 }
 
 .data-table--reconciliation article {
-  grid-template-columns: 0.9fr 1.2fr 0.7fr 1fr 0.45fr;
+  grid-template-columns: 0.9fr 1.1fr 0.7fr 1fr 0.45fr 1fr;
 }
 
 .data-table--webhooks article {
@@ -3926,7 +4096,13 @@ textarea {
   .finance-ledger-grid,
   .finance-distribution-grid,
   .finance-ratio-strip,
+  .integration-hero,
   .integration-action-grid,
+  .integration-summary-grid,
+  .integration-ops-grid,
+  .operations-hero,
+  .operations-command-grid,
+  .operations-backup-grid,
   .status-card-grid,
   .status-card-grid--operations,
   .operations-readiness,
