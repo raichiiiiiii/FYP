@@ -87,7 +87,7 @@ describe('route authorization', () => {
     expect(labels).toContain('Audit Events')
   })
 
-  it('hides admin routes from procurement officers', () => {
+  it('hides admin and finance opportunity routes from procurement officers', () => {
     const labels = visibleLabelsFor(
       ['PROCUREMENT_OFFICER'],
       ['procurement:create'],
@@ -95,7 +95,7 @@ describe('route authorization', () => {
 
     expect(labels).toContain('Requisitions')
     expect(labels).toContain('RFQs')
-    expect(labels).toContain('Finance Opportunities')
+    expect(labels).not.toContain('Finance Opportunities')
     expect(labels).not.toContain('Users')
     expect(labels).not.toContain('Roles')
   })

@@ -196,7 +196,7 @@ export function defaultOpportunityValues(): CreateOpportunityFormValues {
 
 export function canCreateOpportunity(roleCodes: readonly AppRoleCode[]) {
   return roleCodes.some((roleCode) =>
-    ['ORG_ADMIN', 'PROCUREMENT_OFFICER'].includes(roleCode),
+    ['ORG_ADMIN'].includes(roleCode),
   )
 }
 
@@ -204,7 +204,6 @@ export function canViewOpportunities(roleCodes: readonly AppRoleCode[]) {
   return roleCodes.some((roleCode) =>
     [
       'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
       'FINANCE_ACCOUNTANT',
       'FINANCIER_USER',
     ].includes(roleCode),

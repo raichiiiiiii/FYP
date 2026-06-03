@@ -95,11 +95,12 @@ describe('finance opportunity eligibility', () => {
     expect(payload.purpose).toContain(readyOpportunity.sourceDocumentId)
   })
 
-  it('limits opportunity creation to admin and procurement roles', () => {
+  it('limits opportunity access to admins and finance-side viewers', () => {
     expect(canCreateOpportunity(['ORG_ADMIN'])).toBe(true)
-    expect(canCreateOpportunity(['PROCUREMENT_OFFICER'])).toBe(true)
+    expect(canCreateOpportunity(['PROCUREMENT_OFFICER'])).toBe(false)
     expect(canCreateOpportunity(['FINANCIER_USER'])).toBe(false)
     expect(canViewOpportunities(['FINANCIER_USER'])).toBe(true)
+    expect(canViewOpportunities(['PROCUREMENT_OFFICER'])).toBe(false)
     expect(canViewOpportunities(['AUDITOR'])).toBe(false)
   })
 })

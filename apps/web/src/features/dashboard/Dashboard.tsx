@@ -158,7 +158,17 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="summary-band" aria-live="polite">
+      <section
+        className="summary-band"
+        aria-labelledby="system-health-dashboard-heading"
+        aria-live="polite"
+      >
+        <div className="dashboard-panel-header">
+          <div>
+            <span className="eyebrow">Walking skeleton</span>
+            <h2 id="system-health-dashboard-heading">System health dashboard</h2>
+          </div>
+        </div>
         {healthState.status === 'loading' ? (
           <LoadingState message="Checking API, PostgreSQL, and Redis..." />
         ) : null}
@@ -170,6 +180,14 @@ export function Dashboard() {
             <StatusPill label="MEPN API" status={health.status} />
             <StatusPill label="PostgreSQL" status={health.database} />
             <StatusPill label="Redis" status={health.redis} />
+            <div className="details-grid dashboard-details-grid">
+              <DataCard label="Service">{health.service}</DataCard>
+              <DataCard label="Database status">{health.database}</DataCard>
+              <DataCard label="Redis status">{health.redis}</DataCard>
+              <DataCard label="Current environment">
+                {health.environment ?? import.meta.env.MODE}
+              </DataCard>
+            </div>
           </>
         ) : null}
       </section>

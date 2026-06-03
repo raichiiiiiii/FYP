@@ -48,7 +48,7 @@ test('SRS-PROC-001 user completes source-to-pay flow and sees audit events', asy
   await page.getByLabel('Title').fill(requisitionTitle);
   await page.getByLabel('Project').selectOption({ label: projectName });
   await page.getByLabel('Justification').fill('E2E procurement lifecycle');
-  await page.getByLabel('Item description').fill('Certified equipment');
+  await page.getByLabel('Item or service').fill('Certified equipment');
   await page.getByLabel('Quantity').fill('2');
   await page.getByLabel('Unit price').fill('3000');
   await page.getByRole('button', { name: 'Create requisition' }).click();
@@ -117,6 +117,11 @@ test('SRS-PROC-001 user completes source-to-pay flow and sees audit events', asy
   await expect(page.getByText('Invoice recorded')).toBeVisible();
 
   await page.goto('/audit');
-  await expect(page.getByText('INVOICE_RECORDED')).toBeVisible();
-  await expect(page.getByText('PURCHASE_ORDER_ISSUED')).toBeVisible();
+  const auditEvents = page.locator('.audit-event-list article');
+  await expect(
+    auditEvents.filter({ hasText: 'INVOICE_RECORDED' }),
+  ).toBeVisible();
+  await expect(
+    auditEvents.filter({ hasText: 'PURCHASE_ORDER_ISSUED' }),
+  ).toBeVisible();
 });

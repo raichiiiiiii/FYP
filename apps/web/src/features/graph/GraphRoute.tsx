@@ -165,7 +165,7 @@ export function GraphRoute({
 
   return (
     <>
-      <PageHeader eyebrow="Graph/Canvas" title="Network canvas cockpit" />
+      <PageHeader eyebrow="Graph/Canvas" title="Project network canvas" />
       <section className="form-grid graph-toolbar">
         <label className="field">
           <span>Project</span>

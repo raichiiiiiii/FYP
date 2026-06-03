@@ -61,7 +61,14 @@ test('SRS-FIN-002 contract, ledger, profit/loss, and closure pack flow reaches C
   await page.getByLabel('Cost override').fill('6000');
   await page.getByRole('button', { name: 'Generate statement' }).click();
   await expect(page.getByText('Profit/loss statement generated')).toBeVisible();
-  await expect(page.getByText(/Net/)).toBeVisible();
+  const statementRecord = page.locator('.finance-pl-list > article').filter({
+    hasText: String(fixture.opportunity.title),
+  });
+  await expect(
+    statementRecord.locator('.finance-ledger-summary article').filter({
+      hasText: 'Net',
+    }),
+  ).toBeVisible();
 
   await page.goto('/finance/closures');
   await page.getByLabel('Application').selectOption(String(fixture.application.id));

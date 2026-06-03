@@ -96,12 +96,27 @@ test('SRS-EVID-001 evidence pack, hash verification, and audit timeline work fro
   await page.getByLabel('Entity type').fill('PurchaseOrder');
   await page.getByLabel('Entity ID').fill(fixture.purchaseOrder.id);
   await page.getByRole('button', { name: 'Load timeline' }).click();
-  await expect(page.getByText('PURCHASE_ORDER_CREATED')).toBeVisible();
-  await expect(page.getByText('PURCHASE_ORDER_ISSUED')).toBeVisible();
+  const auditTimeline = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'Audit timeline' }),
+  });
+  await expect(
+    auditTimeline.locator('article').filter({
+      hasText: 'PURCHASE_ORDER_CREATED',
+    }),
+  ).toBeVisible();
+  await expect(
+    auditTimeline.locator('article').filter({
+      hasText: 'PURCHASE_ORDER_ISSUED',
+    }),
+  ).toBeVisible();
 
   await page.goto('/audit/search');
   await page.getByLabel('Event type').fill('PURCHASE_ORDER_ISSUED');
   await page.getByRole('button', { name: 'Search audit' }).click();
   await expect(page.getByText('Audit search updated')).toBeVisible();
-  await expect(page.getByText('PURCHASE_ORDER_ISSUED')).toBeVisible();
+  await expect(
+    page.locator('.audit-event-list article').filter({
+      hasText: 'PURCHASE_ORDER_ISSUED',
+    }),
+  ).toBeVisible();
 });

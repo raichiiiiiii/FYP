@@ -77,8 +77,8 @@ export function CreateOpportunityForm({
       <h2>Create eligible opportunity</h2>
       {!canCreate ? (
         <p className="notice">
-          Your current role can view opportunities, but only SME admins and
-          procurement officers can create new financing opportunities.
+          Your current role can view opportunities, but only SME admins can
+          create new financing opportunities in the current MVP.
         </p>
       ) : null}
       {errors.form ? <p className="error-text">{errors.form}</p> : null}

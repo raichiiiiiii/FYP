@@ -367,7 +367,6 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: true,
     requiredRoleCodes: [
       'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
       'FINANCE_ACCOUNTANT',
       'FINANCIER_USER',
     ],
@@ -379,7 +378,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: false,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: ['ORG_ADMIN'],
   },
   {
     path: '/finance/applications',

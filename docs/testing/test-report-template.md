@@ -2,12 +2,12 @@
 
 ## Build Information
 
-- Branch: `main`
-- Commit: `e19efd2d7da46245e2ee062f3a47f8d9af1ff320`
-- Short commit: `e19efd2`
-- Date: `2026-06-03 15:06 +09:00`
+- Branch: `fix/playwright-e2e-suite`
+- Commit: `edc4b16ad9fba6b34110ad114c9fac0318c0acaa` plus working-tree E2E fixes
+- Short commit: `edc4b16`
+- Date: `2026-06-04 04:54 +09:00`
 - Tester: Codex local verification
-- Command: `corepack pnpm verify`
+- Command: `corepack pnpm test:e2e` and `corepack pnpm verify`
 
 ## Static Checks
 
@@ -16,7 +16,7 @@
 | Lint | `corepack pnpm lint` | Pass | API, worker, web, shared, and config workspace checks passed. |
 | Typecheck | `corepack pnpm typecheck` | Pass | Frontend TypeScript project build passed. |
 | Format | `corepack pnpm format:check` | Not configured | Root package does not currently define `format:check`. |
-| Build | `corepack pnpm build` | Pass | Web, API, and worker builds passed. Vite emitted a non-failing chunk-size warning. |
+| Build | `corepack pnpm build` | Pass | Web, API, and worker builds passed. |
 
 ## Unit And Component Tests
 
@@ -36,11 +36,13 @@
 
 | Flow | Result | Notes |
 |---|---|---|
-| SME admin dashboard | Not run in latest verification | E2E is available through `corepack pnpm test:e2e`, but latest recorded verification used unit/component test scope. |
-| Procurement flow | Not run in latest verification | Requires local infrastructure and Playwright setup. |
-| Mudarabah application flow | Not run in latest verification | Requires seeded data and running app stack. |
-| Shariah review flow | Not run in latest verification | Requires seeded role/session data. |
-| Audit verification flow | Not run in latest verification | Requires running app stack and relevant fixture/API state. |
+| SME admin dashboard | Pass | `SRS-HEALTH-001`, `SRS-ID-001`, and dashboard/auth setup passed under Playwright. |
+| Procurement flow | Pass | Source-to-pay E2E passed, including requisition, approval, RFQ, quotation, PO, receipt, invoice, and audit checks. |
+| Mudarabah application flow | Pass | Opportunity creation, draft application submission, evidence checklist, due diligence, Shariah review, and approval passed. |
+| Shariah review flow | Pass | Role-scoped workspace tabs/actions passed for procurement officer, Shariah reviewer, and auditor. |
+| Audit verification flow | Pass | Evidence pack export, hash verification, mock Fabric anchor visibility, entity timeline, and audit search passed. |
+| Closure/profit-loss flow | Pass | Contract, mock e-signature request, ledger entry, P/L statement, and closure export passed with application status reaching `CLOSED`. |
+| Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
 
 ## Deployment Smoke Tests
 
@@ -55,11 +57,12 @@
 
 ## Known Issues And Risks
 
-- Latest local verification passes, but full Playwright E2E was not part of the
-  latest recorded `verify` command.
 - `format:check` is documented in the testing strategy but is not currently a
   root package script.
-- Vite emits a non-failing chunk-size warning during frontend build.
+- `corepack pnpm verify` does not include Playwright E2E by design; run
+  `corepack pnpm test:e2e` separately for the browser workflow gate.
+- Playwright web server output includes a non-failing PostgreSQL client
+  deprecation warning from the API runtime.
 - Local Docker Compose production build needs to be retried after Docker daemon
   responsiveness is restored.
 - Azure Student VM manual deployment has not been recorded with live smoke-test

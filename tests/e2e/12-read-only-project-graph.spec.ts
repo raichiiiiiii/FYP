@@ -46,7 +46,9 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await setSession(page, procurementOfficer);
   await page.goto('/graph/projects');
   await page.getByLabel('Project').selectOption(String(fixture.project.id));
-  await expect(page.getByText('Hidden')).toBeVisible();
+  await expect(
+    page.locator('.graph-summary article').filter({ hasText: 'Finance layer' }),
+  ).toContainText('Hidden');
   await expect(page.getByRole('link', { name: /PurchaseOrder/ })).toBeVisible();
   await expect(
     page.getByRole('link', {

@@ -41,12 +41,16 @@ export function ApplicationsPage({
   navigate: (path: string) => void
   roleCodes: AppRoleCode[]
 }) {
-  const { listApplications } = useApplications(session)
+  const { listApplications, submitApplication } = useApplications(session)
   const [state, setState] = useState<LoadState<ApplicationRawDto[]>>({
     status: 'loading',
   })
   const [filters, setFilters] = useState<ApplicationFiltersState>(defaultFilters)
   const [sortKey, setSortKey] = useState<ApplicationSortKey>('status')
+  const [message, setMessage] = useState<string | null>(null)
+  const [submittingApplicationId, setSubmittingApplicationId] = useState<
+    string | null
+  >(null)
 
   const canView = canViewApplicationPipeline(roleCodes)
   const showCreateAction = canCreateApplication(roleCodes)
@@ -71,6 +75,25 @@ export function ApplicationsPage({
       })
     }
   }, [loadApplications])
+
+  async function submitApplicationRecord(applicationId: string) {
+    setMessage(null)
+    setSubmittingApplicationId(applicationId)
+
+    try {
+      await submitApplication(applicationId, {
+        actorUserId: session.actorUserId || undefined,
+      })
+      await refresh()
+      setMessage('Application submitted')
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to submit application',
+      )
+    } finally {
+      setSubmittingApplicationId(null)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -149,6 +172,7 @@ export function ApplicationsPage({
           message={state.message}
         />
       ) : null}
+      {message ? <p className="notice">{message}</p> : null}
 
       {state.status === 'ready' ? (
         <>
@@ -247,6 +271,17 @@ export function ApplicationsPage({
                     <span>Due date</span>
                   </div>
                   <div className="inline-actions">
+                    {application.status === 'draft' && showCreateAction ? (
+                      <button
+                        type="button"
+                        disabled={submittingApplicationId === application.id}
+                        onClick={() =>
+                          void submitApplicationRecord(application.id)
+                        }
+                      >
+                        Submit
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>

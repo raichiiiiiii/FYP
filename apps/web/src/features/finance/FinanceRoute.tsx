@@ -18,7 +18,6 @@ import { useDisbursements } from './api/useDisbursements'
 import { useLedgers } from './api/useLedgers'
 import { useProfitLoss } from './api/useProfitLoss'
 import { ApplicationsPage } from './applications/ApplicationsPage'
-import { ApplicationWorkspacePage } from './applications/workspace/ApplicationWorkspacePage'
 import {
   calculateProfitLossSummary,
   displayLedgerEntryType,
@@ -455,7 +454,7 @@ function ApplicationDetailScreen({
   roleCodes: AppRoleCode[]
 }) {
   return (
-    <ApplicationWorkspacePage
+    <LegacyApplicationDetailScreen
       session={session}
       applicationId={applicationId}
       workspaceTab={workspaceTab}
@@ -2084,7 +2083,10 @@ function ClosuresScreen({
                       'Evidence pack not attached'}
                   </span>
                 </div>
-                <StatusTag status={closure.status || 'CLOSED'} />
+                <StatusTag
+                  status={closure.application?.status || closure.status || 'CLOSED'}
+                />
+                <span>Pack status {closure.status || 'EXPORTED'}</span>
                 <span>
                   Latest P/L{' '}
                   {closure.application?.profitLossStatements?.[0]?.id ??

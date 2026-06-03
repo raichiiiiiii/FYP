@@ -27,21 +27,23 @@ test('SRS-FIN-001 finance application moves through evidence, review, and approv
   await page.goto('/finance/opportunities');
   await page.getByLabel('Project').selectOption(String(fixture.project.id));
   await page
-    .getByLabel('Purchase order')
+    .getByLabel('Linked purchase order')
     .selectOption(String(fixture.purchaseOrder.id));
   await page.getByLabel('Evidence pack').selectOption(String(evidencePack.id));
-  await page.getByLabel('Title').fill(opportunityTitle);
-  await page.getByLabel('Estimated capital').fill('6000');
-  await page.getByLabel('Expected profit').fill('1200');
-  await page.getByRole('button', { name: 'Create opportunity' }).click();
-  await expect(page.getByText('Opportunity created')).toBeVisible();
-
-  await page.goto('/finance/applications');
-  await page.getByLabel('Opportunity').selectOption({ label: opportunityTitle });
+  await page.getByLabel('Opportunity title').fill(opportunityTitle);
+  await page.getByLabel('Source document reference').fill('BUYER-PO-E2E-001');
+  await page.getByLabel('Buyer name').fill('E2E Buyer Sdn Bhd');
+  await page.getByLabel('Expected revenue').fill('7200');
+  await page.getByLabel('Expected cost').fill('6000');
   await page.getByLabel('Requested capital').fill('6000');
-  await page.getByLabel('Capital provider ratio').fill('0.6');
-  await page.getByLabel('Entrepreneur ratio').fill('0.4');
-  await page.getByRole('button', { name: 'Create application' }).click();
+  await page.getByRole('button', { name: 'Create opportunity' }).click();
+  await expect(page.getByText('Eligible opportunity created.')).toBeVisible();
+
+  await page
+    .locator('article')
+    .filter({ hasText: opportunityTitle })
+    .getByRole('button', { name: 'Create draft application' })
+    .click();
   await expect(page).toHaveURL(/\/finance\/applications\/[^/]+$/);
 
   await page.goto('/finance/applications');
@@ -50,7 +52,7 @@ test('SRS-FIN-001 finance application moves through evidence, review, and approv
   });
   await applicationRow.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByText('Application submitted')).toBeVisible();
-  await applicationRow.getByRole('button', { name: 'Open' }).click();
+  await applicationRow.getByRole('button', { name: 'Open workspace' }).click();
 
   await expect(
     page.getByRole('heading', { name: 'Application workspace' }),
