@@ -2441,6 +2441,10 @@ textarea {
   margin-bottom: 18px;
 }
 
+.audit-verification-panel--legend .audit-verification-summary {
+  margin-bottom: 0;
+}
+
 .audit-verification-summary article,
 .audit-verification-panel,
 .audit-event-list article {
@@ -2452,14 +2456,17 @@ textarea {
 .audit-verification-summary article {
   display: grid;
   gap: 8px;
-  min-height: 92px;
+  align-content: start;
+  min-height: 150px;
   padding: 14px;
 }
 
 .audit-verification-summary span,
 .audit-event-list span,
 .audit-event-list small,
-.audit-hash-grid span {
+.audit-hash-grid span,
+.audit-hash-grid small,
+.audit-verification-summary small {
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -2467,6 +2474,10 @@ textarea {
 .audit-verification-summary strong {
   color: var(--text-strong);
   font-size: 28px;
+}
+
+.audit-verification-summary .anchor-status {
+  justify-self: start;
 }
 
 .audit-verification-panel {
@@ -2497,6 +2508,15 @@ textarea {
   display: grid;
   gap: 8px;
   padding: 14px;
+}
+
+.audit-hash-grid a,
+.audit-event-list a {
+  align-self: start;
+  color: var(--button-bg);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .audit-event-list {

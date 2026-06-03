@@ -13,6 +13,7 @@ import { useAuditEvents } from './api/useAuditEvents'
 import type { AuditSearchParams } from './api/useAuditEvents'
 import {
   anchorStatusCssClass,
+  anchorStatusDescription,
   anchorStatusLabel,
   summarizeAnchorStatuses,
   toVerifiableAuditEvent,
@@ -73,7 +74,7 @@ export function AuditScreen() {
       {state.status === 'error' ? <ErrorState message={state.message} /> : null}
       {state.status === 'ready' ? (
         <>
-          <TamperEvidenceOverview events={state.data} />
+          <AuditVerificationLegend events={state.data} />
           <DocumentHashVerificationPanel events={state.data} />
           <AuditEventList events={state.data} />
         </>
@@ -253,22 +254,38 @@ export function AuditEntityScreen() {
   )
 }
 
-function TamperEvidenceOverview({ events }: { events: AuditEvent[] }) {
+export function AuditVerificationLegend({ events }: { events: AuditEvent[] }) {
   const summary = summarizeAnchorStatuses(events)
 
   return (
-    <section className="audit-verification-summary">
-      {summary.map((item) => (
-        <article key={item.status}>
-          <span>{item.label}</span>
-          <strong>{item.count}</strong>
-        </article>
-      ))}
+    <section className="audit-verification-panel audit-verification-panel--legend">
+      <div className="section-heading-row">
+        <div>
+          <h2>Verification status legend</h2>
+          <p>
+            These labels separate local audit evidence, canonical hashes, outbox
+            anchor work, and Fabric verification. A row is verified only when the
+            backend supplies both hash evidence and a Fabric transaction reference.
+          </p>
+        </div>
+        <Link to="/integrations">Review outbox</Link>
+      </div>
+      <div className="audit-verification-summary">
+        {summary.map((item) => (
+          <article key={item.status}>
+            <span className={anchorStatusCssClass(item.status)}>
+              {item.label}
+            </span>
+            <strong>{item.count}</strong>
+            <small>{anchorStatusDescription(item.status)}</small>
+          </article>
+        ))}
+      </div>
     </section>
   )
 }
 
-function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
+export function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
   const verifiableEvents = events
     .map(toVerifiableAuditEvent)
     .filter((event) => event.documentHash)
@@ -280,8 +297,10 @@ function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
         <div>
           <h2>Document hash verification</h2>
           <p>
-            Hash and anchor fields are shown only when the backend audit metadata
-            includes them. Missing Fabric data remains pending or unavailable.
+            MEPN hashes canonical JSON from backend records, not browser output.
+            Stable field ordering and identifiers make the same record produce the
+            same SHA-256 hash. Missing Fabric data remains pending, submitted, or
+            unavailable until backend evidence is present.
           </p>
         </div>
         <Link to="/evidence/hashes">Open hash records</Link>
@@ -294,7 +313,18 @@ function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
                 {event.businessObjectType} / {event.businessObjectId}
               </span>
               <strong className="hash-text">{event.documentHash}</strong>
+              <small>{event.hashAlgorithm ?? 'SHA-256'}</small>
               <AnchorStatusBadge event={event} />
+              {event.businessObjectType !== 'System' && event.businessObjectId ? (
+                <Link
+                  to={sourcePathFor(
+                    event.businessObjectType,
+                    event.businessObjectId,
+                  )}
+                >
+                  Open source record
+                </Link>
+              ) : null}
             </article>
           ))}
         </div>
@@ -307,7 +337,7 @@ function DocumentHashVerificationPanel({ events }: { events: AuditEvent[] }) {
   )
 }
 
-function AuditEventList({ events }: { events: AuditEvent[] }) {
+export function AuditEventList({ events }: { events: AuditEvent[] }) {
   const verifiableEvents = events.map(toVerifiableAuditEvent)
 
   return events.length ? (
@@ -336,16 +366,23 @@ function AuditEventList({ events }: { events: AuditEvent[] }) {
             <span>Fabric anchor</span>
             <AnchorStatusBadge event={event} />
             <small>{event.verificationNote}</small>
+            {event.fabricTransactionId ? (
+              <small>Transaction: {event.fabricTransactionId}</small>
+            ) : null}
+            {event.fabricBlockNumber ? (
+              <small>Block: {event.fabricBlockNumber}</small>
+            ) : null}
           </div>
           <div>
             <span>Outbox</span>
             <strong>{outboxStatusLabel(event)}</strong>
+            <small>{outboxReviewerNote(event)}</small>
           </div>
           {event.businessObjectType !== 'System' && event.businessObjectId ? (
             <Link
               to={sourcePathFor(event.businessObjectType, event.businessObjectId)}
             >
-              Source
+              Open source record
             </Link>
           ) : null}
         </article>
@@ -374,6 +411,28 @@ function outboxStatusLabel(event: VerifiableAuditEvent) {
   }
 
   return event.outboxStatus
+}
+
+function outboxReviewerNote(event: VerifiableAuditEvent) {
+  if (event.outboxStatus === 'none') {
+    return 'No external anchor side effect is attached to this audit row.'
+  }
+
+  if (event.outboxStatus === 'failed') {
+    return 'Worker/operator review is required before this can be trusted externally.'
+  }
+
+  if (event.outboxStatus === 'retrying') {
+    return 'The request is retrying; do not treat it as anchored yet.'
+  }
+
+  if (event.outboxStatus === 'completed') {
+    return event.fabricAnchorStatus === 'verified'
+      ? 'Completed with verification evidence.'
+      : 'Completed outbox work does not by itself prove Fabric verification.'
+  }
+
+  return 'Anchor work is still pending or processing.'
 }
 
 function sourcePathFor(entityType: string, entityId: string) {

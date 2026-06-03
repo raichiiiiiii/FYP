@@ -24,6 +24,21 @@ const STATUS_LABELS: Record<FabricAnchorStatus, string> = {
   unavailable: 'Fabric unavailable',
 }
 
+const STATUS_DESCRIPTIONS: Record<FabricAnchorStatus, string> = {
+  not_required:
+    'A local immutable audit event exists, but no Fabric anchor was required or requested.',
+  pending:
+    'An anchor request is queued, processing, or retrying through the outbox worker.',
+  submitted:
+    'Hash or anchor metadata exists, but complete verification evidence is not available yet.',
+  verified:
+    'Backend metadata includes both a document hash and Fabric transaction reference.',
+  failed:
+    'The anchor request failed and requires retry or operator investigation.',
+  unavailable:
+    'The current environment cannot check Fabric anchor state.',
+}
+
 export function toVerifiableAuditEvent(event: AuditEvent): VerifiableAuditEvent {
   const metadata = asRecord(event.metadata)
   const payload = asRecord(metadata?.payload)
@@ -127,6 +142,10 @@ export function summarizeAnchorStatuses(
 
 export function anchorStatusLabel(status: FabricAnchorStatus) {
   return STATUS_LABELS[status]
+}
+
+export function anchorStatusDescription(status: FabricAnchorStatus) {
+  return STATUS_DESCRIPTIONS[status]
 }
 
 export function anchorStatusCssClass(status: FabricAnchorStatus) {

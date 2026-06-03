@@ -226,6 +226,9 @@ function entityPathFor(entityType?: string | null, entityId?: string | null) {
     Supplier: `/procurement/suppliers/${entityId}`,
     RFQ: `/procurement/rfqs/${entityId}`,
     PurchaseOrder: `/procurement/purchase-orders/${entityId}`,
+    EvidencePack: `/evidence/packs/${entityId}`,
+    Document: `/evidence/documents/${entityId}`,
+    HashRecord: `/evidence/hashes/${entityId}`,
   }
 
   return (
@@ -260,9 +263,23 @@ function downloadBlob(blob: Blob, fileName: string) {
 }
 
 function AnchorStatusPanel({ anchorStatus }: { anchorStatus?: AnchorStatus }) {
+  const reviewerNote = anchorStatus
+    ? anchorReviewerNote(anchorStatus)
+    : 'No anchor request exists. This record can still be locally hashed, but it has no external anchor state.'
+
   return (
     <section className="table-section">
-      <h2>Mock Fabric anchor</h2>
+      <div className="section-heading-row">
+        <div>
+          <h2>Anchor and outbox status</h2>
+          <p>
+            Fabric anchoring starts as an adapter-backed outbox request. Mock
+            adapter results are marked explicitly and are not the same as real
+            Fabric Gateway verification.
+          </p>
+        </div>
+        <Link to="/integrations">Open outbox</Link>
+      </div>
       {anchorStatus ? (
         <div className="details-grid">
           <article>
@@ -278,19 +295,60 @@ function AnchorStatusPanel({ anchorStatus }: { anchorStatus?: AnchorStatus }) {
             <strong>{anchorStatus.outboxStatus ?? 'Not queued'}</strong>
           </article>
           <article>
+            <span>Attempts</span>
+            <strong>{anchorStatus.attempts ?? 0}</strong>
+          </article>
+          {anchorStatus.rootHash ? (
+            <article className="wide">
+              <span>Anchored hash</span>
+              <strong className="hash-text">{anchorStatus.rootHash}</strong>
+            </article>
+          ) : null}
+          {anchorStatus.requestedAt ? (
+            <article>
+              <span>Requested</span>
+              <strong>{formatDateTime(anchorStatus.requestedAt)}</strong>
+            </article>
+          ) : null}
+          {anchorStatus.anchoredAt ? (
+            <article>
+              <span>Anchored at</span>
+              <strong>{formatDateTime(anchorStatus.anchoredAt)}</strong>
+            </article>
+          ) : null}
+          <article>
             <span>Reviewer note</span>
-            <strong>
-              {anchorStatus.status === 'ANCHORED_MOCK'
-                ? 'Mock anchoring completed locally.'
-                : 'Mock anchoring has been requested and can be retried by the worker.'}
-            </strong>
+            <strong>{reviewerNote}</strong>
           </article>
         </div>
       ) : (
-        <EmptyNotice>No anchor request has been created for this record.</EmptyNotice>
+        <EmptyNotice>{reviewerNote}</EmptyNotice>
       )}
     </section>
   )
+}
+
+function anchorReviewerNote(anchorStatus: AnchorStatus) {
+  const normalized = anchorStatus.status.trim().toUpperCase()
+  const outboxStatus = anchorStatus.outboxStatus?.trim().toUpperCase()
+
+  if (normalized === 'ANCHORED_MOCK') {
+    return 'Mock adapter completed a local anchor simulation. Treat this as adapter evidence only, not real Fabric verification.'
+  }
+
+  if (normalized === 'ANCHORED' || normalized === 'VERIFIED') {
+    return 'Backend anchor metadata indicates verification evidence is available. Confirm the hash and transaction reference before relying on it.'
+  }
+
+  if (normalized === 'FAILED' || outboxStatus === 'FAILED') {
+    return 'Anchor processing failed and needs retry or operator review.'
+  }
+
+  if (outboxStatus === 'RETRYING') {
+    return 'Anchor processing is retrying through the worker. Do not treat it as anchored yet.'
+  }
+
+  return 'Anchor work is pending or not yet verified. Local hash evidence remains available for review.'
 }
 
 function DocumentsScreen({ session }: { session: AppSession }) {
@@ -1069,14 +1127,33 @@ function EvidencePackDetailScreen({ session }: { session: AppSession }) {
             </article>
           </section>
           <section className="table-section">
-            <h2>Reviewer checklist</h2>
+            <div className="section-heading-row">
+              <div>
+                <h2>Reviewer evidence summary</h2>
+                <p>
+                  This pack is a review dossier. Export creates a local pack hash;
+                  Fabric anchoring remains visible through hash and audit screens.
+                </p>
+              </div>
+              <Link to="/evidence/hashes">Review hashes</Link>
+            </div>
             <div className="data-table data-table--evidence">
-              {Object.entries(pack.summary?.counts ?? {}).map(([label, value]) => (
-                <article key={label}>
-                  <strong>{label}</strong>
-                  <span>{value}</span>
+              {Object.entries(pack.summary?.counts ?? {}).length ? (
+                Object.entries(pack.summary?.counts ?? {}).map(([label, value]) => (
+                  <article key={label}>
+                    <strong>{label}</strong>
+                    <span>{value}</span>
+                  </article>
+                ))
+              ) : (
+                <article>
+                  <strong>No summary counts</strong>
+                  <span>
+                    Pack items are still listed below. Backend summary fields are
+                    required for richer reviewer metrics.
+                  </span>
                 </article>
-              ))}
+              )}
             </div>
           </section>
           <section className="table-section">
@@ -1116,8 +1193,23 @@ function EvidencePackDetailScreen({ session }: { session: AppSession }) {
                 {events.map((event) => (
                   <article key={event.id}>
                     <strong>{event.eventType}</strong>
+                    <span>{event.entityType ?? 'EvidencePack'}</span>
                     <span>{event.actorUser?.displayName ?? 'System'}</span>
                     <span>{formatDateTime(event.createdAt)}</span>
+                    {event.entityType && event.entityId ? (
+                      <Link
+                        to={
+                          entityPathFor(event.entityType, event.entityId) ??
+                          '/audit/search'
+                        }
+                      >
+                        Source
+                      </Link>
+                    ) : (
+                      <Link to={`/audit/entity/EvidencePack/${id}`}>
+                        Pack timeline
+                      </Link>
+                    )}
                   </article>
                 ))}
               </div>
