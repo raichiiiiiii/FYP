@@ -10,6 +10,8 @@ deployment-ready infrastructure.
 
 - SME Admin
 - Procurement Officer
+- Approver
+- Finance/Accounting User
 - Financial Entity Reviewer
 - Shariah/Compliance Reviewer
 - Auditor
@@ -21,8 +23,26 @@ Before the demo:
 1. Start local infrastructure or the Azure VM deployment.
 2. Confirm the app loads.
 3. Confirm API health returns `status: ok`.
-4. Use the local/dev login flow or prepared demo session.
-5. Use seeded/demo data where backend workflows are not yet fully populated.
+4. Run the UAT seed command against the active API.
+5. Save the seed JSON output as demo evidence.
+6. Use the local/dev login flow with the seeded `email` and `organization.id`.
+
+Seed command:
+
+```bash
+pnpm seed:uat
+```
+
+Optional API override:
+
+```bash
+UAT_API_BASE_URL=http://localhost:3000/api/v1 pnpm seed:uat
+```
+
+The seed creates a fictional TechBuild Energy / SolarTech rooftop solar scenario
+through API endpoints. It prints the organization ID, admin user, role users,
+procurement records, evidence pack, finance application, closure pack, and
+reviewer start URLs.
 
 Useful URLs:
 
@@ -33,11 +53,20 @@ Procurement:            /procurement/requisitions
 Finance opportunities:  /finance/opportunities
 Applications:           /finance/applications
 Ledger:                 /finance/ledgers
-Audit:                  /audit
-Network canvas:         /graph
+Audit search:            /audit/search
+Network canvas:         /graph/projects
 Integrations:           /integrations
 Operations:             /operations
+Reports:                /reports
 ```
+
+Data-source rule:
+
+- API-backed demo data comes from `pnpm seed:uat`.
+- Some dashboard, graph, and audit verification edge states still use typed
+  frontend fixtures for local examples and tests.
+- Do not describe fixture rows, mock adapters, disabled exports, or unavailable
+  worker health as production-ready behavior.
 
 ## Demo Path
 
@@ -53,8 +82,9 @@ Show:
 Status:
 
 - Working as a role-aware frontend surface.
-- Uses typed dashboard data/fixtures where live backend aggregation is not yet
-  complete.
+- Uses typed dashboard data where live backend aggregation is not yet complete.
+- Treat dashboard KPI values as demo/reviewer signals until backend summary DTOs
+  are added.
 
 Talking point:
 
@@ -72,9 +102,9 @@ Show:
 
 Status:
 
-- Requisition and approval foundation exists.
-- Advanced RFQ, quotation comparison, receipt, invoice, and matching workflows
-  are not all production-complete.
+- The UAT seed creates an API-backed project, supplier, requisition, approval,
+  RFQ, quotation, purchase order, receipt, and invoice.
+- Full supplier portal and advanced matching resolution remain future work.
 
 Talking point:
 
@@ -94,9 +124,9 @@ Show:
 
 Status:
 
-- Opportunity validation blocks non-revenue-generating/internal consumption
-  cases in the frontend foundation.
-- Backend persistence may still depend on the current available API contracts.
+- The UAT seed creates a revenue-generating opportunity linked to the seeded
+  procurement project and purchase order.
+- The frontend still blocks non-revenue-generating/internal consumption cases.
 
 Talking point:
 
@@ -115,10 +145,11 @@ Show:
 
 Status:
 
-- Workspace shell, overview, lifecycle, and role-specific read/action surfaces
-  exist.
-- Mutation-heavy reviewer decisions and external integrations remain controlled
-  and incomplete unless backed by implemented API endpoints.
+- The UAT seed creates an application, evidence checklist, due diligence review,
+  Shariah review, approval, contract, disbursement, ledger entry, profit/loss
+  statement, and closure pack through existing API endpoints.
+- External integration effects remain mock/adapter-backed unless configured
+  separately.
 
 Talking point:
 
@@ -140,10 +171,10 @@ Show:
 
 Status:
 
-- Ledger and calculation display are implemented as a domain-safe frontend
-  foundation.
-- Real payment/disbursement mutations are not claimed unless the backend
-  contract exists.
+- The UAT seed records a preliminary revenue/cost outcome for the TechBuild
+  scenario.
+- The demo must state that this is seeded UAT data and not a real payment or
+  production disbursement.
 
 Talking point:
 
@@ -164,6 +195,8 @@ Status:
 - The UI distinguishes anchor states honestly.
 - Real Fabric Gateway anchoring is not complete; mock/pending/unavailable states
   must be labelled as such.
+- Audit verification edge states may use fixtures to show pending, submitted,
+  verified, failed, and unavailable UI behavior.
 
 Talking point:
 
@@ -182,8 +215,7 @@ Show:
 
 Status:
 
-- Graph/canvas foundation exists with permission-filtered fixture/read-model
-  data.
+- Graph/canvas foundation exists with permission-filtered graph/read-model data.
 - Drag/drop persistence and advanced risk overlays are future work.
 
 Talking point:
@@ -204,6 +236,7 @@ Status:
 
 - Operational visibility is implemented with clear status states.
 - External integrations remain adapter/mock based unless configured later.
+- Worker health is not yet backed by a dedicated heartbeat endpoint.
 
 Talking point:
 
@@ -214,6 +247,8 @@ adapters and outbox status instead of being hidden inside core workflows.
 
 - Backend APIs may still be incomplete for some advanced screen actions.
 - Some frontend views use typed fixtures or local/demo state.
+- Reports use current API list data and intentionally disabled export actions
+  until dedicated report export endpoints exist.
 - Fabric anchoring may be mocked, pending, unavailable, or externally integrated
   depending on environment.
 - Payment, disbursement, ERP, e-signature, and finance provider integrations are

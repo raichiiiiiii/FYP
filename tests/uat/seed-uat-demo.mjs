@@ -8,6 +8,15 @@ const suffix = new Date()
   .replace(/[-:.TZ]/g, '')
   .slice(0, 14);
 
+const demoScenario = {
+  organizationName: 'TechBuild Energy Sdn Bhd',
+  buyerName: 'SolarTech Industries Sdn Bhd',
+  supplierName: 'Mega Components Sdn Bhd',
+  financierName: 'Amanah Islamic Bank',
+  projectName: 'SolarTech Rooftop Solar Retrofit',
+  buyerPoReference: 'BC-2026-089',
+};
+
 const roleDefinitions = [
   {
     code: 'PROCUREMENT_OFFICER',
@@ -71,6 +80,15 @@ The API and PostgreSQL-backed app must be running before this script is used.`);
         evidencePack,
         finance,
         integration,
+        scenario: {
+          name: 'TechBuild rooftop solar restricted mudarabah UAT scenario',
+          organization: demoScenario.organizationName,
+          buyer: demoScenario.buyerName,
+          supplier: demoScenario.supplierName,
+          financier: demoScenario.financierName,
+          note:
+            'Seeded through API endpoints for UAT/demo only. Static frontend fixtures may still be used by dashboard, graph, and verification component tests.',
+        },
         reviewerStartUrls: {
           dashboard: '/dashboard',
           organization: '/org/setup',
@@ -79,7 +97,10 @@ The API and PostgreSQL-backed app must be running before this script is used.`);
           audit: '/audit/search',
           finance: `/finance/applications/${finance.application.id}`,
           closure: '/finance/closures',
+          graph: '/graph/projects',
           integrations: '/integrations',
+          operations: '/operations',
+          reports: '/reports',
         },
       },
       null,
@@ -90,12 +111,12 @@ The API and PostgreSQL-backed app must be running before this script is used.`);
 
 async function createOrganization() {
   const setup = await post('/orgs', {
-    legalName: `UAT SME Sdn Bhd ${suffix}`,
-    registrationNumber: `UAT-${suffix}`,
+    legalName: `${demoScenario.organizationName} UAT ${suffix}`,
+    registrationNumber: `TB-UAT-${suffix}`,
     deploymentMode: 'standalone_sme',
     adminUser: {
-      email: `uat-admin-${suffix}@example.test`,
-      displayName: 'UAT SME Admin',
+      email: `aisha.admin-${suffix}@techbuild.example`,
+      displayName: 'Aisha Rahman',
     },
   });
 
@@ -127,13 +148,36 @@ async function ensureRoles(setup) {
 
 async function createRoleUsers(setup, roles) {
   const users = {};
+  const demoUsersByRole = {
+    PROCUREMENT_OFFICER: {
+      email: `ahmad.procurement-${suffix}@techbuild.example`,
+      displayName: 'Ahmad Razali',
+    },
+    APPROVER: {
+      email: `nurul.approver-${suffix}@techbuild.example`,
+      displayName: 'Nurul Izzah',
+    },
+    FINANCIER_USER: {
+      email: `omar.reviewer-${suffix}@amanah.example`,
+      displayName: 'Omar Farouq',
+    },
+    SHARIAH_REVIEWER: {
+      email: `hassan.shariah-${suffix}@panel.example`,
+      displayName: 'Dr. Hassan Malik',
+    },
+    AUDITOR: {
+      email: `lina.auditor-${suffix}@audit.example`,
+      displayName: 'Lina Wong',
+    },
+  };
 
   for (const role of roleDefinitions) {
+    const demoUser = demoUsersByRole[role.code];
     const user = await post('/users', {
       organizationId: setup.organization.id,
       actorUserId: setup.adminUser.id,
-      email: `uat-${role.code.toLowerCase()}-${suffix}@example.test`,
-      displayName: `UAT ${role.name}`,
+      email: demoUser.email,
+      displayName: demoUser.displayName,
     });
 
     await post('/memberships', {
@@ -159,16 +203,16 @@ async function createProcurementFlow(setup, users) {
   const supplier = await post(
     '/suppliers',
     scoped({
-      name: `UAT Certified Supplier ${suffix}`,
-      email: `supplier-${suffix}@example.test`,
+      name: `${demoScenario.supplierName} UAT ${suffix}`,
+      email: `supplier-${suffix}@mega-components.example`,
     }),
   );
   const project = await post(
     '/projects',
     scoped({
-      name: `UAT Procurement Project ${suffix}`,
-      code: `UAT-PROC-${suffix}`,
-      budget: 12000,
+      name: `${demoScenario.projectName} ${suffix}`,
+      code: `SOLAR-UAT-${suffix}`,
+      budget: 210000,
     }),
   );
   const requisition = await post(
@@ -176,14 +220,15 @@ async function createProcurementFlow(setup, users) {
     scoped({
       projectId: project.id,
       requesterUserId: users.PROCUREMENT_OFFICER.id,
-      title: `UAT Materials Requisition ${suffix}`,
-      justification: 'UAT source-to-pay evidence scenario',
+      title: `Solar components for ${demoScenario.buyerPoReference} ${suffix}`,
+      justification:
+        'UAT source-to-pay evidence scenario for a revenue-generating buyer purchase order',
       items: [
         {
-          description: 'Certified project equipment',
+          description: 'Solar panels batch 1',
           category: 'EQUIPMENT',
-          quantity: 2,
-          unitPrice: 3000,
+          quantity: 100,
+          unitPrice: 1180,
         },
       ],
     }),
@@ -201,7 +246,7 @@ async function createProcurementFlow(setup, users) {
     '/rfqs',
     scoped({
       requisitionId: requisition.id,
-      title: `UAT RFQ ${suffix}`,
+      title: `Solar component supplier sourcing ${suffix}`,
     }),
   );
   await post(`/rfqs/${rfq.id}/publish`, {
@@ -218,7 +263,7 @@ async function createProcurementFlow(setup, users) {
     '/purchase-orders',
     scoped({
       quotationId: quotation.id,
-      poNumber: `PO-UAT-${suffix}`,
+      poNumber: `PO-2026-UAT-${suffix}`,
     }),
   );
   const issuedPurchaseOrder = await post(`/purchase-orders/${purchaseOrder.id}/issue`, {
@@ -228,14 +273,14 @@ async function createProcurementFlow(setup, users) {
     '/receipts',
     scoped({
       purchaseOrderId: purchaseOrder.id,
-      notes: 'UAT receipt recorded',
+      notes: 'Solar panels received for UAT scenario',
     }),
   );
   const invoice = await post(
     '/invoices',
     scoped({
       purchaseOrderId: purchaseOrder.id,
-      invoiceNumber: `INV-UAT-${suffix}`,
+      invoiceNumber: `INV-2026-UAT-${suffix}`,
     }),
   );
 
@@ -256,7 +301,7 @@ async function createEvidencePack(setup, procurement) {
     organizationId: setup.organization.id,
     actorUserId: setup.adminUser.id,
     projectId: procurement.project.id,
-    title: `UAT Evidence Pack ${suffix}`,
+    title: `SolarTech rooftop solar evidence pack ${suffix}`,
   });
 
   await post(`/evidence-packs/${evidencePack.id}/export`, {
@@ -275,17 +320,22 @@ async function createFinanceFlow(setup, users, procurement, evidencePack) {
     requisitionId: procurement.requisition.id,
     purchaseOrderId: procurement.purchaseOrder.id,
     evidencePackId: evidencePack.id,
-    title: `UAT Mudarabah Opportunity ${suffix}`,
-    estimatedCapital: 6000,
-    expectedProfit: 1200,
+    title: `SolarTech rooftop solar restricted mudarabah opportunity ${suffix}`,
+    description:
+      `Source: buyer_purchase_order\nSource document: ${demoScenario.buyerPoReference}\nBuyer: ${demoScenario.buyerName}\nExpected revenue: 280000\nExpected cost: 210000\nEligibility: revenue-generating opportunity`,
+    estimatedCapital: 180000,
+    expectedProfit: 70000,
   });
   const application = await post('/applications', {
     organizationId: setup.organization.id,
     actorUserId: financeActor,
     opportunityId: opportunity.id,
-    requestedCapital: 6000,
+    applicantUserId: users.PROCUREMENT_OFFICER.id,
+    requestedCapital: 180000,
     capitalProviderRatio: 0.6,
     entrepreneurRatio: 0.4,
+    purpose:
+      'Restricted working capital for SolarTech buyer PO fulfillment; no guaranteed fixed return is seeded.',
   });
 
   await post(`/applications/${application.id}/submit`, {
@@ -316,7 +366,9 @@ async function createFinanceFlow(setup, users, procurement, evidencePack) {
     organizationId: setup.organization.id,
     actorUserId: financeActor,
     applicationId: application.id,
-    restrictedUse: 'Restricted to UAT procurement project costs only',
+    contractNumber: `CTR-2026-UAT-${suffix}`,
+    restrictedUse:
+      'Restricted to approved SolarTech rooftop solar procurement costs only',
   });
 
   await post(`/contracts/${contract.id}/generate-document`, {
@@ -331,23 +383,23 @@ async function createFinanceFlow(setup, users, procurement, evidencePack) {
     actorUserId: financeActor,
     applicationId: application.id,
     contractId: contract.id,
-    amount: 6000,
-    reference: `UAT-DISB-${suffix}`,
+    amount: 180000,
+    reference: `DISB-2026-UAT-${suffix}`,
   });
   const ledgerEntry = await post('/project-ledgers/entries', {
     organizationId: setup.organization.id,
     actorUserId: financeActor,
     applicationId: application.id,
     entryType: 'REVENUE',
-    description: 'UAT project revenue',
-    amount: 14000,
+    description: 'SolarTech milestone payment received',
+    amount: 280000,
   });
   const profitLossStatement = await post('/profit-loss/statements', {
     organizationId: setup.organization.id,
     actorUserId: financeActor,
     applicationId: application.id,
-    revenue: 14000,
-    costs: 6000,
+    revenue: 280000,
+    costs: 210000,
   });
   const closure = await post('/closures', {
     organizationId: setup.organization.id,
@@ -376,7 +428,7 @@ async function createIntegrationRequest(setup, finance) {
     notificationType: 'UAT_APPLICATION_READY',
     payload: {
       seededAt: new Date().toISOString(),
-      scenario: 'UAT readiness',
+      scenario: 'TechBuild rooftop solar restricted mudarabah UAT scenario',
     },
   });
 }

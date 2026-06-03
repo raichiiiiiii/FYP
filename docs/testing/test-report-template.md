@@ -2,12 +2,12 @@
 
 ## Build Information
 
-- Branch: `fix/playwright-e2e-suite`
-- Commit: `edc4b16ad9fba6b34110ad114c9fac0318c0acaa` plus working-tree E2E fixes
-- Short commit: `edc4b16`
-- Date: `2026-06-04 04:54 +09:00`
+- Branch: `main`
+- Commit: `a159c5d test: align demo data and UAT flow for UI UX review`
+- Short commit: `a159c5d`
+- Date: `2026-06-04 08:19 +09:00`
 - Tester: Codex local verification
-- Command: `corepack pnpm test:e2e` and `corepack pnpm verify`
+- Command: `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build`, and `corepack pnpm test:e2e`
 
 ## Static Checks
 
@@ -24,7 +24,7 @@
 |---|---|---|
 | API unit tests | Pass | 10 suites, 35 tests passed. |
 | Worker unit tests | Pass | 2 suites, 2 tests passed. |
-| Web tests | Pass | 10 test files, 60 tests passed. |
+| Web tests | Pass | 17 test files, 85 tests passed. |
 | RBAC and route visibility | Pass | Covered by frontend authorization/navigation tests. |
 | Dashboard | Pass | Role-aware dashboard model tests passed. |
 | Applications/workspace | Pass | Application list/workspace frontend tests passed in web suite. |
@@ -43,6 +43,7 @@
 | Audit verification flow | Pass | Evidence pack export, hash verification, mock Fabric anchor visibility, entity timeline, and audit search passed. |
 | Closure/profit-loss flow | Pass | Contract, mock e-signature request, ledger entry, P/L statement, and closure export passed with application status reaching `CLOSED`. |
 | Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
+| Phase 12 demo/UAT alignment | Pass | UAT seed syntax check passed with `node --check tests/uat/seed-uat-demo.mjs`; docs now distinguish API-backed seed data, frontend fixtures, mock adapters, and unavailable features. |
 
 ## Deployment Smoke Tests
 
@@ -63,12 +64,13 @@
   `corepack pnpm test:e2e` separately for the browser workflow gate.
 - Playwright web server output includes a non-failing PostgreSQL client
   deprecation warning from the API runtime.
+- Vite build reports a non-failing large bundle chunk warning for the web app.
 - Local Docker Compose production build needs to be retried after Docker daemon
   responsiveness is restored.
 - Azure Student VM manual deployment has not been recorded with live smoke-test
   output in this repository.
 - Some product surfaces still use fixtures, local/dev auth, mock adapter states,
-  or incomplete backend contracts.
+  disabled report exports, or incomplete backend contracts.
 
 ## Sign-Off
 

@@ -4,26 +4,30 @@ export const applicationFixtures: ApplicationRawDto[] = [
   {
     id: 'app-demo-001',
     status: 'DUE_DILIGENCE_IN_REVIEW',
-    requestedCapital: 12000,
+    requestedCapital: 180000,
     currency: 'MYR',
     opportunity: {
-      title: 'School catering inventory financing',
+      title: 'SolarTech rooftop solar restricted capital',
       project: {
-        name: 'Catering stock purchase',
+        name: 'SolarTech Rooftop Solar Retrofit',
       },
     },
     applicantUser: {
-      displayName: 'Procurement Officer',
+      displayName: 'Ahmad Razali',
     },
     evidenceChecklist: {
-      items: [{ status: 'COMPLETED' }, { status: 'PENDING' }],
+      items: [
+        { status: 'COMPLETED' },
+        { status: 'COMPLETED' },
+        { status: 'PENDING' },
+      ],
     },
     dueDiligenceReports: [
       {
         status: 'IN_REVIEW',
         riskRating: 'medium',
         reviewerUser: {
-          displayName: 'Financier reviewer',
+          displayName: 'Omar Farouq',
         },
       },
     ],
@@ -32,13 +36,13 @@ export const applicationFixtures: ApplicationRawDto[] = [
   {
     id: 'app-demo-002',
     status: 'SHARIAH_IN_REVIEW',
-    requestedCapital: 30000,
+    requestedCapital: 62000,
     currency: 'MYR',
     opportunity: {
-      title: 'Medical supplies purchase order',
+      title: 'Solar inverter units purchase order',
     },
     applicantUser: {
-      displayName: 'SME Admin',
+      displayName: 'Aisha Rahman',
     },
     evidenceChecklist: {
       items: [{ status: 'COMPLETED' }, { status: 'COMPLETED' }],
@@ -47,7 +51,7 @@ export const applicationFixtures: ApplicationRawDto[] = [
       {
         status: 'IN_REVIEW',
         reviewerUser: {
-          displayName: 'Shariah reviewer',
+          displayName: 'Dr. Hassan Malik',
         },
       },
     ],
@@ -56,13 +60,13 @@ export const applicationFixtures: ApplicationRawDto[] = [
   {
     id: 'app-demo-003',
     status: 'PROFIT_LOSS_CALCULATED',
-    requestedCapital: 18000,
+    requestedCapital: 180000,
     currency: 'MYR',
     opportunity: {
-      title: 'Retail distribution order',
+      title: 'SolarTech milestone revenue review',
     },
     applicantUser: {
-      displayName: 'Finance user',
+      displayName: 'Omar Farouq',
     },
     riskRating: 'low',
     evidenceGapCount: 0,

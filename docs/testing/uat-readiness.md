@@ -46,6 +46,35 @@ UAT_API_BASE_URL=http://localhost:3000/api/v1 pnpm seed:uat
 The command prints organization, user, procurement, evidence, finance, closure,
 and integration IDs. Save the JSON output with the UAT evidence for traceability.
 
+The seeded scenario is:
+
+| Field | Value |
+| --- | --- |
+| SME organization | TechBuild Energy Sdn Bhd |
+| Buyer/customer | SolarTech Industries Sdn Bhd |
+| Primary supplier | Mega Components Sdn Bhd |
+| Financier | Amanah Islamic Bank |
+| Project | SolarTech Rooftop Solar Retrofit |
+| Buyer reference | `BC-2026-089` |
+
+For local/dev login, use the email from the relevant `adminUser` or `roleUsers`
+entry and the printed `organization.id`. The current login screen asks for an
+email and organization ID; it does not authenticate through production OIDC yet.
+
+## Data Source Boundaries
+
+Use these labels during UAT evidence capture:
+
+| Label | Meaning | Examples |
+| --- | --- | --- |
+| API-backed seeded data | Created through `pnpm seed:uat` against the running API and PostgreSQL database | Organization, users, memberships, procurement records, evidence pack, finance application, contract, disbursement, ledger, P/L, closure, integration notification |
+| Frontend fixture/demo data | Typed local fixtures used for tests or illustrative UI states where backend summary DTOs are incomplete | Dashboard KPIs, graph example fixture, audit verification edge states |
+| Mock adapter state | External provider behavior routed through mock adapters/outbox | Fabric, ERP, e-signature, finance API/webhook notification |
+| Not implemented | Capability intentionally unavailable or disabled | Report exports, production OIDC, worker heartbeat, saved graph layouts |
+
+Do not mark a scenario as production-ready solely because a fixture or mock
+adapter produced a useful visual state.
+
 ## UAT Groups
 - SME admin
 - Procurement officer

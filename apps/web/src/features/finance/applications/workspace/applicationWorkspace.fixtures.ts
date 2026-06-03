@@ -4,26 +4,26 @@ export const applicationWorkspaceFixture: ApplicationWorkspaceRawDto = {
   id: 'app-workspace-demo',
   opportunityId: 'opp-workspace-demo',
   status: 'DUE_DILIGENCE_IN_REVIEW',
-  requestedCapital: 12000,
+  requestedCapital: 180000,
   currency: 'MYR',
   capitalProviderRatio: 0.6,
   entrepreneurRatio: 0.4,
   opportunity: {
     id: 'opp-workspace-demo',
-    title: 'Evidence-backed school catering purchase order',
-    estimatedCapital: 12000,
-    expectedProfit: 1800,
+    title: 'Evidence-backed SolarTech rooftop solar buyer purchase order',
+    estimatedCapital: 180000,
+    expectedProfit: 70000,
     currency: 'MYR',
   },
   applicantUser: {
-    displayName: 'Example SME Sdn Bhd',
+    displayName: 'TechBuild Energy Sdn Bhd',
   },
   evidenceChecklist: {
     status: 'IN_PROGRESS',
     items: [
       {
         id: 'ev-buyer-demand',
-        label: 'Buyer purchase order',
+        label: 'SolarTech buyer purchase order',
         requiredCode: 'BUYER_DEMAND',
         status: 'COMPLETED',
         evidenceItem: {
@@ -32,7 +32,7 @@ export const applicationWorkspaceFixture: ApplicationWorkspaceRawDto = {
       },
       {
         id: 'ev-supplier-quotation',
-        label: 'Supplier quotation',
+        label: 'Mega Components supplier quotation',
         requiredCode: 'SUPPLIER_QUOTATION',
         status: 'PENDING',
       },

@@ -3,15 +3,15 @@ import type { OpportunityRawDto } from './opportunities.types'
 export const opportunityFixtures: OpportunityRawDto[] = [
   {
     id: 'opp-fixture-ready',
-    title: 'School catering inventory order',
+    title: 'SolarTech rooftop solar supply opportunity',
     description:
-      'Source: buyer_purchase_order\nSource document: PO-BUYER-2026-001\nBuyer: Example School Sdn Bhd\nExpected revenue: 18000\nExpected cost: 12000\nEligibility: revenue-generating opportunity',
+      'Source: buyer_purchase_order\nSource document: BC-2026-089\nBuyer: SolarTech Industries Sdn Bhd\nExpected revenue: 280000\nExpected cost: 210000\nEligibility: revenue-generating opportunity',
     status: 'OPEN',
-    estimatedCapital: 12000,
-    expectedProfit: 6000,
+    estimatedCapital: 180000,
+    expectedProfit: 70000,
     currency: 'MYR',
     project: {
-      name: 'Catering stock purchase',
+      name: 'SolarTech Rooftop Solar Retrofit',
     },
     applications: [],
   },
