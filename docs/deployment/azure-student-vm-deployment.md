@@ -24,7 +24,9 @@ Recorded readiness:
 
 - `docker-compose.prod.yml` configuration validates with
   `.env.production.example`.
-- Local `corepack pnpm verify` passed on commit `95844ae`.
+- Local `corepack pnpm verify` passed before committing this deployment report.
+- Production images were built from application code at commit `95844ae`; the
+  VM repository was later synced to the latest `main` documentation state.
 - GitHub Actions CI and Azure VM deployment workflows exist.
 - Latest manual deployment verification: `2026-06-03 07:14 UTC`.
 - Latest deployed commit: `95844ae` (`fix: use ipv4 compose health checks`).
