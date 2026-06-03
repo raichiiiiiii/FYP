@@ -71,3 +71,68 @@ Use this file when implementation cannot safely continue because of:
 | UXB-049 | 12 | Dev login handoff | UAT uses the seeded email and organization ID with local/dev auth; production OIDC and invite acceptance remain incomplete. | Testers need manual seed-output handoff and could confuse dev login with production authentication. | Implement OIDC/invite flow behind feature flags and update UAT docs once real auth claims are available. | Backend/Frontend | Open |
 | UXB-050 | 12 | UAT evidence capture | UAT evidence capture is documented but still manual; screenshots, seed JSON, pass/fail notes, and defect files are not automatically bundled. | Formal review can become inconsistent across testers or runs. | Add a UAT evidence export script or checklist runner that collects seed output, screenshots, environment details, and test report metadata. | QA/Frontend | Open |
 | UXB-051 | 12 | Demo role coverage | The API seed maps finance/accounting and financier review to `FINANCIER_USER` until a distinct finance operations role is implemented. | Finance operations UAT may not reflect final separation of accounting and financier reviewer permissions. | Add a dedicated finance/accounting role, permissions, route matrix, backend guards, and seeded user after product role scope is finalized. | Product/Backend/Frontend | Open |
+
+## Phase 13 Blocker Classification
+
+Classification values:
+
+1. must fix before demo
+2. acceptable with explanation
+3. post-demo hardening
+4. requires backend/API work
+5. requires design/product decision
+6. requires external integration
+
+| ID | Classification | Demo disposition |
+| --- | --- | --- |
+| UXB-001 | acceptable with explanation | Do not copy prototype role switching or fake anchor widgets; current production RBAC remains intact. |
+| UXB-002 | requires design/product decision | Entry flow can be demoed with dev login, but final public/onboarding flow needs product decision. |
+| UXB-003 | requires backend/API work | Dashboard KPIs are acceptable for demo only if fixture/summary limitations are explained. |
+| UXB-004 | requires backend/API work | Procurement hub can be demoed from current records; richer analytics stay deferred. |
+| UXB-005 | requires design/product decision | Keep stricter finance opportunity RBAC until role matrix is formally changed. |
+| UXB-006 | post-demo hardening | Current workspace E2E passes; deeper panel refactor should remain incremental. |
+| UXB-007 | post-demo hardening | Domain-safe P/L display is demo-ready; richer ledger visuals need further review. |
+| UXB-008 | requires external integration | Mock/Fabric states are demo-safe only when clearly labelled. |
+| UXB-009 | post-demo hardening | Read-only graph is demo-safe; saved layouts/annotations are deferred. |
+| UXB-010 | requires external integration | Integration surfaces are demo-safe with mock/degraded/unavailable labels. |
+| UXB-011 | requires backend/API work | Admin/reports are demo-safe with disabled exports and caveats. |
+| UXB-012 | post-demo hardening | Manual accessibility pass improved shared patterns; automated audit remains deferred. |
+| UXB-013 | requires backend/API work | Sidebar status can link to review areas; live counts need summary DTO. |
+| UXB-014 | requires backend/API work | Dev login is acceptable for prototype review; OIDC remains future work. |
+| UXB-015 | requires backend/API work | Invite entry must remain non-production until validation endpoints exist. |
+| UXB-016 | requires backend/API work | Organization setup should show only persisted fields in demo. |
+| UXB-017 | requires backend/API work | Procurement KPIs remain client-side/demo-level until summary endpoint exists. |
+| UXB-018 | requires backend/API work | Supplier scoring must not be demoed as real analytics. |
+| UXB-019 | requires backend/API work | Matching can be shown; full exception resolution remains deferred. |
+| UXB-020 | requires backend/API work | Finance pipeline summaries remain MVP/client-side. |
+| UXB-021 | requires backend/API work | Opportunity metadata parsing is acceptable for demo with caveat. |
+| UXB-022 | requires backend/API work | Application readiness detail requires backend summary DTO. |
+| UXB-023 | requires backend/API work | Workspace summary density needs aggregated API data. |
+| UXB-024 | post-demo hardening | Legacy mounted workspace is stable enough for demo; modular migration is deferred. |
+| UXB-025 | requires backend/API work | Shariah detail checklist needs explicit backend fields. |
+| UXB-026 | requires backend/API work | Workspace audit/Fabric summary needs backend-provided state. |
+| UXB-027 | requires backend/API work | Ledger grouping and reconciliation need backend-owned DTOs. |
+| UXB-028 | requires backend/API work | Loss exception workflow is not complete enough for formal production use. |
+| UXB-029 | requires design/product decision | Shariah/legal wording needs expert review before final UAT sign-off. |
+| UXB-030 | post-demo hardening | Audit source links are adequate with fallback routes; full registry is deferred. |
+| UXB-031 | requires backend/API work | Canonical hash payload documentation requires backend details. |
+| UXB-032 | requires backend/API work | In-place audit retry needs endpoint and permission checks. |
+| UXB-033 | post-demo hardening | Read-only graph remains source-of-truth safe for demo. |
+| UXB-034 | requires backend/API work | Risk indicators need backend-owned source and timestamps. |
+| UXB-035 | post-demo hardening | Graph filters can remain local for demo. |
+| UXB-036 | requires backend/API work | Worker health cannot be claimed until heartbeat/status endpoint exists. |
+| UXB-037 | requires external integration | Mock providers must stay labelled until real providers are integrated. |
+| UXB-038 | requires backend/API work | Outbox counts need a backend summary endpoint for scale. |
+| UXB-039 | post-demo hardening | Deployment automation visibility inside the app is deferred. |
+| UXB-040 | requires backend/API work | Report aggregate DTOs are needed for reviewer-grade reporting. |
+| UXB-041 | requires backend/API work | Report exports remain disabled until endpoints exist. |
+| UXB-042 | requires backend/API work | Advanced admin settings need audited backend DTOs. |
+| UXB-043 | requires backend/API work | Destructive admin actions need guards, audits, and confirmations. |
+| UXB-044 | post-demo hardening | Automated accessibility testing should be added after the demo round. |
+| UXB-045 | post-demo hardening | Dialog focus trap should be implemented with focused tests. |
+| UXB-046 | post-demo hardening | Dense mobile table variants should be prioritized from UAT findings. |
+| UXB-047 | post-demo hardening | Full contrast audit remains required before accessibility sign-off. |
+| UXB-048 | requires backend/API work | Seeded API path is coherent; fixture-backed summaries need backend DTOs. |
+| UXB-049 | requires backend/API work | Dev login handoff is acceptable for demo; production auth remains future work. |
+| UXB-050 | post-demo hardening | UAT evidence automation is deferred but should be built before repeated formal UAT. |
+| UXB-051 | requires design/product decision | Finance/accounting role separation needs product role-matrix decision. |

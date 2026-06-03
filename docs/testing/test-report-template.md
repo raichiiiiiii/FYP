@@ -3,11 +3,11 @@
 ## Build Information
 
 - Branch: `main`
-- Commit: `a159c5d test: align demo data and UAT flow for UI UX review`
-- Short commit: `a159c5d`
-- Date: `2026-06-04 08:19 +09:00`
+- Commit: `docs: close UI UX alignment round with verification report` (this commit)
+- Short commit: see `git rev-parse --short HEAD` after checkout
+- Date: `2026-06-04 08:26 +09:00`
 - Tester: Codex local verification
-- Command: `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build`, and `corepack pnpm test:e2e`
+- Command: `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build`, `corepack pnpm test:e2e`, Docker compose config, and Docker compose build
 
 ## Static Checks
 
@@ -44,17 +44,19 @@
 | Closure/profit-loss flow | Pass | Contract, mock e-signature request, ledger entry, P/L statement, and closure export passed with application status reaching `CLOSED`. |
 | Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
 | Phase 12 demo/UAT alignment | Pass | UAT seed syntax check passed with `node --check tests/uat/seed-uat-demo.mjs`; docs now distinguish API-backed seed data, frontend fixtures, mock adapters, and unavailable features. |
+| Phase 13 closeout | Pass | Final local verification passed and close-alignment blockers were classified for demo, UAT, backend/API work, product decisions, hardening, and external integrations. |
 
 ## Deployment Smoke Tests
 
 | Check | Result | Notes |
 |---|---|---|
+| Docker daemon | Pass | Docker Desktop server responded to `docker version`. |
 | Compose config | Pass | `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` passed locally. |
-| Docker Compose build | Blocked locally | Docker Desktop daemon became unresponsive during local build attempt. Needs retry after Docker daemon restart. |
-| App loads on Azure VM | Not run | VM host/key details were not available to Codex. |
-| Health endpoint on Azure VM | Not run | Run after manual cloud deployment. |
-| Containers running on Azure VM | Not run | Run `docker compose -f docker-compose.prod.yml --env-file .env.production ps` on the VM. |
-| Logs clean on Azure VM | Not run | Run `docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail=100` on the VM. |
+| Docker Compose build | Pass | `docker compose -f docker-compose.prod.yml --env-file .env.production.example build` built frontend, API, and worker images. Docker Desktop emitted non-failing pipe messages after image export. |
+| App loads on Azure VM | Previously verified | Prior VM smoke evidence is recorded in `docs/deployment/azure-student-vm-deployment.md`; no fresh VM redeploy was run in this Phase 13 turn. |
+| Health endpoint on Azure VM | Previously verified | Prior public `/api/v1/health` smoke test returned `status: ok`, `database: ok`, and `redis: ok`. |
+| Containers running on Azure VM | Previously verified | Prior VM compose status showed reverse proxy, frontend, API, PostgreSQL, Redis, MinIO healthy and worker running. |
+| Logs clean on Azure VM | Not rerun | Run `docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail=100` on the VM during the next manual deployment. |
 
 ## Known Issues And Risks
 
@@ -65,10 +67,10 @@
 - Playwright web server output includes a non-failing PostgreSQL client
   deprecation warning from the API runtime.
 - Vite build reports a non-failing large bundle chunk warning for the web app.
-- Local Docker Compose production build needs to be retried after Docker daemon
-  responsiveness is restored.
-- Azure Student VM manual deployment has not been recorded with live smoke-test
-  output in this repository.
+- Docker Compose build emitted non-failing Docker Desktop pipe messages after
+  image export, while returning exit code 0.
+- Azure Student VM manual deployment has prior smoke-test output recorded, but
+  no fresh cloud redeploy was run in the Phase 13 closeout turn.
 - Some product surfaces still use fixtures, local/dev auth, mock adapter states,
   disabled report exports, or incomplete backend contracts.
 

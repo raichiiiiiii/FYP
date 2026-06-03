@@ -6,6 +6,19 @@ Show how MEPN supports procurement automation and restricted mudarabah financing
 workflows using procurement evidence, review gates, audit visibility, and
 deployment-ready infrastructure.
 
+## Current Review Status
+
+The UI/UX close-alignment round is documented in:
+
+```text
+docs/ui/ui-ux-close-alignment-final-report.md
+```
+
+The latest local closeout verification passed lint, typecheck, unit/component
+tests, production build, Playwright E2E, Docker Compose config, and Docker
+Compose build. Use `docs/testing/test-report-template.md` for the detailed
+verification record.
+
 ## Demo Roles
 
 - SME Admin

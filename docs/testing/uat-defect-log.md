@@ -30,3 +30,20 @@ Attach these details to every defect when available:
 - route path
 - whether the failing state was API-backed, fixture-backed, mock-adapter-backed,
   or intentionally unavailable
+
+## Phase 13 Automated Verification Status
+
+No manual UAT defect has been filed from the Phase 13 closeout run.
+
+Automated verification on `2026-06-04 08:26 +09:00` passed:
+
+- `corepack pnpm lint`
+- `corepack pnpm typecheck`
+- `corepack pnpm test`
+- `corepack pnpm build`
+- `corepack pnpm test:e2e`
+- Docker compose config
+- Docker compose build
+
+Manual UAT has not been executed as a formal reviewer session in this report.
+Use the defect table above once reviewer-led UAT begins.

@@ -77,6 +77,13 @@ Current deployment notes:
   the worker running with `RestartCount=0`; monitor this in future deployments
   and add a worker health check/retry hardening when the outbox worker is made
   production-grade.
+- Phase 13 local closeout validation on `2026-06-04 08:26 +09:00` confirmed
+  Docker Desktop was available, production Compose config rendered with
+  `.env.production.example`, and `docker compose -f docker-compose.prod.yml
+  --env-file .env.production.example build` built the frontend, API, and worker
+  images successfully.
+- Phase 13 did not run a fresh Azure VM redeploy. Use the update and smoke-test
+  commands below before claiming the VM is running the latest local commit.
 
 Do not commit `.env.production`, SSH keys, or private deployment notes.
 
