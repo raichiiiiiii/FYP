@@ -19,4 +19,9 @@ export class IntegrationStatusController {
   listReconciliation(@Query('organizationId') organizationId?: string) {
     return this.integrationStatus.listReconciliation(organizationId);
   }
+
+  @Get('fabric/status')
+  getFabricStatus() {
+    return this.integrationStatus.getFabricStatus();
+  }
 }

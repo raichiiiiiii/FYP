@@ -3,6 +3,10 @@ import type {
   IntegrationReconciliationRecord,
   OutboxEvent,
 } from '@prisma/client';
+import {
+  fabricGatewayRequiredVariables,
+  readFabricEnv,
+} from '../../../config/fabric-env';
 import { PrismaService } from '../../../database/prisma.service';
 
 type OutboxWithReconciliation = OutboxEvent & {
@@ -69,6 +73,38 @@ export class IntegrationStatusService {
       take: 100,
     });
   }
+
+  getFabricStatus() {
+    const fabricEnv = readFabricEnv();
+    const missingGatewayConfig =
+      fabricEnv.mode === 'gateway'
+        ? fabricGatewayRequiredVariables.filter(
+            (variable) => !process.env[variable]?.trim(),
+          )
+        : [];
+    const gatewayConfigured =
+      fabricEnv.mode === 'gateway' && missingGatewayConfig.length === 0;
+
+    return {
+      enabled: fabricEnv.enabled,
+      mode: fabricEnv.mode,
+      gatewayConfigured,
+      realGatewayAdapterImplemented: false,
+      anchorResultSource:
+        fabricEnv.mode === 'gateway' ? 'real-gateway-required' : 'mock-adapter',
+      missingGatewayConfig,
+      configuredChannel: redactConfiguredValue(fabricEnv.channel),
+      configuredChaincode: redactConfiguredValue(fabricEnv.chaincode),
+      configuredMspId: redactConfiguredValue(fabricEnv.mspId),
+      submitTimeoutMs: fabricEnv.submitTimeoutMs,
+      commitTimeoutMs: fabricEnv.commitTimeoutMs,
+      securityBoundary: 'document hashes and minimal metadata only',
+      message:
+        fabricEnv.mode === 'gateway'
+          ? 'Gateway mode is configured, but the real Fabric Gateway adapter remains a roadmap item. Mock anchoring is disabled in this mode.'
+          : 'Fabric anchoring is running in explicit mock mode for prototype and local testing.',
+    };
+  }
 }
 
 function formatOutboxEvent(event: OutboxWithReconciliation) {
@@ -99,4 +135,8 @@ function displayStatus(event: OutboxEvent) {
   }
 
   return event.status;
+}
+
+function redactConfiguredValue(value: string) {
+  return value ? 'configured' : 'not_configured';
 }

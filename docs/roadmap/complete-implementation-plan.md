@@ -16,8 +16,8 @@ visual reference only.
 | --- | --- |
 | Module ownership | Defined by `docs/roadmap/module-roadmap.md` and ADR-013. |
 | Graph/canvas | `/graph/projects` exists as a read-only, permission-filtered project graph. |
-| Integrations | `/integrations` exists with outbox, mock adapter, reconciliation, and retry visibility. |
-| Fabric | Mock anchoring exists through outbox/worker/reconciliation; real Fabric Gateway is not implemented. |
+| Integrations | `/integrations` exists with outbox, mock adapter, reconciliation, retry visibility, and API Fabric mode status. |
+| Fabric | Mock anchoring exists only in explicit mock mode; gateway mode blocks mock anchor success. Real Fabric Gateway is not implemented. |
 | Evidence/audit | Hash records, audit timelines, evidence packs, and honest anchor states exist. |
 | Testing | Unit/component tests and 17 Playwright E2E tests currently pass. |
 | Deployment | Docker Compose deployment exists; Azure Student VM guide records prior smoke evidence. |
@@ -97,6 +97,8 @@ Acceptance:
 
 ## Phase 3 - Worker-Side Real Fabric Gateway Adapter
 
+Status: Partially complete for safety guard only.
+
 Owning module:
 Integrations.
 
@@ -115,7 +117,15 @@ Acceptance:
 - Failed Fabric events retry through outbox.
 - Real Gateway transaction IDs are never fabricated.
 
+Current repository state:
+
+- Worker mock adapter refuses to produce `ANCHORED_MOCK` when `FABRIC_MODE=gateway`.
+- Real Fabric Gateway SDK adapter remains blocked until Fabric network, chaincode,
+  identity material, and SDK implementation are available.
+
 ## Phase 4 - Fabric Metadata API And Status Model
+
+Status: Partially complete for configuration status only.
 
 Owning module:
 Evidence and Audit.
@@ -135,6 +145,13 @@ Acceptance:
 - API responses distinguish mock anchoring from real Gateway anchoring.
 - UI consumers do not infer verification from incomplete metadata.
 - Database schema changes are migration-backed if needed.
+
+Current repository state:
+
+- API exposes Fabric mode/configuration status without leaking gateway endpoint or
+  credential path values.
+- Latest anchor verification metadata and schema-backed real Gateway fields remain
+  blocked until the adapter and chaincode are implemented.
 
 ## Phase 5 - Evidence, Audit, And Hash Verification Workflow
 
@@ -177,6 +194,8 @@ Acceptance:
 
 ## Phase 7 - Integrations And Operations Fabric Gateway Mode UI
 
+Status: Partially complete for API status support only.
+
 Owning module:
 Integrations.
 
@@ -196,7 +215,14 @@ Acceptance:
 - Mock mode is labelled.
 - Failed retries and idempotency keys remain visible.
 
+Current repository state:
+
+- Backend status support is available for a future UI card.
+- Frontend visual card and worker heartbeat remain TODOs.
+
 ## Phase 8 - Unit Test Expansion
+
+Status: Partially complete.
 
 Owning module:
 All affected modules.
@@ -214,6 +240,12 @@ Acceptance:
 - Mock and gateway modes are both covered.
 - Invalid config fails fast.
 - No test depends on real external Fabric unless explicitly marked integration.
+
+Current repository state:
+
+- Config validation tests cover API and worker Fabric env readers.
+- Worker tests prove gateway mode cannot return mock anchor success.
+- API tests prove Fabric status output does not leak gateway endpoint values.
 
 ## Phase 9 - Integration Test Expansion
 
@@ -304,9 +336,12 @@ Acceptance:
 
 ## Immediate Next Work
 
-The first executable slice is Phase 1:
+The next executable slices are:
 
-1. Create ADR-014.
-2. Add Fabric Gateway environment variables.
-3. Add API/worker config readers and tests.
-4. Verify lint, typecheck, tests, and build.
+1. Build the real Fabric chaincode/test-network foundation or confirm an
+   existing network target.
+2. Implement the worker Gateway adapter behind the existing outbox dispatch
+   boundary.
+3. Add database/API metadata for real anchor submission and verification.
+4. Add the frontend Fabric Gateway status card using the new API status summary.
+5. Add gated real Fabric integration tests after the network is available.

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { readFabricEnv } from '../config/fabric-env';
 
 export type AdapterResult = {
   integrationType: string;
@@ -39,6 +40,14 @@ export class MockIntegrationAdapters {
   }
 
   private anchorFabric(payload: Record<string, unknown>): AdapterResult {
+    const fabricEnv = readFabricEnv();
+
+    if (fabricEnv.mode === 'gateway') {
+      throw new Error(
+        'FABRIC_MODE=gateway requires the real Fabric Gateway adapter; mock Fabric anchoring is disabled.',
+      );
+    }
+
     const entityType = this.stringValue(
       payload.entityType,
       this.stringValue(payload.aggregateType, 'Aggregate'),

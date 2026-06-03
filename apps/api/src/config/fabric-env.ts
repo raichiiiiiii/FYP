@@ -18,7 +18,7 @@ export type FabricEnv = {
 
 type EnvSource = Record<string, string | undefined>;
 
-const requiredGatewayVariables = [
+export const fabricGatewayRequiredVariables = [
   'FABRIC_GATEWAY_URL',
   'FABRIC_MSP_ID',
   'FABRIC_CHANNEL',
@@ -45,7 +45,7 @@ export function readFabricEnv(source: EnvSource = process.env): FabricEnv {
   );
 
   if (mode === 'gateway') {
-    for (const variable of requiredGatewayVariables) {
+    for (const variable of fabricGatewayRequiredVariables) {
       requireString(source, variable);
     }
   }
