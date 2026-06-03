@@ -284,6 +284,8 @@ OBJECT_STORAGE_ACCESS_KEY
 OBJECT_STORAGE_SECRET_KEY
 MINIO_ACCESS_KEY
 MINIO_SECRET_KEY
+FABRIC_ENABLED
+FABRIC_MODE
 ```
 
 For a public-IP-only prototype, use:
@@ -314,6 +316,20 @@ POSTGRES_USER=mepn
 POSTGRES_PASSWORD=change_me_to_a_long_random_value
 DATABASE_URL=postgresql://mepn:change_me_to_a_long_random_value@postgres:5432/mepn
 ```
+
+Fabric remains mock-backed by default:
+
+```env
+FABRIC_ENABLED=false
+FABRIC_MODE=mock
+```
+
+For real Fabric Gateway mode, set `FABRIC_ENABLED=true` and
+`FABRIC_MODE=gateway`, then provide the Gateway URL, MSP ID, channel,
+chaincode, peer endpoint, host alias, TLS certificate path, identity certificate
+path, private key path, and submit/commit timeouts. Do not commit Fabric
+identity material. Mount certificate/key files through a private VM path or a
+future secret-management mechanism.
 
 ## 11. Validate Compose Configuration
 

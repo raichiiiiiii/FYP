@@ -1,8 +1,11 @@
+import { readFabricEnv, type FabricEnv } from './fabric-env';
+
 export type WorkerEnv = {
   databaseUrl: string;
   pollIntervalMs: number;
   maxAttempts: number;
   enabled: boolean;
+  fabric: FabricEnv;
 };
 
 function readNumber(name: string, fallback: number) {
@@ -34,5 +37,6 @@ export function readWorkerEnv(): WorkerEnv {
     pollIntervalMs: readNumber('WORKER_POLL_INTERVAL_MS', 5000),
     maxAttempts: readNumber('WORKER_MAX_ATTEMPTS', 5),
     enabled: readString('WORKER_POLL_ENABLED', 'true') !== 'false',
+    fabric: readFabricEnv(),
   };
 }

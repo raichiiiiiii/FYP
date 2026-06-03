@@ -1,9 +1,12 @@
+import { readFabricEnv, type FabricEnv } from './fabric-env';
+
 export type ApiEnv = {
   apiPort: number;
   databaseUrl: string;
   redisUrl: string;
   webOrigin: string;
   nodeEnv: string;
+  fabric: FabricEnv;
 };
 
 function readNumber(name: string, fallback: number): number {
@@ -36,5 +39,6 @@ export function readApiEnv(): ApiEnv {
     redisUrl: readString('REDIS_URL', 'redis://localhost:6379'),
     webOrigin: readString('WEB_ORIGIN', 'http://localhost:5173'),
     nodeEnv: readString('NODE_ENV', 'development'),
+    fabric: readFabricEnv(),
   };
 }
