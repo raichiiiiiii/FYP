@@ -17,25 +17,66 @@ It is not a high-availability regulated production deployment.
 
 ## Current Deployment Status
 
-This runbook is ready for manual execution from an empty Azure Ubuntu VM.
+Manual Azure Student VM deployment has been executed successfully for the MEPN
+MVP Docker Compose stack.
 
-Recorded local readiness:
+Recorded readiness:
 
 - `docker-compose.prod.yml` configuration validates with
   `.env.production.example`.
-- Local `corepack pnpm verify` passed on commit `e19efd2`.
+- Local `corepack pnpm verify` passed on commit `95844ae`.
 - GitHub Actions CI and Azure VM deployment workflows exist.
+- Latest manual deployment verification: `2026-06-03 07:14 UTC`.
+- Latest deployed commit: `95844ae` (`fix: use ipv4 compose health checks`).
+- Verified public endpoint: `http://20.244.24.76/`.
+- Live VM deployment path: `/opt/mepn`.
+- Live VM Docker restart was performed, then the stack was restored with
+  `docker compose -f docker-compose.prod.yml --env-file .env.production up -d`.
+- Live VM `docker compose ps` showed the reverse proxy, frontend, API,
+  PostgreSQL, Redis, and MinIO healthy; the worker was running.
+- Live VM `curl -I http://localhost/` returned `HTTP/1.1 200 OK`.
+- Live VM `curl http://localhost/api/v1/health` returned `status: ok`,
+  `database: ok`, and `redis: ok`.
+- Public HTTP `curl -I http://PUBLIC_IP/` returned `HTTP/1.1 200 OK`.
+- Public HTTP `curl -I http://PUBLIC_IP/dashboard` returned `HTTP/1.1 200 OK`.
+- Public `curl http://PUBLIC_IP/api/v1/health` returned `status: ok`,
+  `database: ok`, and `redis: ok`.
+- Public `/dashboard` returned the React app through the reverse proxy.
 
-Not yet recorded in this repository:
+Public port verification for the current prototype:
 
-- live Azure VM public IP smoke test
-- live `docker compose build` output from the VM
-- live `docker compose ps` output from the VM
-- live `curl http://PUBLIC_IP` output
+| Port | Status | Purpose |
+| --- | --- | --- |
+| `22` | Open | SSH administration |
+| `80` | Open | HTTP reverse proxy |
+| `443` | Closed | HTTPS not configured yet |
+| `3000` | Closed | API is internal behind reverse proxy |
+| `5173` | Closed | Vite dev server is not public |
+| `5432` | Closed | PostgreSQL is internal |
+| `6379` | Closed | Redis is internal |
+| `9000` | Closed | MinIO API is internal |
+| `9001` | Closed | MinIO console is internal |
 
-Do not mark deployment complete for assessment until those live outputs are
-captured privately or added to a deployment/test report without exposing
-secrets.
+Deployment-specific fixes applied during this run:
+
+- API production entrypoint was corrected to start `dist/src/main`.
+- Docker Compose health checks were changed to use `127.0.0.1` instead of
+  `localhost`, avoiding IPv6 localhost resolution issues inside Alpine
+  containers.
+- Old host-level development servers on ports `3000` and `5173` were stopped;
+  production traffic now goes through the reverse proxy on port `80`.
+
+Current deployment notes:
+
+- HTTPS is not configured yet, so public port `443` is intentionally closed.
+- The worker container is running, but it does not yet have a Docker health
+  check. During the Docker restart window, worker logs showed one transient
+  Prisma transaction timeout (`P2028`). The final container inspection showed
+  the worker running with `RestartCount=0`; monitor this in future deployments
+  and add a worker health check/retry hardening when the outbox worker is made
+  production-grade.
+
+Do not commit `.env.production`, SSH keys, or private deployment notes.
 
 ## 2. Target Architecture
 
