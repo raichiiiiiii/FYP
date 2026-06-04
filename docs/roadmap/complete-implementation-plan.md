@@ -194,7 +194,7 @@ Acceptance:
 
 ## Phase 7 - Integrations And Operations Fabric Gateway Mode UI
 
-Status: Partially complete for API status support only.
+Status: Partially complete for API and Integrations UI status support.
 
 Owning module:
 Integrations.
@@ -217,8 +217,10 @@ Acceptance:
 
 Current repository state:
 
-- Backend status support is available for a future UI card.
-- Frontend visual card and worker heartbeat remain TODOs.
+- Backend status support is available.
+- The Integrations page renders Fabric runtime mode/configuration status without
+  leaking gateway endpoint or credential path values.
+- Worker heartbeat remains TODO.
 
 ## Phase 8 - Unit Test Expansion
 

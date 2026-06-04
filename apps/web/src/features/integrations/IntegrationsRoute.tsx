@@ -11,17 +11,22 @@ import type { AppSession, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
 import {
   type OutboxEventView,
+  type FabricRuntimeStatus,
   type ReconciliationRecord,
   type WebhookSubscription,
   useIntegrations,
 } from './api/useIntegrations'
 import { IntegrationStatusCards } from './status/IntegrationStatusCards'
-import { buildIntegrationStatusCards } from './status/integrationStatus.model'
+import {
+  buildFabricRuntimeStatusCard,
+  buildIntegrationStatusCards,
+} from './status/integrationStatus.model'
 
 type IntegrationData = {
   outbox: OutboxEventView[]
   reconciliation: ReconciliationRecord[]
   subscriptions: WebhookSubscription[]
+  fabricStatus: FabricRuntimeStatus | null
 }
 
 type FabricForm = {
@@ -67,6 +72,7 @@ const emptyData: IntegrationData = {
   outbox: [],
   reconciliation: [],
   subscriptions: [],
+  fabricStatus: null,
 }
 
 export function IntegrationsRoute({
@@ -80,6 +86,7 @@ export function IntegrationsRoute({
     listOutbox,
     listReconciliation,
     listWebhookSubscriptions,
+    getFabricStatus,
     queueFabricAnchor,
     queueEsignPackage,
     queueErpSync,
@@ -130,14 +137,16 @@ export function IntegrationsRoute({
   const loadIntegrations = useCallback(async () => {
     setDataState({ status: 'loading' })
     try {
-      const [outbox, reconciliation, subscriptions] = await Promise.all([
-        listOutbox(),
-        listReconciliation(),
-        listWebhookSubscriptions(),
-      ])
+      const [outbox, reconciliation, subscriptions, fabricStatus] =
+        await Promise.all([
+          listOutbox(),
+          listReconciliation(),
+          listWebhookSubscriptions(),
+          getFabricStatus(),
+        ])
       setDataState({
         status: 'ready',
-        data: { outbox, reconciliation, subscriptions },
+        data: { outbox, reconciliation, subscriptions, fabricStatus },
       })
     } catch (error) {
       setDataState({
@@ -148,7 +157,12 @@ export function IntegrationsRoute({
             : 'Unable to load integration status',
       })
     }
-  }, [listOutbox, listReconciliation, listWebhookSubscriptions])
+  }, [
+    getFabricStatus,
+    listOutbox,
+    listReconciliation,
+    listWebhookSubscriptions,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -180,6 +194,13 @@ export function IntegrationsRoute({
           })
         : [],
     [data.outbox, data.reconciliation, data.subscriptions, dataState.status],
+  )
+  const fabricRuntimeStatus = useMemo(
+    () =>
+      dataState.status === 'ready'
+        ? buildFabricRuntimeStatusCard(data.fabricStatus)
+        : null,
+    [data.fabricStatus, dataState.status],
   )
 
   const submitFabric = useCallback(async () => {
@@ -365,6 +386,16 @@ export function IntegrationsRoute({
 
       {integrationStatuses.length ? (
         <IntegrationStatusCards statuses={integrationStatuses} />
+      ) : null}
+
+      {fabricRuntimeStatus ? (
+        <>
+          <IntegrationStatusCards
+            statuses={[fabricRuntimeStatus]}
+            title="Fabric runtime mode"
+          />
+          <FabricRuntimeSummary fabricStatus={data.fabricStatus} />
+        </>
       ) : null}
 
       <section className="integration-ops-grid" aria-label="Integration controls summary">
@@ -703,6 +734,77 @@ function IntegrationActionPanel({
         This queues an outbox event for the mock adapter boundary.
       </p>
       {children}
+    </section>
+  )
+}
+
+function FabricRuntimeSummary({
+  fabricStatus,
+}: {
+  fabricStatus: FabricRuntimeStatus | null
+}) {
+  if (!fabricStatus) {
+    return null
+  }
+
+  return (
+    <section
+      className="details-grid integration-summary-grid"
+      aria-label="Fabric runtime configuration"
+    >
+      <article>
+        <span>Mode</span>
+        <strong>{fabricStatus.mode}</strong>
+      </article>
+      <article>
+        <span>Gateway configuration</span>
+        <strong>
+          {fabricStatus.gatewayConfigured ? 'Present' : 'Incomplete'}
+        </strong>
+      </article>
+      <article>
+        <span>Gateway adapter</span>
+        <strong>
+          {fabricStatus.realGatewayAdapterImplemented
+            ? 'Implemented'
+            : 'Not implemented'}
+        </strong>
+      </article>
+      <article>
+        <span>Security boundary</span>
+        <strong>{fabricStatus.securityBoundary}</strong>
+      </article>
+      <article>
+        <span>Channel</span>
+        <strong>{fabricStatus.configuredChannel}</strong>
+      </article>
+      <article>
+        <span>Chaincode</span>
+        <strong>{fabricStatus.configuredChaincode}</strong>
+      </article>
+      <article>
+        <span>MSP identity</span>
+        <strong>{fabricStatus.configuredMspId}</strong>
+      </article>
+      <article>
+        <span>Timeouts</span>
+        <strong>
+          {fabricStatus.submitTimeoutMs}ms submit /{' '}
+          {fabricStatus.commitTimeoutMs}ms commit
+        </strong>
+      </article>
+      <article className="wide">
+        <span>Missing gateway config</span>
+        <strong>
+          {fabricStatus.missingGatewayConfig.length
+            ? fabricStatus.missingGatewayConfig.join(', ')
+            : 'None reported'}
+        </strong>
+      </article>
+      <article className="wide">
+        <span>Operational note</span>
+        <strong>{fabricStatus.message}</strong>
+      </article>
     </section>
   )
 }

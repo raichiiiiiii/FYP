@@ -26,6 +26,14 @@ test('SRS-INT-001 integrations queue actions through outbox and expose retry-rea
   await expect(
     page.getByRole('heading', { name: 'Outbox adapter control' }),
   ).toBeVisible();
+  const fabricRuntime = page
+    .locator('.status-card-section')
+    .filter({ hasText: 'Fabric runtime mode' });
+  await expect(fabricRuntime.getByText('Fabric Gateway mode')).toBeVisible();
+  await expect(fabricRuntime.getByText('Mock adapter')).toBeVisible();
+  await expect(
+    page.locator('section[aria-label="Fabric runtime configuration"]'),
+  ).toContainText('document hashes and minimal metadata only');
 
   const fabricPanel = page
     .locator('.integration-action-panel')

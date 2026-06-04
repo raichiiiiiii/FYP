@@ -2458,6 +2458,11 @@ textarea {
   color: #176342;
 }
 
+.status-card-mode--real_gateway_required {
+  background: #fef3c7;
+  color: #765414;
+}
+
 .status-card--healthy {
   border-color: #b9dfcf;
 }

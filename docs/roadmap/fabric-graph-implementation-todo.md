@@ -18,10 +18,10 @@ decisions, or deeper backend implementation.
 | 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values. | Real anchor metadata, verification metadata, and schema/API updates remain required. |
 | 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. | Needs real Gateway transaction/chaincode verification once adapter exists. |
 | 6 | Graph UI Fabric anchor overlay | Not complete. | Needs backend read model for anchor/hash nodes and permission-filtered overlay data. |
-| 7 | Integrations and operations Gateway mode UI | Partially complete. Backend status support exists. | Frontend Fabric mode card and worker health heartbeat remain required. |
+| 7 | Integrations and operations Gateway mode UI | Partially complete. Backend status support and frontend Fabric mode/status card exist. | Worker health heartbeat remains required. |
 | 8 | Unit test expansion | Partially complete. Config, API status, and gateway-mode mock-guard tests exist. | Adapter, graph overlay, verification-helper, and permission-label tests remain required. |
 | 9 | Integration test expansion | Not complete. | Requires local Fabric test network or gated CI service. |
-| 10 | Browser E2E and screenshot documentation | Not complete. | Requires UI card/graph overlay and seeded real/mock anchor states. |
+| 10 | Browser E2E and screenshot documentation | Partially complete. E2E now confirms the Fabric runtime card on the Integrations route. | Graph overlay E2E, screenshot documentation, and seeded real/mock anchor states remain required. |
 | 11 | UAT testing | Not complete. | Requires stable demo data, UAT scripts, and clear mock-vs-real Gateway instructions. |
 | 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs. | Needs optional gated Fabric integration workflow and Azure VM secret-mount instructions. |
 | 13 | Post-demo product hardening | Not complete. | Requires product hardening backlog execution. |
@@ -38,7 +38,7 @@ decisions, or deeper backend implementation.
 | FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacks final canonicalization detail from backend. | Verification UX may be underspecified for auditors. | Document canonical hash input format and align API/helper tests. | Evidence / Audit | Open |
 | FG-007 | 6 | Graph anchor overlay data | Backend graph read model does not expose anchor/hash overlay nodes. | Graph cannot visualize Fabric/evidence relationships. | Extend graph read model with permission-filtered anchor/hash nodes and edges. | Graph / Evidence | Open |
 | FG-008 | 7 | Worker health | Worker has no health heartbeat/status endpoint. | Operations UI cannot distinguish idle, stopped, degraded, and unavailable worker states. | Add worker heartbeat table or API health endpoint and surface it in operations UI. | Operations | Open |
-| FG-009 | 7 | Gateway UI card | Frontend does not yet render the Fabric mode/status endpoint. | Reviewers must inspect API/docs to see mock vs gateway mode. | Add Integrations/Operations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Open |
+| FG-009 | 7 | Gateway UI card | Frontend did not render the Fabric mode/status endpoint. | Reviewers previously had to inspect API/docs to see mock vs gateway mode. | Added Integrations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Closed |
 | FG-010 | 9 | Real integration tests | No gated real Fabric integration test environment exists. | CI cannot prove real Gateway anchoring. | Add optional CI job gated by Fabric secrets or run local Fabric network in integration tests. | QA / Operations | Open |
 | FG-011 | 10 | E2E evidence states | Browser tests cannot cover real verified Fabric state without real adapter or controlled fixture endpoint. | UI screenshot documentation remains limited to mock/pending/failed states. | Add seeded mock and real-mode test cases once API model and adapter exist. | QA | Open |
 | FG-012 | 11 | UAT instructions | UAT materials do not yet include real Gateway setup and evidence capture. | Reviewers may confuse mock prototype state with real Fabric verification. | Update UAT checklist with environment mode, transaction ID, chaincode, and verification evidence fields. | QA / Product | Open |
@@ -87,8 +87,8 @@ decisions, or deeper backend implementation.
 
 ### Phase 7 - Integrations And Operations UI
 
-- [ ] Add frontend API hook for Fabric status endpoint.
-- [ ] Add Fabric status card showing mock, gateway, degraded, unavailable, pending, and retrying states.
+- [x] Add frontend API hook for Fabric status endpoint.
+- [x] Add Fabric status card showing mock, gateway, degraded, unavailable, pending, and retrying states.
 - [ ] Add worker heartbeat/queue status support.
 - [ ] Link operations screen to deployment runbook.
 
@@ -97,9 +97,9 @@ decisions, or deeper backend implementation.
 - [x] Cover API and worker Fabric env config readers.
 - [x] Cover worker gateway-mode mock guard.
 - [x] Cover API Fabric status redaction.
+- [x] Cover frontend Fabric status card.
 - [ ] Cover real Gateway adapter with mocked SDK.
 - [ ] Cover graph overlay mapper and permission labels.
-- [ ] Cover frontend Fabric status card.
 
 ### Phase 9 - Integration Tests
 
@@ -110,7 +110,7 @@ decisions, or deeper backend implementation.
 
 ### Phase 10 - Browser E2E And Screenshots
 
-- [ ] Add Playwright flow for Fabric status card.
+- [x] Add Playwright flow for Fabric status card.
 - [ ] Add Playwright flow for graph anchor overlay.
 - [ ] Add screenshots for mock, pending, failed, unavailable, and verified states.
 - [ ] Ensure screenshots never label mock anchors as real verified Fabric.
@@ -150,7 +150,13 @@ Last local verification date: 2026-06-04.
 | `corepack pnpm build` | Passed | Web, API, and worker production builds completed. |
 | `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production compose config renders with mock Fabric defaults. |
 | `corepack pnpm test:e2e` | Passed | 17/17 Playwright tests passed against clean E2E database. |
+| `corepack pnpm --dir apps/web test -- --run integrations` | Passed | Covers Fabric runtime status mapping and integration status cards. |
+| `corepack pnpm exec playwright test tests/e2e/13-integrations-outbox-control.spec.ts` | Passed | Confirms the Fabric runtime mode card appears on the Integrations route. |
 
 Note: real Fabric Gateway integration tests were not run because no real Fabric
 network, channel, chaincode, MSP identity, TLS material, or Gateway adapter is
 available yet.
+
+Browser plugin note: the in-app browser handle was unavailable in this session,
+so the rendered-route check was performed through Playwright against the local
+web app instead.

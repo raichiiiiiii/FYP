@@ -29,6 +29,22 @@ export type IntegrationStatusCard = {
     | 'mock_adapter'
     | 'configuration_only'
     | 'historical_reconciliation'
+    | 'real_gateway_required'
+}
+
+export type FabricRuntimeStatusSummary = {
+  enabled: boolean
+  mode: 'mock' | 'gateway'
+  gatewayConfigured: boolean
+  realGatewayAdapterImplemented: boolean
+  missingGatewayConfig: string[]
+  configuredChannel: 'configured' | 'not_configured'
+  configuredChaincode: 'configured' | 'not_configured'
+  configuredMspId: 'configured' | 'not_configured'
+  submitTimeoutMs: number
+  commitTimeoutMs: number
+  securityBoundary: string
+  message: string
 }
 
 export type IntegrationQueueEvent = {
@@ -158,6 +174,59 @@ export function buildIntegrationStatusCards({
         'Finance API health is not configured; requests must go through outbox.',
     }),
   ]
+}
+
+export function buildFabricRuntimeStatusCard(
+  fabricStatus: FabricRuntimeStatusSummary | null,
+): IntegrationStatusCard {
+  if (!fabricStatus) {
+    return {
+      id: 'fabric-runtime',
+      name: 'Fabric Gateway mode',
+      type: 'fabric',
+      status: 'unavailable',
+      message:
+        'Fabric runtime status could not be loaded from the API. Treat Gateway readiness as unverified.',
+      evidence: 'configuration',
+      mode: 'configuration_only',
+    }
+  }
+
+  if (fabricStatus.mode === 'mock') {
+    return {
+      id: 'fabric-runtime',
+      name: 'Fabric Gateway mode',
+      type: 'fabric',
+      status: fabricStatus.enabled ? 'pending' : 'not_configured',
+      message: fabricStatus.message,
+      evidence: 'configuration',
+      mode: 'mock_adapter',
+    }
+  }
+
+  if (!fabricStatus.gatewayConfigured || fabricStatus.missingGatewayConfig.length) {
+    return {
+      id: 'fabric-runtime',
+      name: 'Fabric Gateway mode',
+      type: 'fabric',
+      status: 'degraded',
+      message: `Gateway mode is selected, but ${fabricStatus.missingGatewayConfig.length} required configuration value(s) are missing.`,
+      evidence: 'configuration',
+      mode: 'real_gateway_required',
+    }
+  }
+
+  return {
+    id: 'fabric-runtime',
+    name: 'Fabric Gateway mode',
+    type: 'fabric',
+    status: fabricStatus.realGatewayAdapterImplemented ? 'pending' : 'degraded',
+    message: fabricStatus.realGatewayAdapterImplemented
+      ? 'Gateway configuration is present. Live anchor health still depends on worker and chaincode verification.'
+      : fabricStatus.message,
+    evidence: 'configuration',
+    mode: 'real_gateway_required',
+  }
 }
 
 export function buildOperationalHealthItems({
@@ -293,6 +362,7 @@ export function integrationModeLabel(mode: IntegrationStatusCard['mode']) {
     mock_adapter: 'Mock adapter',
     configuration_only: 'Configuration only',
     historical_reconciliation: 'Historical reconciliation',
+    real_gateway_required: 'Real Gateway required',
   }
 
   return labels[mode]

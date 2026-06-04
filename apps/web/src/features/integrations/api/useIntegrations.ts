@@ -58,6 +58,22 @@ export type WebhookSubscription = {
   updatedAt: string
 }
 
+export type FabricRuntimeStatus = {
+  enabled: boolean
+  mode: 'mock' | 'gateway'
+  gatewayConfigured: boolean
+  realGatewayAdapterImplemented: boolean
+  anchorResultSource: string
+  missingGatewayConfig: string[]
+  configuredChannel: 'configured' | 'not_configured'
+  configuredChaincode: 'configured' | 'not_configured'
+  configuredMspId: 'configured' | 'not_configured'
+  submitTimeoutMs: number
+  commitTimeoutMs: number
+  securityBoundary: string
+  message: string
+}
+
 type RequestBody = Record<string, unknown>
 
 export function useIntegrations(session: AppSession) {
@@ -108,6 +124,15 @@ export function useIntegrations(session: AppSession) {
       )
     },
     [fetchQuery, organizationId],
+  )
+
+  const getFabricStatus = useCallback(
+    <T = FabricRuntimeStatus>() =>
+      fetchQuery<T>(
+        queryKeys.integrations.fabricStatus,
+        endpoints.integrations.fabricStatus,
+      ),
+    [fetchQuery],
   )
 
   const queueFabricAnchor = useCallback(
@@ -180,6 +205,7 @@ export function useIntegrations(session: AppSession) {
     listOutbox,
     listReconciliation,
     listWebhookSubscriptions,
+    getFabricStatus,
     queueFabricAnchor,
     queueEsignPackage,
     queueErpSync,

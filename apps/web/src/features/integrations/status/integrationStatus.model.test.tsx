@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { IntegrationStatusCards } from './IntegrationStatusCards'
 import {
+  buildFabricRuntimeStatusCard,
   buildIntegrationStatusCards,
   buildOperationalHealthItems,
   summarizeOperationalHealth,
@@ -151,5 +152,57 @@ describe('integration and operations status model', () => {
     expect(html).toContain('Degraded')
     expect(html).toContain('Mock adapter')
     expect(html).toContain('not_configured')
+  })
+
+  it('maps mock Fabric runtime status without claiming real Gateway readiness', () => {
+    const status = buildFabricRuntimeStatusCard({
+      enabled: false,
+      mode: 'mock',
+      gatewayConfigured: false,
+      realGatewayAdapterImplemented: false,
+      missingGatewayConfig: [],
+      configuredChannel: 'not_configured',
+      configuredChaincode: 'not_configured',
+      configuredMspId: 'not_configured',
+      submitTimeoutMs: 30000,
+      commitTimeoutMs: 30000,
+      securityBoundary: 'document hashes and minimal metadata only',
+      message:
+        'Fabric anchoring is running in explicit mock mode for prototype and local testing.',
+    })
+
+    expect(status.status).toBe('not_configured')
+    expect(status.mode).toBe('mock_adapter')
+    expect(status.message).toContain('mock mode')
+  })
+
+  it('maps configured Gateway mode as degraded until the real adapter exists', () => {
+    const status = buildFabricRuntimeStatusCard({
+      enabled: true,
+      mode: 'gateway',
+      gatewayConfigured: true,
+      realGatewayAdapterImplemented: false,
+      missingGatewayConfig: [],
+      configuredChannel: 'configured',
+      configuredChaincode: 'configured',
+      configuredMspId: 'configured',
+      submitTimeoutMs: 30000,
+      commitTimeoutMs: 30000,
+      securityBoundary: 'document hashes and minimal metadata only',
+      message:
+        'Gateway mode is configured, but the real Fabric Gateway adapter remains a roadmap item. Mock anchoring is disabled in this mode.',
+    })
+
+    expect(status.status).toBe('degraded')
+    expect(status.mode).toBe('real_gateway_required')
+    expect(status.message).toContain('real Fabric Gateway adapter remains')
+  })
+
+  it('maps missing Fabric status as unavailable', () => {
+    const status = buildFabricRuntimeStatusCard(null)
+
+    expect(status.status).toBe('unavailable')
+    expect(status.mode).toBe('configuration_only')
+    expect(status.message).toContain('could not be loaded')
   })
 })
