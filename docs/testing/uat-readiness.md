@@ -79,6 +79,12 @@ Use these labels during UAT evidence capture:
 Do not mark a scenario as production-ready solely because a fixture or mock
 adapter produced a useful visual state.
 
+For hash verification review, use:
+
+```text
+docs/evidence/canonical-hash-verification.md
+```
+
 ## UAT Groups
 - SME admin
 - Procurement officer

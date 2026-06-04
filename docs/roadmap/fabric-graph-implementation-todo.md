@@ -35,7 +35,7 @@ decisions, or deeper backend implementation.
 | FG-003 | 3 | Worker adapter | Real Fabric Gateway SDK adapter is not implemented. | Gateway mode cannot submit anchors; worker correctly refuses mock success in gateway mode. | Add Fabric SDK dependency and implement adapter behind the current outbox dispatch boundary. | Integrations | Open |
 | FG-004 | 3 | Idempotency | Gateway submit idempotency behavior is not designed. | Retried outbox events could duplicate chaincode writes if adapter is added naively. | Use outbox idempotency keys and deterministic anchor IDs in chaincode and worker adapter. | Integrations | Open |
 | FG-005 | 4 | Database metadata | Current anchor schema is sufficient for mock anchors but not fully modeled for real submit/commit/verify lifecycle. | API cannot show complete real Gateway evidence. | Add migration-backed fields or metadata shaping for transaction ID, block number, commit status, chaincode name, channel, and verification timestamp. | Evidence / Audit | Open |
-| FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacks final canonicalization detail from backend. | Verification UX may be underspecified for auditors. | Document canonical hash input format and align API/helper tests. | Evidence / Audit | Open |
+| FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacked canonicalization detail from backend. | Verification UX was underspecified for auditors. | Added canonical hash verification guide based on `AuditHashService` behavior. | Evidence / Audit | Closed |
 | FG-007 | 6 | Graph anchor overlay data | Backend graph read model does not expose anchor/hash overlay nodes. | Graph cannot visualize Fabric/evidence relationships. | Extend graph read model with permission-filtered anchor/hash nodes and edges. | Graph / Evidence | Open |
 | FG-008 | 7 | Worker health | Worker has no health heartbeat/status endpoint. | Operations UI cannot distinguish idle, stopped, degraded, and unavailable worker states. | Add worker heartbeat table or API health endpoint and surface it in operations UI. | Operations | Open |
 | FG-009 | 7 | Gateway UI card | Frontend did not render the Fabric mode/status endpoint. | Reviewers previously had to inspect API/docs to see mock vs gateway mode. | Added Integrations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Closed |
@@ -73,7 +73,7 @@ decisions, or deeper backend implementation.
 
 ### Phase 5 - Evidence And Audit Verification
 
-- [ ] Add reviewer-facing canonical hash explanation.
+- [x] Add reviewer-facing canonical hash explanation.
 - [ ] Link audit events to real Gateway verification records.
 - [ ] Show real transaction/chaincode references only when backend evidence exists.
 - [ ] Add tests for every Fabric anchor display state.

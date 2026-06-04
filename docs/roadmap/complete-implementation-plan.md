@@ -155,6 +155,8 @@ Current repository state:
 
 ## Phase 5 - Evidence, Audit, And Hash Verification Workflow
 
+Status: Partially complete.
+
 Owning module:
 Evidence and Audit.
 
@@ -170,6 +172,15 @@ Acceptance:
 - Verification requires canonical hash plus real Fabric transaction/chaincode evidence.
 - Pending and failed anchors remain visible.
 - Tests cover all anchor display states.
+
+Current repository state:
+
+- Reviewer-facing canonical hash verification behavior is documented in
+  `docs/evidence/canonical-hash-verification.md`.
+- Evidence/audit UI already distinguishes local hash evidence from mock Fabric
+  anchor status.
+- Real Gateway transaction verification remains blocked until chaincode,
+  adapter, and database metadata are implemented.
 
 ## Phase 6 - Graph UI Fabric Anchor Overlay
 
