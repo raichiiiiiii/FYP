@@ -296,6 +296,8 @@ Acceptance:
 
 ## Phase 11 - UAT Testing
 
+Status: Partially complete for UAT preparation docs.
+
 Owning module:
 Operations / QA.
 
@@ -309,6 +311,13 @@ Acceptance:
 
 - UAT testers can distinguish API-backed data, fixtures, mock adapters, and real Gateway evidence.
 - Critical workflow defects are logged with reproducible seed and environment data.
+
+Current repository state:
+
+- UAT checklist records Fabric mode and evidence source.
+- UAT evidence package template exists.
+- Tester instructions explain mock vs gateway interpretation.
+- Formal reviewer-led UAT execution remains TODO.
 
 ## Phase 12 - CI, Deployment, And Release Readiness
 
@@ -337,6 +346,8 @@ Current repository state:
   containers for future Gateway certificate/key material.
 - Azure VM deployment docs explain mock mode, Gateway mode, and VM-side Fabric
   certificate placement.
+- `docs/release-notes/fabric-gateway-readiness.md` separates demo/mock readiness
+  from real Gateway readiness.
 - Optional real Fabric integration CI and automated secret delivery remain TODOs.
 
 ## Phase 13 - Post-Demo Product Hardening

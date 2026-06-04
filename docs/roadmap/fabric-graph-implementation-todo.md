@@ -22,8 +22,8 @@ decisions, or deeper backend implementation.
 | 8 | Unit test expansion | Partially complete. Config, API status, and gateway-mode mock-guard tests exist. | Adapter, graph overlay, verification-helper, and permission-label tests remain required. |
 | 9 | Integration test expansion | Not complete. | Requires local Fabric test network or gated CI service. |
 | 10 | Browser E2E and screenshot documentation | Partially complete. E2E now confirms the Fabric runtime card on the Integrations route. | Graph overlay E2E, screenshot documentation, and seeded real/mock anchor states remain required. |
-| 11 | UAT testing | Not complete. | Requires stable demo data, UAT scripts, and clear mock-vs-real Gateway instructions. |
-| 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs. | Needs optional gated Fabric integration workflow and Azure VM secret-mount instructions. |
+| 11 | UAT testing | Partially complete. Fabric mode/evidence fields, evidence package template, and mock-vs-gateway tester instructions exist. | Formal reviewer-led UAT execution remains required. |
+| 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs, Fabric secret-mount docs, and release note. | Needs optional gated Fabric integration workflow and automated secret delivery. |
 | 13 | Post-demo product hardening | Not complete. | Requires product hardening backlog execution. |
 
 ## Blockers
@@ -41,7 +41,7 @@ decisions, or deeper backend implementation.
 | FG-009 | 7 | Gateway UI card | Frontend did not render the Fabric mode/status endpoint. | Reviewers previously had to inspect API/docs to see mock vs gateway mode. | Added Integrations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Closed |
 | FG-010 | 9 | Real integration tests | No gated real Fabric integration test environment exists. | CI cannot prove real Gateway anchoring. | Add optional CI job gated by Fabric secrets or run local Fabric network in integration tests. | QA / Operations | Open |
 | FG-011 | 10 | E2E evidence states | Browser tests cannot cover real verified Fabric state without real adapter or controlled fixture endpoint. | UI screenshot documentation remains limited to mock/pending/failed states. | Add seeded mock and real-mode test cases once API model and adapter exist. | QA | Open |
-| FG-012 | 11 | UAT instructions | UAT materials do not yet include real Gateway setup and evidence capture. | Reviewers may confuse mock prototype state with real Fabric verification. | Update UAT checklist with environment mode, transaction ID, chaincode, and verification evidence fields. | QA / Product | Open |
+| FG-012 | 11 | UAT instructions | UAT materials previously lacked real Gateway setup and evidence capture fields. | Reviewers could confuse mock prototype state with real Fabric verification. | Added Fabric mode/evidence fields, UAT evidence package template, and mock-vs-gateway tester instructions. | QA / Product | Closed |
 | FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. GitHub Actions secret handling for Fabric materials is not implemented. | Gateway mode has a documented VM file-mount path, but automated secret delivery remains blocked. | Add GitHub Actions or external secret-manager handling for Fabric materials when real Gateway deployment is ready. | Operations | Partial |
 | FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, and accessibility automation remain outside the Fabric slice. | Demo can proceed with caveats, but production readiness is incomplete. | Track these in post-demo hardening backlog with owners and acceptance tests. | Product / Engineering | Open |
 
@@ -118,15 +118,15 @@ decisions, or deeper backend implementation.
 ### Phase 11 - UAT
 
 - [x] Update UAT checklist with Fabric mode and verification evidence fields.
-- [ ] Add UAT evidence package template.
-- [ ] Add tester instructions for mock vs gateway mode.
+- [x] Add UAT evidence package template.
+- [x] Add tester instructions for mock vs gateway mode.
 
 ### Phase 12 - CI, Deployment, Release Readiness
 
 - [ ] Add optional gated Fabric integration CI job.
 - [x] Add Azure VM Fabric secret-mount documentation.
 - [ ] Add GitHub Actions or external secret-manager handling for Fabric cert/key material.
-- [ ] Add release note separating demo mock mode from real Gateway readiness.
+- [x] Add release note separating demo mock mode from real Gateway readiness.
 
 ### Phase 13 - Post-Demo Hardening
 

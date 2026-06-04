@@ -107,6 +107,26 @@ to the `FINANCIER_USER` role until a separate finance operations role is added.
 - Prototype URL and build identifier
 - Fabric mode screenshot and evidence source label
 
+Use the evidence package template:
+
+```text
+docs/testing/uat-evidence-package-template.md
+```
+
+## Mock Vs Gateway Tester Instructions
+
+Before testing any evidence, audit, integration, graph, or closure scenario:
+
+1. Open the Integrations screen.
+2. Record the Fabric runtime mode.
+3. If mode is `mock`, treat anchor evidence as adapter-only evidence.
+4. If mode is `gateway`, confirm the real adapter is implemented and Gateway
+   configuration is present before treating any anchor as external evidence.
+5. If an outbox event is pending, retrying, failed, or unavailable, record the
+   scenario as blocked or partial rather than verified.
+6. Do not treat mock transaction IDs, mock reconciliation records, or fixture
+   graph states as real Fabric proof.
+
 ## Exit Criteria
 UAT can be marked complete when:
 
