@@ -13,7 +13,7 @@ decisions, or deeper backend implementation.
 |---|---|---|---|
 | 0 | Roadmap baseline and traceability | Complete. Module roadmap, graph feature intake, integration outbox feature intake, and implementation plan exist. | None. |
 | 1 | Fabric Gateway ADR and environment contract | Complete. ADR-014, env contract, API/worker config readers, and config tests exist. | None. |
-| 2 | Fabric chaincode and local test network | Not complete. | Blocked by chaincode contract implementation, local Fabric network setup, and Fabric toolchain. |
+| 2 | Fabric chaincode and local test network | Partially complete. Local test-network plan and artifact ignore policy exist. | Blocked by chaincode contract implementation, local Fabric network setup, and Fabric toolchain. |
 | 3 | Worker real Fabric Gateway adapter | Partially complete. Gateway mode now blocks mock anchor success. | Real Fabric Gateway SDK adapter remains required. |
 | 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values. | Real anchor metadata, verification metadata, and schema/API updates remain required. |
 | 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. | Needs real Gateway transaction/chaincode verification once adapter exists. |
@@ -52,8 +52,8 @@ decisions, or deeper backend implementation.
 - [ ] Define chaincode package location and language.
 - [ ] Implement hash-only audit anchor chaincode.
 - [ ] Add chaincode unit tests.
-- [ ] Add local Fabric test network instructions.
-- [ ] Ensure generated certs, keys, ledgers, and channel artifacts are ignored.
+- [x] Add local Fabric test network instructions.
+- [x] Ensure generated certs, keys, ledgers, and channel artifacts are ignored.
 
 ### Phase 3 - Worker Real Gateway Adapter
 

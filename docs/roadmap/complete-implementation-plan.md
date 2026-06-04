@@ -78,6 +78,8 @@ Acceptance:
 
 ## Phase 2 - Fabric Chaincode And Local Test Network Foundation
 
+Status: Partially complete for planning and artifact hygiene.
+
 Owning module:
 Integrations.
 
@@ -94,6 +96,14 @@ Acceptance:
 - No confidential procurement, finance, contract, invoice, or document payloads
   are written on-chain.
 - Local test network can be started by developers without affecting demo mode.
+
+Current repository state:
+
+- Local Fabric test-network plan exists in `docs/fabric/local-test-network.md`.
+- Future Fabric workspace artifact ignore rules exist in `integrations/fabric/.gitignore`.
+- Chaincode source and tests remain blocked because the local Go/Fabric toolchain
+  is not installed in this environment and the chaincode language/package has
+  not been finalized.
 
 ## Phase 3 - Worker-Side Real Fabric Gateway Adapter
 
