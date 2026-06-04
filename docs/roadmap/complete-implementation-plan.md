@@ -301,6 +301,8 @@ Acceptance:
 
 ## Phase 12 - CI, Deployment, And Release Readiness
 
+Status: Partially complete for CI, Compose config, and Azure VM Fabric secret-mount documentation.
+
 Owning module:
 Operations.
 
@@ -316,6 +318,15 @@ Acceptance:
 - Pull requests run static checks, tests, and builds.
 - Real Fabric secrets are not committed.
 - Demo and production modes are documented separately.
+
+Current repository state:
+
+- CI and deployment workflows exist from prior phases.
+- Production Compose mounts `deploy/fabric` read-only into API and worker
+  containers for future Gateway certificate/key material.
+- Azure VM deployment docs explain mock mode, Gateway mode, and VM-side Fabric
+  certificate placement.
+- Optional real Fabric integration CI and automated secret delivery remain TODOs.
 
 ## Phase 13 - Post-Demo Product Hardening
 

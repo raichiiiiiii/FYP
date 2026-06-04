@@ -331,6 +331,70 @@ path, private key path, and submit/commit timeouts. Do not commit Fabric
 identity material. Mount certificate/key files through a private VM path or a
 future secret-management mechanism.
 
+### Fabric Gateway Certificate Mount
+
+The production Compose file mounts this repository path:
+
+```text
+deploy/fabric/
+```
+
+into the API and worker containers as:
+
+```text
+/run/secrets/fabric
+```
+
+The directory is committed with only a README and `.gitignore`. Runtime
+certificate and key files must be copied onto the VM manually and must never be
+committed.
+
+Example VM setup for Gateway mode:
+
+```bash
+cd /opt/mepn
+mkdir -p deploy/fabric
+chmod 700 deploy/fabric
+
+# Copy these files through SCP, SFTP, or another private channel.
+# Do not create them in Git and do not paste private keys into logs.
+ls -l deploy/fabric
+```
+
+Expected runtime files:
+
+```text
+deploy/fabric/client.crt
+deploy/fabric/client.key
+deploy/fabric/ca.crt
+```
+
+Recommended `.env.production` values for those mounted files:
+
+```env
+FABRIC_ENABLED=true
+FABRIC_MODE=gateway
+FABRIC_IDENTITY_CERT_PATH=/run/secrets/fabric/client.crt
+FABRIC_PRIVATE_KEY_PATH=/run/secrets/fabric/client.key
+FABRIC_TLS_CERT_PATH=/run/secrets/fabric/ca.crt
+```
+
+Also set:
+
+```env
+FABRIC_GATEWAY_URL=grpcs://YOUR_FABRIC_GATEWAY:7051
+FABRIC_MSP_ID=YOUR_MSP_ID
+FABRIC_CHANNEL=YOUR_CHANNEL
+FABRIC_CHAINCODE=YOUR_CHAINCODE
+FABRIC_PEER_ENDPOINT=YOUR_PEER_ENDPOINT
+FABRIC_GATEWAY_HOST_ALIAS=YOUR_PEER_HOST_ALIAS
+```
+
+Current limitation: Gateway mode is configuration-guarded, but the real worker
+Fabric Gateway adapter and chaincode are still roadmap items. If
+`FABRIC_MODE=gateway` is enabled before the real adapter exists, Fabric anchor
+requests must fail/retry instead of producing mock success.
+
 ## 11. Validate Compose Configuration
 
 ```bash

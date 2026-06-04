@@ -21,6 +21,7 @@ prototype/staging build.
 | Closure pack contains reviewable evidence | Closure pack screenshot and linked evidence pack export captured | Ready for review |
 | Deployment is stable | Prototype/staging URL, build identifier, and smoke-test result recorded | Pending deployment confirmation |
 | Demo data seeding is repeatable | `pnpm seed:uat` output attached with organization/user IDs | Ready for review |
+| Fabric runtime boundary is visible | Integrations screen screenshot showing mock or gateway mode, adapter implementation status, and missing config if any | Ready for review |
 
 ## UAT Environment
 - Environment: prototype/staging
@@ -29,6 +30,8 @@ prototype/staging build.
 - Web URL: record before session
 - Database: seeded UAT data only
 - External integrations: mock adapters through outbox only
+- Fabric mode: record `mock` or `gateway` from the Integrations screen before
+  each session
 
 ## Repeatable Demo Data
 Run the seed command after the API is running:
@@ -70,6 +73,7 @@ Use these labels during UAT evidence capture:
 | API-backed seeded data | Created through `pnpm seed:uat` against the running API and PostgreSQL database | Organization, users, memberships, procurement records, evidence pack, finance application, contract, disbursement, ledger, P/L, closure, integration notification |
 | Frontend fixture/demo data | Typed local fixtures used for tests or illustrative UI states where backend summary DTOs are incomplete | Dashboard KPIs, graph example fixture, audit verification edge states |
 | Mock adapter state | External provider behavior routed through mock adapters/outbox | Fabric, ERP, e-signature, finance API/webhook notification |
+| Real Gateway evidence | Fabric Gateway transaction and chaincode evidence produced by the backend/worker after real adapter implementation | Not available until chaincode, identity material, and worker adapter are implemented |
 | Not implemented | Capability intentionally unavailable or disabled | Report exports, production OIDC, worker heartbeat, saved graph layouts |
 
 Do not mark a scenario as production-ready solely because a fixture or mock
@@ -95,6 +99,7 @@ to the `FINANCIER_USER` role until a separate finance operations role is added.
 - Supervisor review notes
 - Seed output JSON
 - Prototype URL and build identifier
+- Fabric mode screenshot and evidence source label
 
 ## Exit Criteria
 UAT can be marked complete when:

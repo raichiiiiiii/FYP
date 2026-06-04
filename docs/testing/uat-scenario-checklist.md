@@ -15,6 +15,8 @@ for each scenario and attach screenshots where indicated.
 | Organization ID used for dev login | |
 | User email used for dev login | |
 | Data source observed | API-backed seeded data / frontend fixture / mock adapter / not implemented |
+| Fabric mode observed | mock / gateway / unavailable |
+| Fabric evidence source | mock adapter / outbox pending / real Gateway transaction / not tested |
 
 ## Pre-UAT Preparation
 
@@ -24,6 +26,7 @@ for each scenario and attach screenshots where indicated.
 | UAT-PREP-02 | Log in with seeded admin email and organization ID | Dashboard opens with the seeded organization context | | Screenshot |
 | UAT-PREP-03 | Confirm API health | Health endpoint reports API/database/Redis status | | Screenshot/log |
 | UAT-PREP-04 | Confirm fixture/mock boundaries | Tester understands dashboard/graph/audit edge states may use fixtures and external integrations are mock/adapter-backed | | Notes |
+| UAT-PREP-05 | Confirm Fabric runtime mode | Integrations screen shows Fabric runtime mode, Gateway configuration status, and whether the real adapter is implemented | | Screenshot |
 
 ## SME Admin
 | ID | Scenario | Expected Result | Status | Evidence |
@@ -83,12 +86,14 @@ for each scenario and attach screenshots where indicated.
 | UAT-AUD-04 | Verify hash record | Hash verification result is understandable | | Screenshot |
 | UAT-AUD-05 | Review closure pack | Closure pack is visible and linked to audit/evidence | | Screenshot |
 | UAT-AUD-06 | Open integrations | Auditor can inspect outbox/reconciliation but cannot request actions; mock adapter status is labelled honestly | | Screenshot |
+| UAT-AUD-07 | Confirm Fabric evidence boundary | Auditor can distinguish mock adapter, pending outbox, failed anchor, unavailable Fabric, and real Gateway evidence where available | | Screenshot/notes |
 
 ## Reports And Operations Review
 | ID | Scenario | Expected Result | Status | Evidence |
 | --- | --- | --- | --- | --- |
 | UAT-OPS-01 | Open operations health | Health/deployment/worker caveats are understandable and unavailable states are not hidden | | Screenshot |
 | UAT-OPS-02 | Open integrations | ERP, Fabric, webhook, e-signature, finance API, and outbox states show healthy/degraded/unavailable/mock labels as applicable | | Screenshot |
+| UAT-OPS-03 | Inspect Fabric runtime card | Fabric runtime mode card shows mock or gateway mode without leaking endpoint or certificate/key paths | | Screenshot |
 | UAT-REP-01 | Open reports | Report cards summarize current records without claiming dedicated export support | | Screenshot |
 | UAT-REP-02 | Inspect export CTAs | Export actions are disabled or labelled unavailable until backend export endpoints exist | | Screenshot |
 

@@ -42,7 +42,7 @@ decisions, or deeper backend implementation.
 | FG-010 | 9 | Real integration tests | No gated real Fabric integration test environment exists. | CI cannot prove real Gateway anchoring. | Add optional CI job gated by Fabric secrets or run local Fabric network in integration tests. | QA / Operations | Open |
 | FG-011 | 10 | E2E evidence states | Browser tests cannot cover real verified Fabric state without real adapter or controlled fixture endpoint. | UI screenshot documentation remains limited to mock/pending/failed states. | Add seeded mock and real-mode test cases once API model and adapter exist. | QA | Open |
 | FG-012 | 11 | UAT instructions | UAT materials do not yet include real Gateway setup and evidence capture. | Reviewers may confuse mock prototype state with real Fabric verification. | Update UAT checklist with environment mode, transaction ID, chaincode, and verification evidence fields. | QA / Product | Open |
-| FG-013 | 12 | Azure VM secrets | Deployment docs do not yet define secret mounting for Fabric cert/key material. | Gateway mode cannot be deployed safely on VM. | Add Docker secret/volume instructions and GitHub Actions secret handling for Fabric materials. | Operations | Open |
+| FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. GitHub Actions secret handling for Fabric materials is not implemented. | Gateway mode has a documented VM file-mount path, but automated secret delivery remains blocked. | Add GitHub Actions or external secret-manager handling for Fabric materials when real Gateway deployment is ready. | Operations | Partial |
 | FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, and accessibility automation remain outside the Fabric slice. | Demo can proceed with caveats, but production readiness is incomplete. | Track these in post-demo hardening backlog with owners and acceptance tests. | Product / Engineering | Open |
 
 ## TODO Checklist
@@ -117,14 +117,15 @@ decisions, or deeper backend implementation.
 
 ### Phase 11 - UAT
 
-- [ ] Update UAT checklist with Fabric mode and verification evidence fields.
+- [x] Update UAT checklist with Fabric mode and verification evidence fields.
 - [ ] Add UAT evidence package template.
 - [ ] Add tester instructions for mock vs gateway mode.
 
 ### Phase 12 - CI, Deployment, Release Readiness
 
 - [ ] Add optional gated Fabric integration CI job.
-- [ ] Add Azure VM Fabric secret-mount documentation.
+- [x] Add Azure VM Fabric secret-mount documentation.
+- [ ] Add GitHub Actions or external secret-manager handling for Fabric cert/key material.
 - [ ] Add release note separating demo mock mode from real Gateway readiness.
 
 ### Phase 13 - Post-Demo Hardening
@@ -148,7 +149,7 @@ Last local verification date: 2026-06-04.
 | `corepack pnpm typecheck` | Passed | Web TypeScript project references completed. |
 | `corepack pnpm test` | Passed | Web, API, worker, config, and shared package tests completed. |
 | `corepack pnpm build` | Passed | Web, API, and worker production builds completed. |
-| `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production compose config renders with mock Fabric defaults. |
+| `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production compose config renders with mock Fabric defaults and the API/worker read-only Fabric secret mount. |
 | `corepack pnpm test:e2e` | Passed | 17/17 Playwright tests passed against clean E2E database. |
 | `corepack pnpm --dir apps/web test -- --run integrations` | Passed | Covers Fabric runtime status mapping and integration status cards. |
 | `corepack pnpm exec playwright test tests/e2e/13-integrations-outbox-control.spec.ts` | Passed | Confirms the Fabric runtime mode card appears on the Integrations route. |
