@@ -90,7 +90,7 @@ decisions, or deeper backend implementation.
 - [x] Add frontend API hook for Fabric status endpoint.
 - [x] Add Fabric status card showing mock, gateway, degraded, unavailable, pending, and retrying states.
 - [ ] Add worker heartbeat/queue status support.
-- [ ] Link operations screen to deployment runbook.
+- [x] Link operations screen to deployment runbook.
 
 ### Phase 8 - Unit Tests
 

@@ -22,6 +22,9 @@ import {
   summarizeOperationalHealth,
 } from '../integrations/status/integrationStatus.model'
 
+const deploymentRunbookUrl =
+  'https://github.com/raichiiiiiii/FYP/blob/main/docs/deployment/azure-student-vm-deployment.md'
+
 type OperationsData = {
   health: HealthResponse | null
   healthError?: string
@@ -224,6 +227,14 @@ export function OperationsRoute({ session }: { session: AppSession }) {
                 Follow `docs/deployment/azure-student-vm-deployment.md` for VM
                 setup, compose commands, smoke tests, rollback, and limitations.
               </p>
+              <a
+                className="button button--secondary"
+                href={deploymentRunbookUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open runbook
+              </a>
             </article>
             <article>
               <span>Public ports</span>
