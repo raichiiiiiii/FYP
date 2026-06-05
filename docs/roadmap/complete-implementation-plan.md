@@ -17,7 +17,7 @@ visual reference only.
 | Module ownership | Defined by `docs/roadmap/module-roadmap.md` and ADR-013. |
 | Graph/canvas | `/graph/projects` exists as a read-only, permission-filtered project graph. |
 | Integrations | `/integrations` exists with outbox, mock adapter, reconciliation, retry visibility, and API Fabric mode status. |
-| Fabric | Mock anchoring remains the safe default. Worker Gateway mode now has a real Fabric Gateway adapter and gated integration test, but real local anchoring is not proven until Go/Fabric samples, deployed chaincode, and Gateway material are available. |
+| Fabric | Mock anchoring remains the safe default. Worker Gateway mode now has a real Fabric Gateway adapter, deterministic mock-safe default tests, and a gated real Gateway worker integration test that passed after loading local Gateway material. Go-based chaincode unit/build-tag validation remains blocked because `go` is not on `PATH`. |
 | Evidence/audit | Hash records, audit timelines, evidence packs, and honest anchor states exist. |
 | Testing | Unit/component tests and 18 Playwright E2E tests currently pass, including hash-detail Fabric evidence states. |
 | Deployment | Docker Compose deployment exists; Azure Student VM guide records prior smoke evidence. |
@@ -78,7 +78,7 @@ Acceptance:
 
 ## Phase 2 - Fabric Chaincode And Local Test Network Foundation
 
-Status: Partially complete for planning and artifact hygiene.
+Status: Partially complete for local-network proof and artifact hygiene.
 
 Owning module:
 Integrations.
@@ -101,13 +101,16 @@ Current repository state:
 
 - Local Fabric test-network plan exists in `docs/fabric/local-test-network.md`.
 - Future Fabric workspace artifact ignore rules exist in `integrations/fabric/.gitignore`.
-- Chaincode source and tests remain blocked because the local Go/Fabric toolchain
-  is not installed in this environment and the chaincode language/package has
-  not been finalized.
+- Go chaincode source, tests, and Fabric wrapper source exist under
+  `chaincode/audit-anchor-go/`.
+- Local Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were
+  observed running, and `infra/fabric/.local/fabric-gateway.env` exists.
+- Chaincode unit tests and Fabric build-tag wrapper validation remain blocked
+  because Go is not on `PATH` in the current PowerShell environment.
 
 ## Phase 3 - Worker-Side Real Fabric Gateway Adapter
 
-Status: Complete for repository implementation; blocked for real-network proof.
+Status: Complete for repository implementation and local worker Gateway proof.
 
 Owning module:
 Integrations.
@@ -132,8 +135,11 @@ Current repository state:
 - Worker mock adapter refuses to produce `ANCHORED_MOCK` when `FABRIC_MODE=gateway`.
 - Worker Gateway adapter loads Fabric identity/TLS material, submits hash-only
   `CreateAnchor`, maps SDK metadata, and classifies Gateway failures.
-- Gated integration tests exist, but real execution is blocked until Fabric
-  network, chaincode, and Gateway identity material are available.
+- The gated real Gateway worker integration test passed after loading
+  `infra/fabric/.local/fabric-gateway.env` and setting
+  `FABRIC_TEST_NETWORK_ENABLED=true`.
+- Duplicate same-anchor/same-hash reconciliation still needs explicit
+  real-network test coverage.
 
 ## Phase 4 - Fabric Metadata API And Status Model
 
@@ -278,6 +284,9 @@ Current repository state:
 
 ## Phase 9 - Integration Test Expansion
 
+Status: Complete for worker Fabric Gateway proof; remaining API/graph
+integration tests are separate TODOs.
+
 Owning module:
 Integrations.
 
@@ -391,12 +400,10 @@ Acceptance:
 
 The next executable slices are:
 
-1. Install Go and Fabric samples/test-network locally or provide an existing
-   reachable Fabric Gateway target.
-2. Deploy `audit-anchor` chaincode and export Gateway material without
-   committing certificates, private keys, MSP folders, or channel artifacts.
-3. Run the gated real Fabric worker integration test with
-   `FABRIC_TEST_NETWORK_ENABLED=true`.
+1. Install Go or expose the existing Go binary on `PATH`.
+2. Run `go test ./...` and `go test -tags fabric ./...` from
+   `chaincode/audit-anchor-go`.
+3. Add explicit duplicate/idempotent same-anchor real-network coverage.
 4. Add direct chaincode query verification to the API only after the safe query
-   path is available.
+   path is available and tested.
 5. Capture screenshots/UAT evidence for real Gateway verified state.

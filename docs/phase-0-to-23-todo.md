@@ -18,7 +18,7 @@ Last updated: 2026-06-05.
 | Docker Desktop daemon became unresponsive during local production compose build | Phase 17 production container build is not fully verified locally | Restart Docker Desktop or test on Linux/VM, then rerun production compose build/up |
 | Azure VM host/key details were not provided | Phase 21 manual cloud deployment cannot be executed by Codex | Provide VM public IP/DNS, SSH user, and local key path; do not paste private key contents |
 | Azure VM live smoke-test outputs are not recorded | Deployment cannot be marked complete for assessment | Capture `docker compose ps`, logs, `curl localhost`, and `curl PUBLIC_IP` output |
-| Real local Fabric proof is blocked by missing Go/Fabric samples/Gateway material | Worker Gateway adapter and gated tests exist, but real anchoring cannot be proven end-to-end locally | Install Go and Fabric samples/test-network, deploy `audit-anchor`, export Gateway env/material, then run the gated Fabric integration test |
+| Fabric chaincode validation is blocked by missing Go on `PATH` | Worker Gateway anchoring is proven locally through the gated integration test, but chaincode unit/build-tag validation cannot be completed | Install Go or expose it on `PATH`, then run `go test ./...` and `go test -tags fabric ./...` from `chaincode/audit-anchor-go` |
 | GitHub Actions CI/deploy workflows have not been observed on GitHub after push | Automation exists locally but remote execution is not confirmed | Push current branch, inspect Actions run, fix workflow issues if any |
 | Some frontend modules still use fixtures/mock states | Demo is reviewable but not fully API-backed | Replace fixtures with typed API hooks and backend contracts slice by slice |
 
@@ -279,7 +279,8 @@ Unfinished / verify later:
 - [x] Implement real worker Fabric Gateway adapter behind `FABRIC_MODE=gateway`.
 - [ ] Add downloadable verification evidence for reviewers.
 - [x] Add audit search/filter/pagination E2E tests.
-- [ ] Prove real Fabric Gateway anchoring against a local or external Fabric network.
+- [x] Prove worker real Fabric Gateway anchoring against a local Fabric network.
+- [ ] Run Go chaincode unit/build-tag validation after Go is available on `PATH`.
 
 ### Phase 14 - Slice 9: Network Canvas
 

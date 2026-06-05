@@ -3,11 +3,11 @@
 ## Build Information
 
 - Branch: `main`
-- Commit: `docs: close UI UX alignment round with verification report` (this commit)
+- Commit: see `git rev-parse --short HEAD` after checkout
 - Short commit: see `git rev-parse --short HEAD` after checkout
-- Date: `2026-06-04 08:26 +09:00`
+- Date: `2026-06-05`
 - Tester: Codex local verification
-- Command: `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build`, `corepack pnpm test:e2e`, Docker compose config, and Docker compose build
+- Command: `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build`, `corepack pnpm test:e2e`, and `corepack pnpm --dir apps/worker test:integration -- fabric`
 
 ## Static Checks
 
@@ -22,9 +22,9 @@
 
 | Area | Result | Notes |
 |---|---|---|
-| API unit tests | Pass | 10 suites, 35 tests passed. |
-| Worker unit tests | Pass | 2 suites, 2 tests passed. |
-| Web tests | Pass | 17 test files, 85 tests passed. |
+| API unit tests | Pass | 14 suites, 53 tests passed. |
+| Worker unit tests | Pass | 8 suites, 21 tests passed. |
+| Web tests | Pass | 17 test files, 90 tests passed. |
 | RBAC and route visibility | Pass | Covered by frontend authorization/navigation tests. |
 | Dashboard | Pass | Role-aware dashboard model tests passed. |
 | Applications/workspace | Pass | Application list/workspace frontend tests passed in web suite. |
@@ -45,6 +45,15 @@
 | Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
 | Phase 12 demo/UAT alignment | Pass | UAT seed syntax check passed with `node --check tests/uat/seed-uat-demo.mjs`; docs now distinguish API-backed seed data, frontend fixtures, mock adapters, and unavailable features. |
 | Phase 13 closeout | Pass | Final local verification passed and close-alignment blockers were classified for demo, UAT, backend/API work, product decisions, hardening, and external integrations. |
+
+## Fabric Integration Evidence
+
+| Check | Result | Notes |
+|---|---|---|
+| Default worker Fabric integration command | Pass | `corepack pnpm --dir apps/worker test:integration -- fabric` passed with mock mode active and the real Gateway suite skipped. |
+| Gated real Gateway worker integration | Pass | After loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`, both worker Fabric integration suites passed. |
+| Gateway env evidence | Recorded | Redacted environment summary is stored in `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`; no certificate or private key contents were captured. |
+| Go chaincode validation | Blocked | `go version` failed because Go is not on `PATH`; chaincode unit/build-tag tests remain pending. |
 
 ## Deployment Smoke Tests
 
@@ -69,6 +78,9 @@
 - Vite build reports a non-failing large bundle chunk warning for the web app.
 - Docker Compose build emitted non-failing Docker Desktop pipe messages after
   image export, while returning exit code 0.
+- Go is not on `PATH`, so Fabric chaincode unit/build-tag validation is still
+  blocked even though the worker Gateway integration test passed against local
+  Gateway material.
 - Azure Student VM manual deployment has prior smoke-test output recorded, but
   no fresh cloud redeploy was run in the Phase 13 closeout turn.
 - Some product surfaces still use fixtures, local/dev auth, mock adapter states,

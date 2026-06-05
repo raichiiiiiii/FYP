@@ -16,18 +16,22 @@ The repository has advanced beyond the baseline scan below.
 
 Current status:
 
-- Go chaincode and local Fabric network scaffolding exist, but local validation is
-  blocked because Go and Fabric samples/test-network are not installed in this
-  Windows environment.
-- Worker Gateway adapter exists behind `FABRIC_MODE=gateway` and submits
-  hash-only `CreateAnchor` payloads through `@hyperledger/fabric-gateway`.
+- Go chaincode and local Fabric network scaffolding exist. Local Fabric network
+  containers and Gateway env material were observed, but Go is not on `PATH`, so
+  chaincode unit tests and the Fabric build-tag wrapper validation remain
+  blocked in this Windows environment.
+- Worker Gateway adapter exists behind `FABRIC_MODE=gateway`, submits hash-only
+  `CreateAnchor` payloads through `@hyperledger/fabric-gateway`, and passed the
+  gated real Gateway worker integration test after loading
+  `infra/fabric/.local/fabric-gateway.env`.
 - Mock mode remains the default and does not require Fabric credentials.
 - `AuditAnchor` has nullable real Gateway metadata fields.
 - Hash-record Fabric verification endpoint exists and does not verify mock
   anchors.
 - Graph read model and UI support permission-filtered hash/anchor overlay.
 - Worker heartbeat is database-backed and visible through API/Operations UI.
-- Gated worker integration tests exist and are skipped by default.
+- Gated worker integration tests exist, are skipped by default, and passed when
+  explicitly enabled with local Gateway env material.
 - Browser E2E covers mock, pending, failed, unavailable,
   anchored-not-fully-verified, and stored-metadata verified evidence states.
 - Optional manual GitHub Actions workflow exists for real Fabric Gateway
@@ -35,9 +39,10 @@ Current status:
 
 Remaining proof blocker:
 
-Real local Fabric anchoring is not proven because the environment lacks Go,
-Fabric samples/test-network, deployed `audit-anchor` chaincode, and Gateway
-identity/TLS material. The baseline scan below is retained for decision history.
+Worker-level local Fabric anchoring is proven through the gated integration
+test. Full acceptance remains incomplete because Go is not on `PATH`, so
+chaincode unit tests and Fabric build-tag wrapper validation have not been run.
+The baseline scan below is retained for decision history.
 
 ## Source documents used
 
