@@ -54,6 +54,12 @@ describe('NFR-11 Worker outbox retry unit rules', () => {
       outboxEvent: {
         update: jest.fn(),
       },
+      integrationReconciliationRecord: {
+        upsert: jest.fn(),
+      },
+      workerHeartbeat: {
+        upsert: jest.fn(),
+      },
     };
     const adapters = {
       dispatch: jest.fn(() => {
@@ -65,6 +71,8 @@ describe('NFR-11 Worker outbox retry unit rules', () => {
     await service.runOnce();
 
     expect(adapters.dispatch).toHaveBeenCalledWith('FABRIC_ANCHOR_REQUESTED', {
+      aggregateId: 'hash-1',
+      aggregateType: 'HashRecord',
       canonicalHash: 'abc123',
     });
     expect(prisma.outboxEvent.update).toHaveBeenCalledWith({
