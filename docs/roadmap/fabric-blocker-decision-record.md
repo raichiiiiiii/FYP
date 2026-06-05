@@ -16,10 +16,9 @@ The repository has advanced beyond the baseline scan below.
 
 Current status:
 
-- Go chaincode and local Fabric network scaffolding exist. Local Fabric network
-  containers and Gateway env material were observed, but Go is not on `PATH`, so
-  chaincode unit tests and the Fabric build-tag wrapper validation remain
-  blocked in this Windows environment.
+- Go chaincode and local Fabric network scaffolding exist. Chaincode unit tests
+  and Fabric build-tag wrapper validation passed after Go was made available in
+  the command PATH.
 - Worker Gateway adapter exists behind `FABRIC_MODE=gateway`, submits hash-only
   `CreateAnchor` payloads through `@hyperledger/fabric-gateway`, and passed the
   gated real Gateway worker integration test after loading
@@ -31,18 +30,21 @@ Current status:
 - Graph read model and UI support permission-filtered hash/anchor overlay.
 - Worker heartbeat is database-backed and visible through API/Operations UI.
 - Gated worker integration tests exist, are skipped by default, and passed when
-  explicitly enabled with local Gateway env material.
+  explicitly enabled with local Gateway env material, including duplicate
+  same-anchor/same-hash reconciliation.
 - Browser E2E covers mock, pending, failed, unavailable,
   anchored-not-fully-verified, and stored-metadata verified evidence states.
 - Optional manual GitHub Actions workflow exists for real Fabric Gateway
   integration tests.
 
-Remaining proof blocker:
+Remaining proof status:
 
-Worker-level local Fabric anchoring is proven through the gated integration
-test. Full acceptance remains incomplete because Go is not on `PATH`, so
-chaincode unit tests and Fabric build-tag wrapper validation have not been run.
-The baseline scan below is retained for decision history.
+Worker-level local Fabric anchoring, chaincode validation, local Fabric network
+startup, chaincode deployment, Gateway env export, and duplicate same-hash
+reconciliation are proven locally. Full product acceptance remains incomplete
+until API-side direct chaincode verification, reviewer screenshots, VM secret
+delivery, and production hardening are implemented. The baseline scan below is
+retained for decision history.
 
 ## Source documents used
 

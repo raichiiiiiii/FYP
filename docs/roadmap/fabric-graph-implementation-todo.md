@@ -13,8 +13,8 @@ decisions, or deeper backend implementation.
 |---|---|---|---|
 | 0 | Roadmap baseline and traceability | Complete. Module roadmap, graph feature intake, integration outbox feature intake, and implementation plan exist. | None. |
 | 1 | Fabric Gateway ADR and environment contract | Complete. ADR-014, env contract, API/worker config readers, and config tests exist. | None. |
-| 2 | Fabric chaincode and local test network | Partially complete. Go `audit-anchor` chaincode source, pure unit tests, local test-network plan, PowerShell wrappers, Gateway material export helper, artifact ignore policy, deployed local network containers, and local Gateway env material exist. | Go is not on `PATH`, so chaincode unit tests and Fabric build-tag wrapper validation remain blocked. |
-| 3 | Worker real Fabric Gateway adapter | Complete for repository and local Gateway proof. `apps/worker` has a Fabric Gateway SDK adapter selected by `FABRIC_MODE=gateway`, mock mode remains isolated, deterministic anchor IDs are derived from idempotency keys, mocked Gateway unit tests cover hash-only payloads and failure classification, and the gated worker integration test passed against the local Fabric Gateway env. | Duplicate same-anchor/same-hash reconciliation still needs explicit real-network test coverage under FG-004. |
+| 2 | Fabric chaincode and local test network | Complete for local proof. Go `audit-anchor` chaincode source, pure unit tests, Fabric build-tag wrapper validation, local test-network plan, PowerShell wrappers, Gateway material export helper, artifact ignore policy, deployed local network containers, and local Gateway env material exist. | Production consortium topology and managed secret delivery remain outside this local test-network slice. |
+| 3 | Worker real Fabric Gateway adapter | Complete for repository and local Gateway proof. `apps/worker` has a Fabric Gateway SDK adapter selected by `FABRIC_MODE=gateway`, mock mode remains isolated, deterministic anchor IDs are derived from idempotency keys, mocked Gateway unit tests cover hash-only payloads and failure classification, and the gated worker integration test passed against the local Fabric Gateway env including duplicate same-hash coverage. | None for worker adapter proof. |
 | 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values, `AuditAnchor` has nullable real Gateway metadata fields, worker anchor persistence stores those fields when present, hash-record anchor status returns typed Fabric metadata, and `GET /api/v1/hash-records/:id/fabric-verification` validates local hash state against stored anchor/outbox evidence. | Direct chaincode query verification remains deferred until the API-side query strategy is implemented and tested. |
 | 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. Hash-record Fabric verification now distinguishes mock, pending, failed, unavailable, anchored-but-not-fully-verified, verified stored metadata, and local hash mismatch states. | Needs API-side real Gateway chaincode query verification and reviewer screenshots for real Gateway states. |
 | 6 | Graph UI Fabric anchor overlay | Complete for repository read-model and UI mapping. Backend project graph now emits permission-filtered `HashRecord` and `AuditAnchor` nodes plus `verifies` and `anchors` edges; frontend graph model, filters, legends, and styles understand `hash_record`, `anchor`, `verifies`, and `anchors`. | Browser E2E and screenshot evidence remain under Phase 10. |
@@ -30,10 +30,10 @@ decisions, or deeper backend implementation.
 
 | ID | Phase | Area | Blocker | Impact | Proposed resolution | Owner | Status |
 |---|---|---|---|---|---|---|---|
-| FG-001 | 2 | Fabric chaincode | Go `audit-anchor` chaincode source and pure unit tests now exist under `chaincode/audit-anchor-go/`. `go version` failed because Go is not installed in this Windows environment. | Real Fabric anchoring still cannot be proven until chaincode tests and deployment run against a Fabric network. | Install Go and Fabric tooling, run `go test ./...`, validate the `fabric` build-tag wrapper, then deploy the contract to the local Fabric test network. | Integrations | Partial |
-| FG-002 | 2 | Fabric local network | Local Fabric test-network PowerShell wrappers and Gateway material export helper are committed under `infra/fabric/`. Local Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were observed running, and `infra/fabric/.local/fabric-gateway.env` exists. `check-prereqs.ps1` still fails because Go is not on `PATH`. | Local Gateway execution is possible, but chaincode/unit validation remains incomplete until Go is available. | Install Go or expose it on `PATH`, then rerun `check-prereqs.ps1`, `go test ./...`, and `go test -tags fabric ./...`. | Integrations / Operations | Partial |
+| FG-001 | 2 | Fabric chaincode | Go `audit-anchor` chaincode source, pure unit tests, Fabric Contract API wrapper, and executable chaincode entrypoint exist under `chaincode/audit-anchor-go/`. `go test ./...` and `go test -tags fabric ./...` passed after Go was made available in the command PATH. | Local chaincode validation is proven. | Keep closed for local chaincode validation. | Integrations | Closed |
+| FG-002 | 2 | Fabric local network | Local Fabric test-network PowerShell wrappers and Gateway material export helper are committed under `infra/fabric/`. `check-prereqs.ps1` passed, the local Fabric CA/peer/orderer network started, `audit-anchor` deployed on channel `mepn-audit`, and `infra/fabric/.local/fabric-gateway.env` was exported. | Local Gateway execution target is proven. | Keep closed for local test-network proof; continue production deployment and secret delivery separately. | Integrations / Operations | Closed |
 | FG-003 | 3 | Worker adapter | Real Fabric Gateway SDK adapter is implemented behind the worker outbox adapter registry. `FABRIC_MODE=mock` uses the mock adapter; `FABRIC_MODE=gateway` uses the Gateway adapter and never returns mock success. The adapter loads configured cert/key/TLS material, submits `CreateAnchor`, returns SDK transaction metadata only when supplied, and maps configuration/unavailable/validation failures. The gated worker integration test passed against local Gateway material. | Worker Gateway submission is proven locally without fabricating success. | Keep closed for worker adapter proof; continue duplicate/idempotency and chaincode unit validation separately. | Integrations | Closed |
-| FG-004 | 3 | Idempotency | Worker Gateway payloads now derive `idempotencyKey = fabric:{organizationId || global}:{entityType}:{entityId}:{canonicalHash}` when absent and `anchorId = sha256(idempotencyKey)`. Chaincode reconciles duplicate same-anchor/same-hash submissions by returning the existing anchor. The gated real Fabric integration spec now includes duplicate same-hash submission coverage. | Deterministic worker-side payload behavior is covered with unit tests, and duplicate coverage exists, but the duplicate gated assertion still needs an enabled real-network rerun after the Fabric network is restarted. | Restart local Fabric, load `infra/fabric/.local/fabric-gateway.env`, set `FABRIC_TEST_NETWORK_ENABLED=true`, and rerun `corepack pnpm --dir apps/worker test:integration -- fabric`. | Integrations | Partial |
+| FG-004 | 3 | Idempotency | Worker Gateway payloads now derive `idempotencyKey = fabric:{organizationId || global}:{entityType}:{entityId}:{canonicalHash}` when absent and `anchorId = sha256(idempotencyKey)`. Chaincode reconciles duplicate same-anchor/same-hash submissions by returning the existing anchor. The gated real Fabric integration spec includes duplicate same-hash submission coverage and passed against the local Fabric network. | Deterministic worker-side and real-network duplicate behavior are covered for the local Gateway slice. | Keep closed for local idempotency proof. | Integrations | Closed |
 | FG-005 | 4 | Database metadata | `AuditAnchor` now has migration-backed nullable fields for transaction ID, block number, channel, chaincode, commit status, endorsement status, and verification timestamp. Hash-record anchor status and the Fabric verification endpoint expose these fields without reporting mock anchors as verified. | API can represent and evaluate real Gateway metadata when a real adapter supplies it. | Keep closed for schema/API shape; continue direct chaincode query work as a separate API-side verification slice. | Evidence / Audit | Closed |
 | FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacked canonicalization detail from backend. | Verification UX was underspecified for auditors. | Added canonical hash verification guide based on `AuditHashService` behavior. | Evidence / Audit | Closed |
 | FG-007 | 6 | Graph anchor overlay data | Backend graph read model exposes `HashRecord` and `AuditAnchor` nodes only for already-visible source records, adds `verifies` and `anchors` edges, and prunes edges whose endpoints are hidden. Frontend mapping, filters, legend, and tests support the overlay. | Graph can visualize Fabric/evidence relationships without exposing finance anchors when finance source records are hidden. | Keep closed for repository graph overlay. Continue browser E2E/screenshot evidence under Phase 10. | Graph / Evidence | Closed |
@@ -52,12 +52,12 @@ decisions, or deeper backend implementation.
 - [x] Define chaincode package location and language.
 - [x] Implement hash-only audit anchor chaincode.
 - [x] Add chaincode unit tests.
-- [ ] Run chaincode unit tests after Go is installed locally or in CI.
-- [ ] Validate Fabric Contract API wrapper with the `fabric` build tag after Fabric dependency/toolchain setup.
+- [x] Run chaincode unit tests after Go is installed locally or in CI.
+- [x] Validate Fabric Contract API wrapper with the `fabric` build tag after Fabric dependency/toolchain setup.
 - [x] Add local Fabric test network instructions.
 - [x] Add local Fabric test network start/stop scripts.
 - [x] Add local Gateway material export helper.
-- [ ] Execute local Fabric test network scripts after Fabric samples and Go are installed.
+- [x] Execute local Fabric test network scripts after Fabric samples and Go are installed.
 - [x] Ensure generated certs, keys, ledgers, and channel artifacts are ignored.
 
 ### Phase 3 - Worker Real Gateway Adapter
@@ -114,7 +114,7 @@ decisions, or deeper backend implementation.
 - [x] Add mock-mode worker/outbox integration tests.
 - [x] Add gated real Fabric integration tests.
 - [x] Add gated duplicate same-hash real Fabric integration assertion.
-- [ ] Rerun gated duplicate same-hash assertion after restarting local Fabric.
+- [x] Rerun gated duplicate same-hash assertion after restarting local Fabric.
 - [ ] Add API integration tests for anchor status and reconciliation.
 - [ ] Add graph integration tests for anchor overlay and role filtering.
 
@@ -157,8 +157,11 @@ Last local verification date: 2026-06-05.
 |---|---|---|
 | `corepack pnpm --dir apps/worker test -- mock-adapters fabric-env` | Passed | Covers worker Fabric env validation and gateway-mode mock-anchor guard. |
 | `corepack pnpm --dir apps/api test -- fabric-env integration-status` | Passed | Covers API Fabric env validation and status redaction. |
-| `go version` | Blocked | Go is not installed or not on `PATH`, so `chaincode/audit-anchor-go` tests could not be executed in this PowerShell environment. |
-| `powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\check-prereqs.ps1` | Blocked | Docker, Git, Bash, and Fabric samples test-network are available; the check fails on missing Go. Blocker type: local tooling. |
+| `go version` | Passed | `go version go1.26.4 windows/amd64` after prepending `C:\Program Files\Go\bin` to the command PATH. |
+| `go test ./...` from `chaincode/audit-anchor-go` | Passed | Pure chaincode validation passed. |
+| `go test -tags fabric ./...` from `chaincode/audit-anchor-go` | Passed | Fabric Contract API wrapper validation passed. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\check-prereqs.ps1` | Passed | Docker, Git, Bash, Go, and Fabric samples test-network were available. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\start-local-network.ps1` | Passed | Local Fabric network started, channel `mepn-audit` was created, and `audit-anchor` was deployed. Script emitted non-fatal Docker volume cleanup messages for already-removed volumes. |
 | `docker ps` | Passed | Local Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were observed running, along with MEPN PostgreSQL, Redis, and MinIO containers. |
 | `corepack pnpm --dir apps/worker add @hyperledger/fabric-gateway @grpc/grpc-js` | Passed with local tooling warning | Dependencies were added, but optional native `pkcs11js` install failed because the Windows environment lacks the Visual C++ toolset. This blocks optional native/HSM validation only; the Gateway SDK dependency is present. |
 | `corepack pnpm --dir apps/worker test -- fabric` | Passed | Covers hash-only Fabric payload construction, deterministic anchor IDs, Gateway adapter metadata mapping, and retryable/non-retryable Gateway failure classification. |
@@ -174,6 +177,7 @@ Last local verification date: 2026-06-05.
 | `corepack pnpm --dir apps/worker test:integration` | Passed | Default worker integration suite passed with the real Fabric Gateway spec skipped. |
 | `corepack pnpm --dir apps/worker test:integration -- fabric` | Passed | Fabric-pattern integration command passed with the real Gateway spec skipped while `FABRIC_TEST_NETWORK_ENABLED` was unset. |
 | `FABRIC_TEST_NETWORK_ENABLED=true` with `infra\fabric\.local\fabric-gateway.env`; `corepack pnpm --dir apps/worker test:integration -- fabric` | Passed | Both worker Fabric integration suites passed. The real Gateway test submitted a hash-only anchor, persisted reconciliation/audit metadata, and queried `ReadAnchor` for the on-chain hash. |
+| `FABRIC_TEST_NETWORK_ENABLED=true` with duplicate same-hash assertion; `corepack pnpm --dir apps/worker test:integration -- fabric` | Passed | The gated worker test submitted a duplicate same-anchor/same-hash command and verified the reconciled on-chain anchor. |
 | `node tests/e2e/setup-e2e.mjs; corepack pnpm exec playwright test tests/e2e/14-fabric-evidence-states.spec.ts` | Passed | Covers hash-detail Fabric verification states using API-created hash records plus seeded mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified evidence. |
 | `corepack pnpm prisma:generate` | Passed | Regenerated Prisma client after adding `AuditAnchor` Fabric metadata fields. |
 | `corepack pnpm lint` | Passed | Repository lint completed. |
@@ -190,9 +194,9 @@ Last local verification date: 2026-06-05.
 Additional UAT evidence is recorded in
 `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`.
 
-Note: worker Gateway integration proof is now available locally, but Go-based
-chaincode unit tests and Fabric build-tag wrapper validation remain blocked
-until Go is available on `PATH`.
+Note: local chaincode validation, local Fabric network startup/deploy, and
+worker Gateway integration proof are now available. Direct API-side chaincode
+verification and reviewer screenshot evidence remain TODOs.
 
 Browser plugin note: the in-app browser handle was unavailable in this session,
 so the rendered-route check was performed through Playwright against the local

@@ -74,7 +74,7 @@ Use these labels during UAT evidence capture:
 | Frontend fixture/demo data | Typed local fixtures used for tests or illustrative UI states where backend summary DTOs are incomplete | Dashboard KPIs, graph example fixture, audit verification edge states |
 | Mock adapter state | External provider behavior routed through mock adapters/outbox | Fabric, ERP, e-signature, finance API/webhook notification |
 | Stored Fabric metadata fixture | Seeded reviewer state used only to demonstrate hash-detail wording for non-mock anchor metadata | E2E/UAT demonstration of `ANCHORED_NOT_FULLY_VERIFIED` or `VERIFIED` stored metadata where direct chaincode query is unavailable |
-| Real Gateway evidence | Fabric Gateway transaction and chaincode evidence produced by the backend/worker after real Gateway mode processes a hash anchor | Worker Gateway integration proof captured in `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`; reviewer UI screenshots and Go chaincode unit/build-tag validation remain pending |
+| Real Gateway evidence | Fabric Gateway transaction and chaincode evidence produced by the backend/worker after real Gateway mode processes a hash anchor | Worker Gateway integration proof and Go chaincode validation captured in `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`; reviewer UI screenshots and API-side direct chaincode verification remain pending |
 | Not implemented | Capability intentionally unavailable or disabled | Report exports, production OIDC, saved graph layouts |
 
 Do not mark a scenario as production-ready solely because a fixture or mock

@@ -12,11 +12,15 @@ keys, and secret file contents were not captured.
 
 | Check | Result | Notes |
 |---|---|---|
-| `go version` | Blocked | Go is not on `PATH` in this Windows shell. Chaincode unit/build-tag validation remains blocked. |
-| `docker ps` | Running | Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were running, along with MEPN infra containers. |
-| `infra/fabric/scripts/check-prereqs.ps1` | Blocked | Docker, Git, Bash, and Fabric samples test-network were available; Go was missing. |
+| `go version` | Passed | `go version go1.26.4 windows/amd64` after prepending `C:\Program Files\Go\bin` to the command PATH. |
+| `go test ./...` | Passed | Pure chaincode validation passed under `chaincode/audit-anchor-go`. |
+| `go test -tags fabric ./...` | Passed | Fabric Contract API wrapper validation passed under `chaincode/audit-anchor-go`. |
+| `docker ps` | Running | Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were running during the proof run, along with MEPN infra containers. |
+| `infra/fabric/scripts/check-prereqs.ps1` | Passed | Docker, Git, Bash, Go, and Fabric samples test-network were available. |
+| `infra/fabric/scripts/start-local-network.ps1` | Passed | Channel `mepn-audit` was created and `audit-anchor` was deployed. |
+| `infra/fabric/scripts/export-gateway-env.ps1` | Passed | Gateway material was copied to `deploy/fabric` and ignored env material was written without printing cert/key contents. |
 | `corepack pnpm --dir apps/worker test:integration -- fabric` | Passed | Default command remained mock-safe: mock Fabric suite passed and real Gateway suite was skipped. |
-| Gated real Gateway worker integration test | Passed | After loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`, both Fabric integration suites passed. |
+| Gated real Gateway worker integration test | Passed | After loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`, both Fabric integration suites passed, including duplicate same-hash reconciliation. |
 | `corepack pnpm test:e2e` | Passed | 18/18 Playwright tests passed. |
 
 ## Captured Command Evidence
@@ -24,10 +28,27 @@ keys, and secret file contents were not captured.
 ### `go version`
 
 ```text
-go : The term 'go' is not recognized as the name of a cmdlet, function, script file, or operable program.
+go version go1.26.4 windows/amd64
 ```
 
-Blocker type: local tooling.
+Note: the Codex PowerShell process needed `C:\Program Files\Go\bin` prepended
+to `PATH` for this run.
+
+### Chaincode Validation
+
+Commands:
+
+```powershell
+go test ./...
+go test -tags fabric ./...
+```
+
+Output:
+
+```text
+ok  	github.com/raichiiiiiii/FYP/chaincode/audit-anchor-go	(cached)
+ok  	github.com/raichiiiiiii/FYP/chaincode/audit-anchor-go	1.248s
+```
 
 ### `docker ps`
 
@@ -53,13 +74,32 @@ Name                        Required Available Detail
 Docker                          True      True C:\Program Files\Docker\Docker\resources\bin\docker.exe
 Git                             True      True C:\Program Files\Git\cmd\git.exe
 Bash                            True      True C:\Windows\system32\bash.exe
-Go                              True     False go not found on PATH
+Go                              True      True C:\Program Files\Go\bin\go.exe
 Fabric samples test-network     True      True C:\Users\User\dev\FYP\infra\fabric\.local\fabric-samples\test-network\network.sh
-
-Missing required Fabric local-network prerequisites: Go
 ```
 
-Blocker type: local tooling.
+### Local Network Startup And Gateway Export
+
+Commands:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\start-local-network.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\export-gateway-env.ps1
+```
+
+Result:
+
+```text
+Fabric local test network is running.
+Channel: mepn-audit
+Chaincode: audit-anchor
+Copied local Fabric Gateway material to deploy\fabric.
+Wrote ignored local env file: C:\Users\User\dev\FYP\infra\fabric\.local\fabric-gateway.env
+No certificate or private key contents were printed.
+```
+
+The start script also emitted non-fatal Docker volume lookup messages for
+already-removed volumes during cleanup.
 
 ### `corepack pnpm --dir apps/worker test:integration -- fabric`
 
@@ -93,10 +133,12 @@ Ran all test suites matching fabric.
 
 Interpretation: the worker Gateway integration test reached the real Gateway
 path, processed a hash-only Fabric anchor request, stored reconciliation/audit
-anchor metadata, and queried `ReadAnchor` for the on-chain hash.
+anchor metadata, queried `ReadAnchor` for the on-chain hash, then submitted a
+duplicate same-anchor/same-hash command and verified the reconciled on-chain
+anchor.
 
-This is repository-level local Fabric evidence. It does not remove the separate
-`go version` blocker for chaincode unit/build-tag validation.
+This is repository-level local Fabric evidence. API-side direct chaincode
+verification and reviewer UI screenshots remain separate TODOs.
 
 ### `corepack pnpm test:e2e`
 
@@ -140,8 +182,7 @@ No certificate or private key contents were recorded.
 
 | Blocker | Type | Required action |
 |---|---|---|
-| Go not on `PATH` | Local tooling | Install Go or expose the existing Go binary to PowerShell, then run `go version` and chaincode tests. |
-| Chaincode unit/build-tag validation not run | Local tooling / repository verification | Run `go test ./...` and `go test -tags fabric ./...` in `chaincode/audit-anchor-go`. |
+| API-side direct chaincode verification not implemented | Repository implementation | Add a safe API query path that compares local canonical hash evidence to on-chain `ReadAnchor` evidence. |
 | Browser screenshot evidence for real Gateway state not captured | UAT evidence | Capture reviewer screenshots after running the real Gateway path and loading a real hash record in the web UI. |
 
 ## Post-Run Cleanup

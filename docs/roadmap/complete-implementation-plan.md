@@ -17,7 +17,7 @@ visual reference only.
 | Module ownership | Defined by `docs/roadmap/module-roadmap.md` and ADR-013. |
 | Graph/canvas | `/graph/projects` exists as a read-only, permission-filtered project graph. |
 | Integrations | `/integrations` exists with outbox, mock adapter, reconciliation, retry visibility, and API Fabric mode status. |
-| Fabric | Mock anchoring remains the safe default. Worker Gateway mode now has a real Fabric Gateway adapter, deterministic mock-safe default tests, and a gated real Gateway worker integration test that passed after loading local Gateway material. Go-based chaincode unit/build-tag validation remains blocked because `go` is not on `PATH`. |
+| Fabric | Mock anchoring remains the safe default. Worker Gateway mode now has a real Fabric Gateway adapter, deterministic mock-safe default tests, passing chaincode unit/build-tag validation, passing local Fabric test-network deployment, and passing gated real Gateway worker integration including duplicate same-hash reconciliation. |
 | Evidence/audit | Hash records, audit timelines, evidence packs, and honest anchor states exist. |
 | Testing | Unit/component tests and 18 Playwright E2E tests currently pass, including hash-detail Fabric evidence states. |
 | Deployment | Docker Compose deployment exists; Azure Student VM guide records prior smoke evidence. |
@@ -78,7 +78,7 @@ Acceptance:
 
 ## Phase 2 - Fabric Chaincode And Local Test Network Foundation
 
-Status: Partially complete for local-network proof and artifact hygiene.
+Status: Complete for local-network proof and artifact hygiene.
 
 Owning module:
 Integrations.
@@ -105,8 +105,11 @@ Current repository state:
   `chaincode/audit-anchor-go/`.
 - Local Fabric CA, peer, orderer, and `audit-anchor` chaincode containers were
   observed running, and `infra/fabric/.local/fabric-gateway.env` exists.
-- Chaincode unit tests and Fabric build-tag wrapper validation remain blocked
-  because Go is not on `PATH` in the current PowerShell environment.
+- `go test ./...` and `go test -tags fabric ./...` passed after Go was made
+  available in the command PATH.
+- `infra\fabric\scripts\check-prereqs.ps1`,
+  `infra\fabric\scripts\start-local-network.ps1`, and
+  `infra\fabric\scripts\export-gateway-env.ps1` passed.
 
 ## Phase 3 - Worker-Side Real Fabric Gateway Adapter
 
@@ -138,8 +141,8 @@ Current repository state:
 - The gated real Gateway worker integration test passed after loading
   `infra/fabric/.local/fabric-gateway.env` and setting
   `FABRIC_TEST_NETWORK_ENABLED=true`.
-- Duplicate same-anchor/same-hash reconciliation still needs explicit
-  real-network test coverage.
+- Duplicate same-anchor/same-hash reconciliation is covered by the gated
+  real-network worker test.
 
 ## Phase 4 - Fabric Metadata API And Status Model
 
@@ -400,11 +403,9 @@ Acceptance:
 
 The next executable slices are:
 
-1. Install Go or expose the existing Go binary on `PATH`.
-2. Run `go test ./...` and `go test -tags fabric ./...` from
-   `chaincode/audit-anchor-go`.
-3. Restart local Fabric and rerun the newly added gated duplicate/idempotent
-   same-anchor real-network assertion.
-4. Add direct chaincode query verification to the API only after the safe query
+1. Add direct chaincode query verification to the API only after the safe query
    path is available and tested.
-5. Capture screenshots/UAT evidence for real Gateway verified state.
+2. Capture screenshots/UAT evidence for real Gateway verified state.
+3. Add API/graph integration tests for anchor status, reconciliation, and role
+   filtering if not already covered by unit/E2E tests.
+4. Resolve Azure VM Fabric secret delivery for deployed Gateway mode.

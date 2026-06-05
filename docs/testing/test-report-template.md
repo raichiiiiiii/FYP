@@ -51,9 +51,11 @@
 | Check | Result | Notes |
 |---|---|---|
 | Default worker Fabric integration command | Pass | `corepack pnpm --dir apps/worker test:integration -- fabric` passed with mock mode active and the real Gateway suite skipped. |
-| Gated real Gateway worker integration | Pass | After loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`, both worker Fabric integration suites passed. |
+| Go chaincode validation | Pass | `go version`, `go test ./...`, and `go test -tags fabric ./...` passed after Go was made available in the command PATH. |
+| Fabric local network startup | Pass | `infra\fabric\scripts\check-prereqs.ps1`, `start-local-network.ps1`, and `export-gateway-env.ps1` passed. |
+| Gated real Gateway worker integration | Pass | After loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`, both worker Fabric integration suites passed, including duplicate same-hash reconciliation. |
 | Gateway env evidence | Recorded | Redacted environment summary is stored in `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`; no certificate or private key contents were captured. |
-| Go chaincode validation | Blocked | `go version` failed because Go is not on `PATH`; chaincode unit/build-tag tests remain pending. |
+| API direct chaincode verification | Pending | Worker Gateway proof exists, but API-side direct `ReadAnchor` verification remains a later implementation slice. |
 
 ## Deployment Smoke Tests
 
@@ -78,9 +80,9 @@
 - Vite build reports a non-failing large bundle chunk warning for the web app.
 - Docker Compose build emitted non-failing Docker Desktop pipe messages after
   image export, while returning exit code 0.
-- Go is not on `PATH`, so Fabric chaincode unit/build-tag validation is still
-  blocked even though the worker Gateway integration test passed against local
-  Gateway material.
+- API-side direct chaincode verification and real Gateway reviewer screenshots
+  remain pending even though worker Gateway proof and chaincode validation now
+  pass locally.
 - Azure Student VM manual deployment has prior smoke-test output recorded, but
   no fresh cloud redeploy was run in the Phase 13 closeout turn.
 - Some product surfaces still use fixtures, local/dev auth, mock adapter states,
