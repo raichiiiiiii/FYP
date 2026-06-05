@@ -59,7 +59,7 @@ state. The classifications are intentionally conservative:
 
 | Feature | Classification | Current repository state | Required next action |
 |---|---|---|---|
-| Run Azure VM Fabric Gateway deployment | evidence-only; environment-blocked | GitHub Actions workflow, Fabric secret materialization scripts, validation script, smoke script, Docker Compose read-only secret mounts, and deployment docs exist. No latest VM run evidence is recorded yet. | Run the `Deploy to Azure VM` workflow against the configured VM and capture sanitized deployment evidence. |
+| Run Azure VM Fabric Gateway deployment | evidence-only; implemented with evidence | GitHub Actions deployment run `27043095990` completed successfully against the Azure Student VM. Sanitized evidence records Docker Compose service health, public frontend/API health checks, and Gateway mode configured with no missing Gateway config. | No deployment-health action remains for this feature. Continue with the separate real Fabric proof screenshot item, which still requires a live Gateway-anchored hash record id. |
 | Generate real Fabric proof screenshots | evidence-only; environment-blocked | API-side `ReadAnchor` verification, web proof panel, and gated Playwright screenshot flow exist. The gated spec skips until a live Gateway-anchored hash record id is provided. | Create or locate a real Gateway-anchored hash record, set `FABRIC_GATEWAY_UAT_HASH_RECORD_ID`, and run the gated UAT screenshot spec. |
 | Production OIDC/invitation flow | implementation-required; partially scaffolded | Runtime auth is still dev-login oriented. `OIDC_ENABLED` is surfaced in session data and placeholder OIDC files exist, but no complete OIDC start/callback flow is implemented. Prisma has an `Invitation` model, but it stores a raw token and there is no complete invitation lifecycle API/UI. | Add production dev-login guard, token-hash invitation lifecycle, OIDC test/provider adapter, frontend login mode handling, audit events, and UAT evidence. |
 | Report aggregate DTOs and exports | implementation-required | Reports currently exist as frontend demo/report surfaces. No backend `reports` module, aggregate report endpoints, export job model, audited export lifecycle, or download route exists. | Add backend report DTOs, export job persistence, JSON export/download, frontend export flow, and evidence docs. |
@@ -93,6 +93,7 @@ state. The classifications are intentionally conservative:
 | CI | GitHub Actions CI for install, lint, typecheck, tests, and build. | `.github/workflows/ci.yml` |
 | Deployment | Docker Compose production setup and Azure Student VM deployment documentation. | `docker-compose.prod.yml`, `deploy/`, `docs/deployment/azure-student-vm-deployment.md` |
 | Fabric secret delivery | GitHub Actions VM secret materialization, validation, smoke, and evidence scripts. | `.github/workflows/deploy-azure-vm.yml`, `scripts/deploy/`, `scripts/validate-fabric-secrets.sh` |
+| Azure VM Gateway deployment evidence | GitHub Actions deployment to the Azure Student VM passed with sanitized service-health and Fabric Gateway configuration evidence. | `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md`, `docs/evidence/deployment/latest-vm-deployment-evidence.txt` |
 | Testing | Unit/component/API tests and Playwright E2E suite covering critical demo flows. | `tests/e2e/`, `apps/*/test/` |
 | Documentation | ADRs, UI contract docs, Figma reference docs, demo script, UAT/testing strategy, roadmap trackers. | `docs/` |
 
@@ -101,7 +102,6 @@ state. The classifications are intentionally conservative:
 | Area | Current state | What remains |
 |---|---|---|
 | Real Fabric Gateway UAT proof screenshots | Gated Playwright flow exists. | Needs `FABRIC_GATEWAY_UAT_HASH_RECORD_ID` from a live Gateway-anchored hash record. |
-| Azure VM Gateway deployment evidence | Workflow, scripts, mounts, and docs exist. | Must run deployment workflow on the VM and capture sanitized evidence. |
 | Formal UAT execution | UAT checklist/templates exist. | Reviewer-led execution and signed evidence package remain pending. |
 | Reports | Demo reports exist. | Backend aggregate DTOs, audited export jobs, generated files, and download routes remain incomplete. |
 | Production authentication | Dev login works. | Real OIDC, invite-token validation, expiry/revocation, MFA/password policy decisions remain incomplete. |
@@ -119,7 +119,6 @@ These are the next practical implementation slices.
 
 | Priority | Feature | Implementation notes | Acceptance evidence |
 |---|---|---|---|
-| P0 | Run Azure VM Fabric Gateway deployment | Trigger existing GitHub Actions deployment workflow using configured repository secrets. | Sanitized VM evidence in `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md`. |
 | P0 | Generate real Fabric proof screenshots | Use a live Gateway-anchored hash record and run gated UAT Playwright spec. | `fabric-gateway-hash-record-verification.png` and `fabric-gateway-proof-panel.png`. |
 | P1 | Production OIDC/invitation flow | Disable dev login by default in production, add OIDC callback and invite validation. | Auth E2E, audit events, UAT login screenshots. |
 | P1 | Report aggregate DTOs and exports | Add procurement, finance, audit, and integration report DTOs plus export jobs. | API tests, downloadable report artifacts, audit events. |
@@ -248,7 +247,7 @@ Status values:
 | 1 | 1.2 Fabric secret validation hardening | Complete | `chore(deploy): harden fabric secret validation` | `bash -n scripts/validate-fabric-secrets.sh`; placeholder valid layout; placeholder missing-key negative layout | `docs/evidence/deployment/FABRIC_SECRET_VALIDATION_EVIDENCE.md` | None. |
 | 1 | 1.3 VM evidence collection hardening | Complete | `chore(evidence): sanitize vm deployment evidence collection` | `bash -n scripts/evidence/collect-vm-deployment-evidence.sh`; `DRY_RUN=true` evidence collection; `corepack pnpm lint`; `corepack pnpm typecheck` | `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md` dry-run row | None. |
 | 1 | 1.4 Deployment execution/evidence | Complete | `chore(deploy): record azure vm fabric deployment evidence` | `gh workflow run deploy-azure-vm.yml --ref main`; `gh run watch 27043095990 --exit-status`; SSH evidence collection; public `curl` checks for `/`, `/api/v1/health`, and `/api/v1/integrations/fabric/status` | `docs/evidence/deployment/latest-vm-deployment-evidence.txt`; `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md`; resolved blocker note `docs/evidence/blockers/2026-06-06-phase-1-slice-1-4-blocker.md` | Resolved. Initial run `27024510947` hit a stale `mepn_api` Docker container conflict; rerun `27043095990` deployed successfully. |
-| 1 | 1.5 Deployment roadmap update | Planned | Pending | Pending | Pending evidence/blocker link. | Depends on Slice 1.4 result. |
+| 1 | 1.5 Deployment roadmap update | Complete | `docs(roadmap): update azure vm deployment status` | `corepack pnpm lint`; `corepack pnpm typecheck` | Azure VM Gateway deployment evidence moved to Implemented; P0 deployment item removed from Soon-To-Be; real proof screenshot dependency remains separate. | None. |
 | 2 | 2.1 Verification API/UI readiness | Planned | Pending | Pending | Pending readiness test evidence. | None yet. |
 | 2 | 2.2 Live Gateway hash precondition | Blocked | Pending | Pending | Pending live Gateway hash record id. | Requires real Gateway-anchored hash record and successful API verification. |
 | 2 | 2.3 Gated screenshot flow | Blocked | Pending | Pending | Pending real Gateway screenshots. | Requires Slice 2.2 live hash record id. |
