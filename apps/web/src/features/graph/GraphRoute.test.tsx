@@ -45,5 +45,6 @@ describe('network graph UI', () => {
     expect(html).toContain('Risk legend')
     expect(html).toContain('Restricted mudarabah finance relation')
     expect(html).toContain('Revenue-generating finance opportunity')
+    expect(html).toContain('Hash record verifies a source record state')
   })
 })

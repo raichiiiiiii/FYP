@@ -3931,6 +3931,7 @@ textarea {
 }
 
 .graph-edge--evidences,
+.graph-edge--verifies,
 .graph-edge--anchors {
   stroke: #7d7a3d;
   stroke-dasharray: 4 4;
@@ -3999,13 +4000,18 @@ textarea {
 .graph-node .status-tag--EXPORTED,
 .graph-node .status-tag--COMPLETED,
 .graph-node .status-tag--READY_FOR_APPLICATION,
-.graph-node .status-tag--APPLICATION_CREATED {
+.graph-node .status-tag--APPLICATION_CREATED,
+.graph-node .status-tag--ANCHORED,
+.graph-node .status-tag--VERIFIED,
+.graph-node .status-tag--HASH_VERIFIED {
   color: #176342;
 }
 
 .graph-node .status-tag--REJECTED,
 .graph-node .status-tag--error,
 .graph-node .status-tag--FAILED,
+.graph-node .status-tag--ANCHOR_FAILED,
+.graph-node .status-tag--FABRIC_UNAVAILABLE,
 .graph-node .status-tag--INELIGIBLE,
 .graph-node .status-tag--CANCELLED,
 .graph-node .status-tag--application-rejected,
@@ -4032,6 +4038,10 @@ textarea {
 .graph-node .status-tag--EXECUTED,
 .graph-node .status-tag--PROCESSING,
 .graph-node .status-tag--RETRYING,
+.graph-node .status-tag--ANCHOR_PENDING,
+.graph-node .status-tag--ANCHOR_RETRYING,
+.graph-node .status-tag--ANCHORED_MOCK,
+.graph-node .status-tag--HASH_RECORDED,
 .graph-node .status-tag--PRELIMINARY,
 .graph-node .status-tag--REVIEW_REQUIRED,
 .graph-node .status-tag--DRAFT,
@@ -4096,6 +4106,14 @@ textarea {
 
 .graph-node--document {
   border-color: #b7a3d8;
+}
+
+.graph-node--hash_record {
+  border-color: #7d9f8c;
+}
+
+.graph-node--anchor {
+  border-color: #b8a052;
 }
 
 .graph-node--financier,
@@ -4222,6 +4240,14 @@ textarea {
   border-color: #b7a3d8;
 }
 
+.graph-node-swatch--hash_record {
+  border-color: #7d9f8c;
+}
+
+.graph-node-swatch--anchor {
+  border-color: #b8a052;
+}
+
 .graph-node-swatch--financier,
 .graph-node-swatch--opportunity,
 .graph-node-swatch--application {
@@ -4258,6 +4284,7 @@ textarea {
 }
 
 .graph-edge-swatch--evidences,
+.graph-edge-swatch--verifies,
 .graph-edge-swatch--anchors {
   border-color: #7d7a3d;
   border-top-style: dashed;

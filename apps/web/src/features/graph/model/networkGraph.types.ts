@@ -8,6 +8,8 @@ export type NetworkNodeType =
   | 'opportunity'
   | 'application'
   | 'document'
+  | 'hash_record'
+  | 'anchor'
 
 export type NetworkRiskLevel = 'low' | 'medium' | 'high' | 'critical'
 
@@ -17,6 +19,7 @@ export type NetworkRelationship =
   | 'finances'
   | 'supports'
   | 'evidences'
+  | 'verifies'
   | 'anchors'
 
 export type NetworkNode = {

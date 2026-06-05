@@ -18,11 +18,15 @@ describe('network graph model', () => {
       'supplier',
       'document',
       'document',
+      'hash_record',
+      'anchor',
       'opportunity',
       'application',
       'financier',
     ])
     expect(graph.edges.some((edge) => edge.relationship === 'finances')).toBe(true)
+    expect(graph.edges.some((edge) => edge.relationship === 'verifies')).toBe(true)
+    expect(graph.edges.some((edge) => edge.relationship === 'anchors')).toBe(true)
     expect(graph.nodes.find((node) => node.type === 'financier')?.label).toBe(
       'Financier review workspace',
     )
@@ -78,7 +82,7 @@ describe('network graph model', () => {
     )
     const summary = summarizeNetworkGraph(graph)
 
-    expect(summary.nodeCount).toBe(8)
+    expect(summary.nodeCount).toBe(10)
     expect(summary.financeNodeCount).toBe(3)
     expect(summary.documentNodeCount).toBe(2)
     expect(summary.riskCounts.medium).toBeGreaterThan(0)

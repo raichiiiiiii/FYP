@@ -268,6 +268,14 @@ function nodeTypeFor(node: ProjectGraphApiNode): NetworkNodeType {
     return 'application'
   }
 
+  if (node.entityType === 'HashRecord') {
+    return 'hash_record'
+  }
+
+  if (node.entityType === 'AuditAnchor') {
+    return 'anchor'
+  }
+
   return 'document'
 }
 
@@ -276,7 +284,7 @@ function visibleRolesFor(type: NetworkNodeType): AppRoleCode[] {
     return financeVisibleRoles
   }
 
-  if (type === 'document') {
+  if (type === 'document' || type === 'hash_record' || type === 'anchor') {
     return procurementVisibleRoles
   }
 
@@ -300,6 +308,10 @@ function relationshipFor(label: string): NetworkRelationship {
 
   if (normalized === 'evidences') {
     return 'evidences'
+  }
+
+  if (normalized === 'verifies') {
+    return 'verifies'
   }
 
   if (normalized.includes('anchor')) {

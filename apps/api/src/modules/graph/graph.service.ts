@@ -4,6 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type {
+  AuditAnchor,
+  HashRecord,
+  IntegrationReconciliationRecord,
+  OutboxEvent,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 type GraphNodeCategory =
@@ -42,6 +48,10 @@ type ActorRoleCode =
   | 'FINANCIER_USER'
   | 'SHARIAH_REVIEWER'
   | 'AUDITOR';
+
+type OutboxWithReconciliation = OutboxEvent & {
+  reconciliationRecord: IntegrationReconciliationRecord | null;
+};
 
 const financeVisibleRoles = new Set<ActorRoleCode>([
   'ORG_ADMIN',
@@ -424,6 +434,12 @@ export class GraphService {
       }
     }
 
+    await this.addHashAnchorOverlay({
+      organizationId,
+      nodes,
+      edges,
+    });
+
     return {
       project: {
         id: project.id,
@@ -437,6 +453,147 @@ export class GraphService {
       nodes: [...nodes.values()],
       edges: [...edges.values()],
     };
+  }
+
+  private async addHashAnchorOverlay(input: {
+    organizationId: string;
+    nodes: Map<string, ProjectGraphNode>;
+    edges: Map<string, ProjectGraphEdge>;
+  }) {
+    const sourceNodes = [...input.nodes.values()].filter(
+      (node) =>
+        node.entityType !== 'HashRecord' && node.entityType !== 'AuditAnchor',
+    );
+
+    if (!sourceNodes.length) {
+      return;
+    }
+
+    const sourceByRef = new Map(
+      sourceNodes.map((node) => [
+        sourceRef(node.entityType, node.entityId),
+        node,
+      ]),
+    );
+    const sourceFilters = sourceNodes.map((node) => ({
+      entityType: node.entityType,
+      entityId: node.entityId,
+    }));
+    const hashRecords = await this.prisma.hashRecord.findMany({
+      where: {
+        organizationId: input.organizationId,
+        OR: sourceFilters,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!hashRecords.length) {
+      return;
+    }
+
+    const anchors = await this.prisma.auditAnchor.findMany({
+      where: {
+        organizationId: input.organizationId,
+        rootHash: {
+          in: hashRecords.map((record) => record.canonicalHash),
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    const outboxEvents = await this.prisma.outboxEvent.findMany({
+      where: {
+        organizationId: input.organizationId,
+        eventType: 'FABRIC_ANCHOR_REQUESTED',
+        OR: sourceFilters.map((filter) => ({
+          aggregateType: filter.entityType,
+          aggregateId: filter.entityId,
+        })),
+      },
+      include: {
+        reconciliationRecord: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    const latestAnchorByHash = latestBy(anchors, (anchor) => anchor.rootHash);
+    const latestOutboxByRef = latestBy(outboxEvents, (event) =>
+      sourceRef(event.aggregateType, event.aggregateId),
+    );
+
+    hashRecords.forEach((record, index) => {
+      const sourceNode = sourceByRef.get(
+        sourceRef(record.entityType, record.entityId),
+      );
+
+      if (!sourceNode) {
+        return;
+      }
+
+      const anchor = latestAnchorByHash.get(record.canonicalHash);
+      const outboxEvent = latestOutboxByRef.get(
+        sourceRef(record.entityType, record.entityId),
+      );
+      const hashNodeId = nodeId('HashRecord', record.id);
+
+      input.nodes.set(hashNodeId, {
+        id: hashNodeId,
+        entityType: 'HashRecord',
+        entityId: record.id,
+        label: `Hash ${record.canonicalHash.slice(0, 12)}`,
+        subtitle: `${record.entityType} verification hash`,
+        status: hashRecordStatus(record, anchor, outboxEvent),
+        category: 'evidence',
+        sourcePath: `/evidence/hashes/${record.id}`,
+        position: {
+          x: sourceNode.position.x + 180,
+          y: sourceNode.position.y + 90 + (index % 3) * 28,
+        },
+      });
+      addGraphEdge(
+        input.edges,
+        input.nodes,
+        hashNodeId,
+        sourceNode.id,
+        'verifies',
+      );
+
+      if (anchor) {
+        const anchorNodeId = nodeId('AuditAnchor', anchor.id);
+
+        input.nodes.set(anchorNodeId, {
+          id: anchorNodeId,
+          entityType: 'AuditAnchor',
+          entityId: anchor.id,
+          label:
+            anchor.anchorType === 'FABRIC_MOCK'
+              ? 'Mock anchor'
+              : 'Fabric anchor',
+          subtitle:
+            anchor.fabricTransactionId ||
+            anchor.anchorType ||
+            'Anchor status record',
+          status: anchor.status,
+          category: 'evidence',
+          sourcePath: `/evidence/hashes/${record.id}`,
+          position: {
+            x: sourceNode.position.x + 360,
+            y: sourceNode.position.y + 90 + (index % 3) * 28,
+          },
+        });
+        addGraphEdge(
+          input.edges,
+          input.nodes,
+          anchorNodeId,
+          hashNodeId,
+          'anchors',
+        );
+      }
+    });
   }
 
   private async getActorRoleCodes(organizationId: string, actorUserId: string) {
@@ -471,4 +628,72 @@ function requireText(value: string | undefined, field: string) {
 
 function nodeId(entityType: string, entityId: string) {
   return `${entityType}:${entityId}`;
+}
+
+function addGraphEdge(
+  edges: Map<string, ProjectGraphEdge>,
+  nodes: Map<string, ProjectGraphNode>,
+  sourceNodeId: string,
+  targetNodeId: string,
+  label: string,
+) {
+  if (!nodes.has(sourceNodeId) || !nodes.has(targetNodeId)) {
+    return;
+  }
+
+  const id = `${sourceNodeId}:${label}:${targetNodeId}`;
+  edges.set(id, {
+    id,
+    sourceNodeId,
+    targetNodeId,
+    label,
+  });
+}
+
+function sourceRef(entityType: string, entityId: string) {
+  return `${entityType}:${entityId}`;
+}
+
+function latestBy<T>(items: T[], keyFor: (item: T) => string) {
+  const map = new Map<string, T>();
+
+  for (const item of items) {
+    const key = keyFor(item);
+
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  }
+
+  return map;
+}
+
+function hashRecordStatus(
+  record: HashRecord,
+  anchor: AuditAnchor | undefined,
+  outboxEvent: OutboxWithReconciliation | undefined,
+) {
+  if (anchor) {
+    return anchor.status;
+  }
+
+  const reconciliationStatus = outboxEvent?.reconciliationRecord?.status;
+
+  if (reconciliationStatus === 'FABRIC_UNAVAILABLE') {
+    return 'FABRIC_UNAVAILABLE';
+  }
+
+  if (
+    reconciliationStatus === 'FAILED' ||
+    reconciliationStatus === 'FABRIC_CONFIGURATION_ERROR' ||
+    outboxEvent?.status === 'FAILED'
+  ) {
+    return 'ANCHOR_FAILED';
+  }
+
+  if (outboxEvent) {
+    return outboxEvent.attempts > 0 ? 'ANCHOR_RETRYING' : 'ANCHOR_PENDING';
+  }
+
+  return record.verifiedAt ? 'HASH_VERIFIED' : 'HASH_RECORDED';
 }

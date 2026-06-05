@@ -48,6 +48,8 @@ const nodeTypeOptions: Array<NetworkNodeType | 'all'> = [
   'opportunity',
   'application',
   'document',
+  'hash_record',
+  'anchor',
 ]
 
 const riskOptions: Array<NetworkRiskLevel | 'all'> = [
@@ -82,6 +84,16 @@ const nodeLegend: Array<{
     type: 'document',
     label: 'Record',
     description: 'Procurement, evidence, contract, or closure record.',
+  },
+  {
+    type: 'hash_record',
+    label: 'Hash record',
+    description: 'Canonical hash proving a source record state.',
+  },
+  {
+    type: 'anchor',
+    label: 'Anchor',
+    description: 'Fabric or mock anchor status for a hash record.',
   },
   {
     type: 'opportunity',
@@ -124,6 +136,11 @@ const relationshipLegend: Array<{
     relationship: 'evidences',
     label: 'Evidences',
     description: 'Record is backed by evidence.',
+  },
+  {
+    relationship: 'verifies',
+    label: 'Verifies',
+    description: 'Hash record verifies a source record state.',
   },
   {
     relationship: 'anchors',
