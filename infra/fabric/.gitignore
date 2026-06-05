@@ -1,0 +1,18 @@
+# Generated local Fabric artifacts stay out of git.
+.local/
+fabric-samples/
+organizations/
+system-genesis-block/
+channel-artifacts/
+log.txt
+*.tar.gz
+*.block
+*.tx
+*.pem
+*.key
+*.crt
+
+!.gitignore
+!README.md
+!scripts/
+!scripts/*.ps1
