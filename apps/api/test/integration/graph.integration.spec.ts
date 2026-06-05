@@ -42,6 +42,7 @@ describe('Integration: graph read model', () => {
           evidencePackId: evidencePack.id,
           title: 'Integration graph finance opportunity',
           estimatedCapital: 6000,
+          expectedProfit: 1200,
         })
         .expect(201)
     ).body as { id: string };

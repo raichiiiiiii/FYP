@@ -115,6 +115,7 @@ describe('Integration: finance', () => {
           purchaseOrderId: fixture.purchaseOrder.id,
           evidencePackId: evidencePack.id,
           estimatedCapital: 6000,
+          expectedProfit: 1200,
         })
         .expect(201)
     ).body as { id: string };
