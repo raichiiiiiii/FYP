@@ -14,6 +14,14 @@ check_file() {
 
   [ -f "${path}" ] || fail "${label} is missing"
   [ -s "${path}" ] || fail "${label} is empty"
+
+  local size_bytes
+  local type_desc
+
+  size_bytes="$(wc -c <"${path}" | tr -d '[:space:]')"
+  type_desc="$(file -b "${path}" 2>/dev/null || printf '%s' 'regular file')"
+
+  echo "OK: ${label} present; type=${type_desc}; size=${size_bytes} bytes."
 }
 
 check_file "${secret_root}/identity/cert.pem" "identity certificate"
@@ -24,6 +32,8 @@ check_file "${secret_root}/env.generated" "generated Fabric env file"
 
 python3 -m json.tool "${secret_root}/connection-profile.json" >/dev/null ||
   fail "connection profile is not valid JSON"
+
+echo "OK: connection profile parses as JSON."
 
 required_env=(
   BLOCKCHAIN_ANCHOR_ADAPTER
@@ -43,6 +53,8 @@ required_env=(
 for name in "${required_env[@]}"; do
   grep -Eq "^${name}=.+" "${secret_root}/env.generated" ||
     fail "generated Fabric env file is missing ${name}"
+
+  echo "OK: generated Fabric env key present: ${name}."
 done
 
 if command -v stat >/dev/null 2>&1; then
@@ -52,6 +64,8 @@ if command -v stat >/dev/null 2>&1; then
     if [ "${world_digit}" != "0" ]; then
       fail "private key must not be world-readable"
     fi
+
+    echo "OK: private key permissions are not world-readable."
   fi
 fi
 
