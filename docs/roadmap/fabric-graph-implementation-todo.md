@@ -43,7 +43,7 @@ decisions, or deeper backend implementation.
 | FG-011 | 10 | E2E evidence states | Browser E2E now exercises the hash-detail Fabric verification panel against API-backed seeded states for mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified anchors. The seeded verified case is explicitly labelled as stored metadata with no direct chaincode query. | UI state coverage is stronger, but real verified Fabric proof and screenshot documentation are still blocked by missing Gateway network/material. | Capture screenshots for these states and rerun the real Gateway path after `infra/fabric/scripts/export-gateway-env.ps1` can provide network material. | QA | Partial |
 | FG-012 | 11 | UAT instructions | UAT materials previously lacked real Gateway setup and evidence capture fields. | Reviewers could confuse mock prototype state with real Fabric verification. | Added Fabric mode/evidence fields, UAT evidence package template, and mock-vs-gateway tester instructions. | QA / Product | Closed |
 | FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. A manual `fabric-gateway-integration.yml` workflow can write Fabric PEM secrets to runner temporary files for gated integration tests without affecting normal CI. | Gateway integration CI can be manually triggered, but automated secret delivery to the Azure VM remains blocked. | Add VM secret delivery through GitHub Actions, a managed secret store, or an operator runbook once the real Gateway deployment target is ready. | Operations | Partial |
-| FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, and accessibility automation remain outside the Fabric slice. | Demo can proceed with caveats, but production readiness is incomplete. | Track these in post-demo hardening backlog with owners and acceptance tests. | Product / Engineering | Open |
+| FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, accessibility automation, backend summary DTOs, and VM secret management are tracked in `docs/roadmap/post-demo-product-hardening-backlog.md`. | Demo and local Fabric implementation can proceed with caveats, but production readiness remains incomplete. | Execute the hardening backlog as separate product slices with owners and acceptance tests; do not mix those gaps into Fabric adapter proof. | Product / Engineering | Partial |
 
 ## TODO Checklist
 
@@ -139,6 +139,7 @@ decisions, or deeper backend implementation.
 
 ### Phase 13 - Post-Demo Hardening
 
+- [x] Create post-demo product hardening backlog.
 - [ ] Production OIDC and invitation flow.
 - [x] Worker health endpoint.
 - [ ] Backend summary DTOs for dashboards and reports.

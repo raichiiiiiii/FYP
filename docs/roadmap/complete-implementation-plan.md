@@ -17,9 +17,9 @@ visual reference only.
 | Module ownership | Defined by `docs/roadmap/module-roadmap.md` and ADR-013. |
 | Graph/canvas | `/graph/projects` exists as a read-only, permission-filtered project graph. |
 | Integrations | `/integrations` exists with outbox, mock adapter, reconciliation, retry visibility, and API Fabric mode status. |
-| Fabric | Mock anchoring exists only in explicit mock mode; gateway mode blocks mock anchor success. Real Fabric Gateway is not implemented. |
+| Fabric | Mock anchoring remains the safe default. Worker Gateway mode now has a real Fabric Gateway adapter and gated integration test, but real local anchoring is not proven until Go/Fabric samples, deployed chaincode, and Gateway material are available. |
 | Evidence/audit | Hash records, audit timelines, evidence packs, and honest anchor states exist. |
-| Testing | Unit/component tests and 17 Playwright E2E tests currently pass. |
+| Testing | Unit/component tests and 18 Playwright E2E tests currently pass, including hash-detail Fabric evidence states. |
 | Deployment | Docker Compose deployment exists; Azure Student VM guide records prior smoke evidence. |
 
 ## Execution Rules
@@ -107,7 +107,7 @@ Current repository state:
 
 ## Phase 3 - Worker-Side Real Fabric Gateway Adapter
 
-Status: Partially complete for safety guard only.
+Status: Complete for repository implementation; blocked for real-network proof.
 
 Owning module:
 Integrations.
@@ -130,8 +130,10 @@ Acceptance:
 Current repository state:
 
 - Worker mock adapter refuses to produce `ANCHORED_MOCK` when `FABRIC_MODE=gateway`.
-- Real Fabric Gateway SDK adapter remains blocked until Fabric network, chaincode,
-  identity material, and SDK implementation are available.
+- Worker Gateway adapter loads Fabric identity/TLS material, submits hash-only
+  `CreateAnchor`, maps SDK metadata, and classifies Gateway failures.
+- Gated integration tests exist, but real execution is blocked until Fabric
+  network, chaincode, and Gateway identity material are available.
 
 ## Phase 4 - Fabric Metadata API And Status Model
 
@@ -160,8 +162,12 @@ Current repository state:
 
 - API exposes Fabric mode/configuration status without leaking gateway endpoint or
   credential path values.
-- Latest anchor verification metadata and schema-backed real Gateway fields remain
-  blocked until the adapter and chaincode are implemented.
+- `AuditAnchor` has schema-backed Gateway metadata fields.
+- `GET /api/v1/hash-records/:id/fabric-verification` distinguishes mock,
+  pending, failed, unavailable, anchored-not-fully-verified, stored verified
+  metadata, and local hash mismatch states.
+- Direct chaincode query remains blocked until Gateway material and deployed
+  chaincode are available.
 
 ## Phase 5 - Evidence, Audit, And Hash Verification Workflow
 
@@ -187,10 +193,10 @@ Current repository state:
 
 - Reviewer-facing canonical hash verification behavior is documented in
   `docs/evidence/canonical-hash-verification.md`.
-- Evidence/audit UI already distinguishes local hash evidence from mock Fabric
-  anchor status.
-- Real Gateway transaction verification remains blocked until chaincode,
-  adapter, and database metadata are implemented.
+- Evidence/audit UI distinguishes local hash evidence, mock anchors, pending
+  work, failed/unavailable Fabric, anchored-not-fully-verified metadata, and
+  stored verified metadata.
+- Real on-chain verification remains blocked until chaincode query is available.
 
 ## Phase 6 - Graph UI Fabric Anchor Overlay
 
@@ -241,7 +247,7 @@ Current repository state:
 - Backend status support is available.
 - The Integrations page renders Fabric runtime mode/configuration status without
   leaking gateway endpoint or credential path values.
-- Worker heartbeat remains TODO.
+- Worker heartbeat is DB-backed and visible through API/Operations UI.
 
 ## Phase 8 - Unit Test Expansion
 
@@ -354,11 +360,13 @@ Current repository state:
 - CI and deployment workflows exist from prior phases.
 - Production Compose mounts `deploy/fabric` read-only into API and worker
   containers for future Gateway certificate/key material.
-- Azure VM deployment docs explain mock mode, Gateway mode, and VM-side Fabric
-  certificate placement.
+- Azure VM deployment docs explain mock mode, Gateway mode, VM-side Fabric
+  certificate placement, and optional manual Fabric Gateway integration workflow
+  secrets.
 - `docs/release-notes/fabric-gateway-readiness.md` separates demo/mock readiness
   from real Gateway readiness.
-- Optional real Fabric integration CI and automated secret delivery remain TODOs.
+- Optional real Fabric integration CI exists; automated VM secret delivery
+  remains TODO.
 
 ## Phase 13 - Post-Demo Product Hardening
 
@@ -383,10 +391,12 @@ Acceptance:
 
 The next executable slices are:
 
-1. Build the real Fabric chaincode/test-network foundation or confirm an
-   existing network target.
-2. Implement the worker Gateway adapter behind the existing outbox dispatch
-   boundary.
-3. Add database/API metadata for real anchor submission and verification.
-4. Add the frontend Fabric Gateway status card using the new API status summary.
-5. Add gated real Fabric integration tests after the network is available.
+1. Install Go and Fabric samples/test-network locally or provide an existing
+   reachable Fabric Gateway target.
+2. Deploy `audit-anchor` chaincode and export Gateway material without
+   committing certificates, private keys, MSP folders, or channel artifacts.
+3. Run the gated real Fabric worker integration test with
+   `FABRIC_TEST_NETWORK_ENABLED=true`.
+4. Add direct chaincode query verification to the API only after the safe query
+   path is available.
+5. Capture screenshots/UAT evidence for real Gateway verified state.

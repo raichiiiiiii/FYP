@@ -10,6 +10,35 @@ This record turns the current Fabric roadmap blockers into concrete implementati
 
 This document is not a production consortium governance agreement. It is the repository-level baseline for implementing and testing the first real Fabric Gateway slice safely while preserving mock mode for local development, CI, and academic demo flows.
 
+## Implementation status update - 2026-06-05
+
+The repository has advanced beyond the baseline scan below.
+
+Current status:
+
+- Go chaincode and local Fabric network scaffolding exist, but local validation is
+  blocked because Go and Fabric samples/test-network are not installed in this
+  Windows environment.
+- Worker Gateway adapter exists behind `FABRIC_MODE=gateway` and submits
+  hash-only `CreateAnchor` payloads through `@hyperledger/fabric-gateway`.
+- Mock mode remains the default and does not require Fabric credentials.
+- `AuditAnchor` has nullable real Gateway metadata fields.
+- Hash-record Fabric verification endpoint exists and does not verify mock
+  anchors.
+- Graph read model and UI support permission-filtered hash/anchor overlay.
+- Worker heartbeat is database-backed and visible through API/Operations UI.
+- Gated worker integration tests exist and are skipped by default.
+- Browser E2E covers mock, pending, failed, unavailable,
+  anchored-not-fully-verified, and stored-metadata verified evidence states.
+- Optional manual GitHub Actions workflow exists for real Fabric Gateway
+  integration tests.
+
+Remaining proof blocker:
+
+Real local Fabric anchoring is not proven because the environment lacks Go,
+Fabric samples/test-network, deployed `audit-anchor` chaincode, and Gateway
+identity/TLS material. The baseline scan below is retained for decision history.
+
 ## Source documents used
 
 Primary decision inputs:

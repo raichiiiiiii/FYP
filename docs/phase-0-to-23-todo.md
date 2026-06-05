@@ -9,7 +9,7 @@ It is not a replacement for the SRS, SDD, UI contract, ADRs, or implementation
 plan. It is a practical recovery checklist for incomplete or partially verified
 work.
 
-Last updated: 2026-06-03.
+Last updated: 2026-06-05.
 
 ## Current Critical Blockers
 
@@ -18,7 +18,7 @@ Last updated: 2026-06-03.
 | Docker Desktop daemon became unresponsive during local production compose build | Phase 17 production container build is not fully verified locally | Restart Docker Desktop or test on Linux/VM, then rerun production compose build/up |
 | Azure VM host/key details were not provided | Phase 21 manual cloud deployment cannot be executed by Codex | Provide VM public IP/DNS, SSH user, and local key path; do not paste private key contents |
 | Azure VM live smoke-test outputs are not recorded | Deployment cannot be marked complete for assessment | Capture `docker compose ps`, logs, `curl localhost`, and `curl PUBLIC_IP` output |
-| Full Playwright E2E was not run in latest verification | UI workflow coverage is not fully proven end-to-end | Start infrastructure/app stack and run `corepack pnpm test:e2e` |
+| Real local Fabric proof is blocked by missing Go/Fabric samples/Gateway material | Worker Gateway adapter and gated tests exist, but real anchoring cannot be proven end-to-end locally | Install Go and Fabric samples/test-network, deploy `audit-anchor`, export Gateway env/material, then run the gated Fabric integration test |
 | GitHub Actions CI/deploy workflows have not been observed on GitHub after push | Automation exists locally but remote execution is not confirmed | Push current branch, inspect Actions run, fix workflow issues if any |
 | Some frontend modules still use fixtures/mock states | Demo is reviewable but not fully API-backed | Replace fixtures with typed API hooks and backend contracts slice by slice |
 
@@ -37,7 +37,7 @@ Complete these before claiming the MVP is fully deployment-ready:
 - [ ] Capture VM smoke-test outputs without secrets.
 - [ ] Configure GitHub secrets: `AZURE_VM_HOST`, `AZURE_VM_USER`, `AZURE_VM_SSH_KEY`.
 - [ ] Trigger GitHub Actions deployment manually once.
-- [ ] Run full E2E tests and record results.
+- [x] Run full E2E tests and record results (`corepack pnpm test:e2e`, 18/18 passed on 2026-06-05).
 - [ ] Update `docs/testing/test-report-template.md` with live E2E and deployment results.
 
 ## Phase-by-Phase Tracker
@@ -260,20 +260,26 @@ Unfinished / verify later:
 
 ### Phase 13 - Slice 8: Audit And Fabric Verification
 
-Status: Implemented as honest status UI foundation.
+Status: Implemented as honest status UI foundation with API-backed hash-detail
+Fabric verification states.
 
 Completed:
 
 - Audit timeline and Fabric anchor status display exist.
-- UI distinguishes pending, submitted, verified, failed, and unavailable states.
-- Tests cover anchor states.
+- Hash-detail Fabric verification panel calls the API-backed
+  `/hash-records/:id/fabric-verification` endpoint.
+- UI distinguishes mock, pending, submitted, verified stored metadata, failed,
+  unavailable, and anchored-not-fully-verified states.
+- Tests cover anchor states, including E2E coverage for seeded Fabric evidence
+  states.
 
 Unfinished / verify later:
 
-- [ ] Connect verification display to live hash/anchor records where not already API-backed.
-- [ ] Implement real Fabric Gateway adapter after local hash/evidence logic is stable.
+- [x] Connect hash-detail verification display to live hash/anchor API records.
+- [x] Implement real worker Fabric Gateway adapter behind `FABRIC_MODE=gateway`.
 - [ ] Add downloadable verification evidence for reviewers.
-- [ ] Add audit search/filter/pagination E2E tests.
+- [x] Add audit search/filter/pagination E2E tests.
+- [ ] Prove real Fabric Gateway anchoring against a local or external Fabric network.
 
 ### Phase 14 - Slice 9: Network Canvas
 
@@ -492,7 +498,8 @@ These cut across multiple phases and should be planned as small PRs.
 
 - [ ] Complete real document upload/download/preview through MinIO.
 - [ ] Complete downloadable evidence pack export.
-- [ ] Complete hash verification UX with live backend verification.
+- [x] Complete hash verification UX with live backend verification for local hash
+  and stored Fabric metadata states.
 - [ ] Keep Fabric states honest until real anchoring exists.
 
 ### Deployment And Operations
