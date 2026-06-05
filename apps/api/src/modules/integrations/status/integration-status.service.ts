@@ -89,9 +89,11 @@ export class IntegrationStatusService {
       enabled: fabricEnv.enabled,
       mode: fabricEnv.mode,
       gatewayConfigured,
-      realGatewayAdapterImplemented: false,
+      realGatewayAdapterImplemented: true,
       anchorResultSource:
-        fabricEnv.mode === 'gateway' ? 'real-gateway-required' : 'mock-adapter',
+        fabricEnv.mode === 'gateway'
+          ? 'worker-gateway-adapter'
+          : 'mock-adapter',
       missingGatewayConfig,
       configuredChannel: redactConfiguredValue(fabricEnv.channel),
       configuredChaincode: redactConfiguredValue(fabricEnv.chaincode),
@@ -101,7 +103,7 @@ export class IntegrationStatusService {
       securityBoundary: 'document hashes and minimal metadata only',
       message:
         fabricEnv.mode === 'gateway'
-          ? 'Gateway mode is configured, but the real Fabric Gateway adapter remains a roadmap item. Mock anchoring is disabled in this mode.'
+          ? 'Gateway mode is configured for the worker Fabric Gateway adapter. Real anchoring still requires deployed network material and successful worker processing.'
           : 'Fabric anchoring is running in explicit mock mode for prototype and local testing.',
     };
   }

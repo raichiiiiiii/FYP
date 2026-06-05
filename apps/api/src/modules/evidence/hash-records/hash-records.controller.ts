@@ -20,4 +20,9 @@ export class HashRecordsController {
   verifyHashRecord(@Param('id') id: string) {
     return this.hashRecordsService.verify(id);
   }
+
+  @Get(':id/fabric-verification')
+  verifyFabricAnchor(@Param('id') id: string) {
+    return this.hashRecordsService.fabricVerification(id);
+  }
 }
