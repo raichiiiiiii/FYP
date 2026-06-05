@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
   IntegrationReconciliationRecord,
   OutboxEvent,
+  WorkerHeartbeat,
 } from '@prisma/client';
 import {
   fabricGatewayRequiredVariables,
@@ -12,6 +13,8 @@ import { PrismaService } from '../../../database/prisma.service';
 type OutboxWithReconciliation = OutboxEvent & {
   reconciliationRecord: IntegrationReconciliationRecord | null;
 };
+
+const staleHeartbeatAfterMs = 120_000;
 
 @Injectable()
 export class IntegrationStatusService {
@@ -74,6 +77,17 @@ export class IntegrationStatusService {
     });
   }
 
+  async listWorkerHeartbeats() {
+    const heartbeats = await this.prisma.workerHeartbeat.findMany({
+      orderBy: {
+        lastSeenAt: 'desc',
+      },
+      take: 20,
+    });
+
+    return heartbeats.map(formatWorkerHeartbeat);
+  }
+
   getFabricStatus() {
     const fabricEnv = readFabricEnv();
     const missingGatewayConfig =
@@ -129,6 +143,54 @@ function formatOutboxEvent(event: OutboxWithReconciliation) {
     updatedAt: event.updatedAt,
     reconciliationRecord: event.reconciliationRecord,
   };
+}
+
+function formatWorkerHeartbeat(heartbeat: WorkerHeartbeat) {
+  const ageMs = Date.now() - heartbeat.lastSeenAt.getTime();
+  const stale = ageMs > staleHeartbeatAfterMs;
+  const healthStatus =
+    heartbeat.status === 'disabled'
+      ? 'not_configured'
+      : stale
+        ? 'unavailable'
+        : heartbeat.status === 'running' || heartbeat.status === 'idle'
+          ? 'healthy'
+          : 'pending';
+
+  return {
+    id: heartbeat.id,
+    workerName: heartbeat.workerName,
+    queueName: heartbeat.queueName,
+    status: heartbeat.status,
+    healthStatus,
+    lastSeenAt: heartbeat.lastSeenAt,
+    processedCount: heartbeat.processedCount,
+    failedCount: heartbeat.failedCount,
+    metadata: heartbeat.metadata,
+    message: workerHeartbeatMessage(heartbeat, stale),
+    createdAt: heartbeat.createdAt,
+    updatedAt: heartbeat.updatedAt,
+  };
+}
+
+function workerHeartbeatMessage(heartbeat: WorkerHeartbeat, stale: boolean) {
+  if (heartbeat.status === 'disabled') {
+    return 'Worker polling is disabled by configuration.';
+  }
+
+  if (stale) {
+    return 'Worker heartbeat is stale; treat the queue worker as unavailable until it reports again.';
+  }
+
+  if (heartbeat.status === 'running') {
+    return 'Worker is actively polling or processing outbox events.';
+  }
+
+  if (heartbeat.status === 'idle') {
+    return 'Worker is online and idle after its latest polling run.';
+  }
+
+  return `Worker reported ${heartbeat.status}.`;
 }
 
 function displayStatus(event: OutboxEvent) {

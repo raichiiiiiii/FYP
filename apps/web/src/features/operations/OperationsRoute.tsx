@@ -12,6 +12,7 @@ import {
   type OutboxEventView,
   type ReconciliationRecord,
   type WebhookSubscription,
+  type WorkerHeartbeatView,
   useIntegrations,
 } from '../integrations/api/useIntegrations'
 import { IntegrationStatusCards } from '../integrations/status/IntegrationStatusCards'
@@ -31,12 +32,17 @@ type OperationsData = {
   outbox: OutboxEventView[]
   reconciliation: ReconciliationRecord[]
   subscriptions: WebhookSubscription[]
+  workerHeartbeats: WorkerHeartbeatView[]
   warnings: string[]
 }
 
 export function OperationsRoute({ session }: { session: AppSession }) {
-  const { listOutbox, listReconciliation, listWebhookSubscriptions } =
-    useIntegrations(session)
+  const {
+    listOutbox,
+    listReconciliation,
+    listWebhookSubscriptions,
+    listWorkerHeartbeats,
+  } = useIntegrations(session)
   const [dataState, setDataState] = useState<LoadState<OperationsData>>({
     status: 'loading',
   })
@@ -44,12 +50,18 @@ export function OperationsRoute({ session }: { session: AppSession }) {
   const loadOperations = useCallback(async () => {
     setDataState({ status: 'loading' })
 
-    const [healthResult, outboxResult, reconciliationResult, subscriptionsResult] =
-      await Promise.allSettled([
+    const [
+      healthResult,
+      outboxResult,
+      reconciliationResult,
+      subscriptionsResult,
+      workerHeartbeatsResult,
+    ] = await Promise.allSettled([
         apiRequest<HealthResponse>('/health'),
         listOutbox(),
         listReconciliation(),
         listWebhookSubscriptions(),
+        listWorkerHeartbeats(),
       ])
 
     const health =
@@ -61,11 +73,16 @@ export function OperationsRoute({ session }: { session: AppSession }) {
         : []
     const subscriptions =
       subscriptionsResult.status === 'fulfilled' ? subscriptionsResult.value : []
+    const workerHeartbeats =
+      workerHeartbeatsResult.status === 'fulfilled'
+        ? workerHeartbeatsResult.value
+        : []
     const warnings = [
       resultWarning('API health', healthResult),
       resultWarning('Outbox', outboxResult),
       resultWarning('Reconciliation', reconciliationResult),
       resultWarning('Webhook subscriptions', subscriptionsResult),
+      resultWarning('Worker heartbeat', workerHeartbeatsResult),
     ].filter((warning): warning is string => Boolean(warning))
 
     if (!health && outboxResult.status === 'rejected') {
@@ -89,10 +106,16 @@ export function OperationsRoute({ session }: { session: AppSession }) {
         outbox,
         reconciliation,
         subscriptions,
+        workerHeartbeats,
         warnings,
       },
     })
-  }, [listOutbox, listReconciliation, listWebhookSubscriptions])
+  }, [
+    listOutbox,
+    listReconciliation,
+    listWebhookSubscriptions,
+    listWorkerHeartbeats,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +139,7 @@ export function OperationsRoute({ session }: { session: AppSession }) {
             health: data.health,
             healthError: data.healthError,
             outbox: data.outbox,
+            workerHeartbeats: data.workerHeartbeats,
           })
         : [],
     [data],
@@ -144,6 +168,24 @@ export function OperationsRoute({ session }: { session: AppSession }) {
       failed: data?.outbox.filter((event) => event.displayStatus === 'FAILED')
         .length ?? 0,
       total: data?.outbox.length ?? 0,
+    }),
+    [data],
+  )
+  const workerSummary = useMemo(
+    () => ({
+      total: data?.workerHeartbeats.length ?? 0,
+      processed:
+        data?.workerHeartbeats.reduce(
+          (total, worker) => total + worker.processedCount,
+          0,
+        ) ?? 0,
+      failed:
+        data?.workerHeartbeats.reduce(
+          (total, worker) => total + worker.failedCount,
+          0,
+        ) ?? 0,
+      lastSeenAt: data?.workerHeartbeats[0]?.lastSeenAt,
+      status: data?.workerHeartbeats[0]?.healthStatus ?? 'not_configured',
     }),
     [data],
   )
@@ -248,14 +290,15 @@ export function OperationsRoute({ session }: { session: AppSession }) {
             <article>
               <span>Worker and queue</span>
               <strong>
-                {outboxSummary.total
-                  ? `${outboxSummary.total} outbox records visible`
-                  : 'No outbox backlog visible'}
+                {workerSummary.total
+                  ? `${workerSummary.total} heartbeat record${workerSummary.total === 1 ? '' : 's'}`
+                  : 'No worker heartbeat'}
               </strong>
               <p>
                 Pending {outboxSummary.pending} / retrying{' '}
                 {outboxSummary.retrying} / failed {outboxSummary.failed}.
-                Worker health is not directly probed yet.
+                Worker processed {workerSummary.processed} and failed{' '}
+                {workerSummary.failed}; latest status {workerSummary.status}.
               </p>
             </article>
             <article>
@@ -309,6 +352,64 @@ export function OperationsRoute({ session }: { session: AppSession }) {
             title="Adapter and outbox visibility"
             statuses={integrationStatuses}
           />
+
+          <section className="table-section">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Queue worker heartbeat</span>
+                <h2>Worker status records</h2>
+              </div>
+            </div>
+            {data.workerHeartbeats.length ? (
+              <div className="data-table data-table--operations">
+                {data.workerHeartbeats.map((worker) => (
+                  <article key={worker.id}>
+                    <div>
+                      <span>Worker</span>
+                      <strong>{worker.workerName}</strong>
+                    </div>
+                    <div>
+                      <span>Queue</span>
+                      <strong>{worker.queueName}</strong>
+                    </div>
+                    <div>
+                      <span>Health</span>
+                      <StatusBadge status={worker.healthStatus} />
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{worker.status}</strong>
+                    </div>
+                    <div>
+                      <span>Last seen</span>
+                      <strong>{formatDateTime(worker.lastSeenAt)}</strong>
+                    </div>
+                    <div>
+                      <span>Processed / failed</span>
+                      <strong>
+                        {worker.processedCount} / {worker.failedCount}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Message</span>
+                      <strong>{worker.message}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <section className="operations-backup-grid">
+                <article>
+                  <span>Worker heartbeat</span>
+                  <strong>Not configured</strong>
+                  <p>
+                    No worker heartbeat row exists yet. Start the worker or run
+                    a polling cycle before claiming queue-worker health.
+                  </p>
+                </article>
+              </section>
+            )}
+          </section>
 
           <section className="table-section">
             <div className="section-heading">

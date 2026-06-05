@@ -20,6 +20,11 @@ export class IntegrationStatusController {
     return this.integrationStatus.listReconciliation(organizationId);
   }
 
+  @Get('workers')
+  listWorkerHeartbeats() {
+    return this.integrationStatus.listWorkerHeartbeats();
+  }
+
   @Get('fabric/status')
   getFabricStatus() {
     return this.integrationStatus.getFabricStatus();

@@ -14,6 +14,8 @@ import { IntegrationAdapterRegistry } from '../integrations/integration-adapter-
 export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxWorkerService.name);
   private readonly env = readWorkerEnv();
+  private readonly workerName = 'outbox-worker';
+  private readonly queueName = 'outbox';
   private timer?: NodeJS.Timeout;
   private processing = false;
 
@@ -25,9 +27,17 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     if (!this.env.enabled) {
       this.logger.log('Outbox polling disabled');
+      await this.recordHeartbeat('disabled', {
+        enabled: false,
+      });
       return;
     }
 
+    await this.recordHeartbeat('starting', {
+      enabled: true,
+      pollIntervalMs: this.env.pollIntervalMs,
+      maxAttempts: this.env.maxAttempts,
+    });
     await this.runOnce();
     this.timer = setInterval(() => {
       void this.runOnce();
@@ -46,15 +56,32 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.processing = true;
+    let processedInRun = 0;
+    let failedInRun = 0;
 
     try {
+      await this.recordHeartbeat('running');
       let event = await this.claimNext();
 
       while (event) {
-        await this.processEvent(event);
+        const processed = await this.processEvent(event);
+        if (processed) {
+          processedInRun += 1;
+        } else {
+          failedInRun += 1;
+        }
         event = await this.claimNext();
       }
     } finally {
+      await this.recordHeartbeat('idle', {
+        processedIncrement: processedInRun,
+        failedIncrement: failedInRun,
+        metadata: {
+          lastRunCompletedAt: new Date().toISOString(),
+          processedInRun,
+          failedInRun,
+        },
+      });
       this.processing = false;
     }
   }
@@ -107,10 +134,61 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
           lastError: null,
         },
       });
+      return true;
     } catch (error) {
       await this.storeFailureReference(event, error);
       await this.retry(event, error);
+      return false;
     }
+  }
+
+  private async recordHeartbeat(
+    status: string,
+    options: {
+      processedIncrement?: number;
+      failedIncrement?: number;
+      metadata?: Prisma.InputJsonObject;
+      enabled?: boolean;
+      pollIntervalMs?: number;
+      maxAttempts?: number;
+    } = {},
+  ) {
+    const metadata = {
+      workerKind: 'outbox',
+      enabled: options.enabled ?? this.env.enabled,
+      pollIntervalMs: options.pollIntervalMs ?? this.env.pollIntervalMs,
+      maxAttempts: options.maxAttempts ?? this.env.maxAttempts,
+      ...options.metadata,
+    };
+
+    await this.prisma.workerHeartbeat.upsert({
+      where: {
+        workerName_queueName: {
+          workerName: this.workerName,
+          queueName: this.queueName,
+        },
+      },
+      create: {
+        workerName: this.workerName,
+        queueName: this.queueName,
+        status,
+        lastSeenAt: new Date(),
+        processedCount: options.processedIncrement ?? 0,
+        failedCount: options.failedIncrement ?? 0,
+        metadata,
+      },
+      update: {
+        status,
+        lastSeenAt: new Date(),
+        processedCount: {
+          increment: options.processedIncrement ?? 0,
+        },
+        failedCount: {
+          increment: options.failedIncrement ?? 0,
+        },
+        metadata,
+      },
+    });
   }
 
   private async storeExternalReference(

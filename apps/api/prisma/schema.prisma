@@ -634,6 +634,23 @@ model IntegrationReconciliationRecord {
   @@index([aggregateType, aggregateId])
 }
 
+model WorkerHeartbeat {
+  id             String   @id @default(uuid())
+  workerName     String
+  queueName      String
+  status         String   @default("idle")
+  lastSeenAt     DateTime @default(now())
+  processedCount Int      @default(0)
+  failedCount    Int      @default(0)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([workerName, queueName])
+  @@index([status])
+  @@index([lastSeenAt])
+}
+
 model WebhookSubscription {
   id             String   @id @default(uuid())
   organizationId String?

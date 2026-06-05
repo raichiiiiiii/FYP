@@ -97,6 +97,18 @@ describe('integration and operations status model', () => {
     const healthItems = buildOperationalHealthItems({
       health: healthyApi,
       outbox: [],
+      workerHeartbeats: [
+        {
+          workerName: 'outbox-worker',
+          queueName: 'outbox',
+          status: 'idle',
+          healthStatus: 'healthy',
+          lastSeenAt: '2026-06-03T00:00:00.000Z',
+          processedCount: 4,
+          failedCount: 0,
+          message: 'Worker is online and idle after its latest polling run.',
+        },
+      ],
     })
     const readiness = summarizeOperationalHealth(healthItems)
 
@@ -110,6 +122,46 @@ describe('integration and operations status model', () => {
       'not_configured',
     )
     expect(readiness.productionReady).toBe(false)
+  })
+
+  it('marks worker health as not configured when no heartbeat exists', () => {
+    const healthItems = buildOperationalHealthItems({
+      health: healthyApi,
+      outbox: [],
+    })
+
+    expect(healthItems.find((item) => item.id === 'outbox-worker')?.status).toBe(
+      'not_configured',
+    )
+  })
+
+  it('marks worker health as degraded when queued integrations are failing', () => {
+    const healthItems = buildOperationalHealthItems({
+      health: healthyApi,
+      outbox: [
+        {
+          eventType: 'FABRIC_ANCHOR_REQUESTED',
+          displayStatus: 'FAILED',
+          lastError: 'Fabric unavailable',
+        },
+      ],
+      workerHeartbeats: [
+        {
+          workerName: 'outbox-worker',
+          queueName: 'outbox',
+          status: 'idle',
+          healthStatus: 'healthy',
+          lastSeenAt: '2026-06-03T00:00:00.000Z',
+          processedCount: 4,
+          failedCount: 1,
+          message: 'Worker is online and idle after its latest polling run.',
+        },
+      ],
+    })
+
+    expect(healthItems.find((item) => item.id === 'outbox-worker')?.status).toBe(
+      'degraded',
+    )
   })
 
   it('surfaces dependency failures from the API health response', () => {
@@ -176,12 +228,12 @@ describe('integration and operations status model', () => {
     expect(status.message).toContain('mock mode')
   })
 
-  it('maps configured Gateway mode as degraded until the real adapter exists', () => {
+  it('maps configured Gateway mode as pending until live anchor proof exists', () => {
     const status = buildFabricRuntimeStatusCard({
       enabled: true,
       mode: 'gateway',
       gatewayConfigured: true,
-      realGatewayAdapterImplemented: false,
+      realGatewayAdapterImplemented: true,
       missingGatewayConfig: [],
       configuredChannel: 'configured',
       configuredChaincode: 'configured',
@@ -190,12 +242,12 @@ describe('integration and operations status model', () => {
       commitTimeoutMs: 30000,
       securityBoundary: 'document hashes and minimal metadata only',
       message:
-        'Gateway mode is configured, but the real Fabric Gateway adapter remains a roadmap item. Mock anchoring is disabled in this mode.',
+        'Gateway mode is configured for the worker Fabric Gateway adapter. Real anchoring still requires deployed network material and successful worker processing.',
     })
 
-    expect(status.status).toBe('degraded')
+    expect(status.status).toBe('pending')
     expect(status.mode).toBe('real_gateway_required')
-    expect(status.message).toContain('real Fabric Gateway adapter remains')
+    expect(status.message).toContain('Live anchor health')
   })
 
   it('maps missing Fabric status as unavailable', () => {

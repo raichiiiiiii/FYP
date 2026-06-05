@@ -15,6 +15,7 @@ export type IntegrationType =
   | 'payment'
   | 'email'
   | 'outbox'
+  | 'worker'
 
 export type IntegrationStatusCard = {
   id: string
@@ -87,6 +88,17 @@ export type OperationalHealthItem = {
   status: IntegrationHealthStatus
   message: string
   lastCheckedAt?: string
+}
+
+export type WorkerHeartbeatSummary = {
+  workerName: string
+  queueName: string
+  status: string
+  healthStatus: IntegrationHealthStatus
+  lastSeenAt?: string | null
+  processedCount: number
+  failedCount: number
+  message: string
 }
 
 export type OperationsReadinessSummary = {
@@ -233,12 +245,15 @@ export function buildOperationalHealthItems({
   health,
   healthError,
   outbox,
+  workerHeartbeats = [],
 }: {
   health: HealthResponse | null
   healthError?: string
   outbox: IntegrationQueueEvent[]
+  workerHeartbeats?: WorkerHeartbeatSummary[]
 }): OperationalHealthItem[] {
   const outboxStatus = buildOutboxStatus(outbox)
+  const workerStatus = buildWorkerHealthStatus(workerHeartbeats, outboxStatus)
 
   return [
     {
@@ -279,9 +294,9 @@ export function buildOperationalHealthItems({
       id: 'outbox-worker',
       name: 'Outbox worker visibility',
       category: 'worker',
-      status: outboxStatus.status,
-      message: outboxStatus.message,
-      lastCheckedAt: outboxStatus.lastCheckedAt,
+      status: workerStatus.status,
+      message: workerStatus.message,
+      lastCheckedAt: workerStatus.lastCheckedAt,
     },
     {
       id: 'object-storage',
@@ -429,6 +444,37 @@ function buildOutboxStatus(
     evidence: 'outbox',
     mode: 'internal_queue',
     lastCheckedAt: latestDate(outbox),
+  }
+}
+
+function buildWorkerHealthStatus(
+  workerHeartbeats: WorkerHeartbeatSummary[],
+  outboxStatus: IntegrationStatusCard,
+): Pick<OperationalHealthItem, 'status' | 'message' | 'lastCheckedAt'> {
+  const outboxWorker =
+    workerHeartbeats.find((worker) => worker.queueName === 'outbox') ??
+    workerHeartbeats[0]
+
+  if (!outboxWorker) {
+    return {
+      status: 'not_configured',
+      message:
+        'No worker heartbeat is available. Worker status cannot be inferred from API health alone.',
+    }
+  }
+
+  if (outboxStatus.status === 'degraded') {
+    return {
+      status: 'degraded',
+      message: `${outboxWorker.message} Queue status is degraded: ${outboxStatus.message}`,
+      lastCheckedAt: outboxWorker.lastSeenAt ?? undefined,
+    }
+  }
+
+  return {
+    status: outboxWorker.healthStatus,
+    message: `${outboxWorker.message} Processed ${outboxWorker.processedCount}; failed ${outboxWorker.failedCount}.`,
+    lastCheckedAt: outboxWorker.lastSeenAt ?? undefined,
   }
 }
 

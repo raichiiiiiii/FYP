@@ -66,4 +66,61 @@ describe('IntegrationStatusService Fabric status', () => {
       gatewayEnv.FABRIC_GATEWAY_URL,
     );
   });
+
+  it('formats fresh worker heartbeat as healthy', async () => {
+    const service = new IntegrationStatusService({
+      workerHeartbeat: {
+        findMany: jest.fn().mockResolvedValue([
+          workerHeartbeat({
+            status: 'idle',
+            lastSeenAt: new Date(),
+          }),
+        ]),
+      },
+    } as never);
+
+    await expect(service.listWorkerHeartbeats()).resolves.toMatchObject([
+      {
+        workerName: 'outbox-worker',
+        queueName: 'outbox',
+        status: 'idle',
+        healthStatus: 'healthy',
+      },
+    ]);
+  });
+
+  it('formats stale worker heartbeat as unavailable', async () => {
+    const service = new IntegrationStatusService({
+      workerHeartbeat: {
+        findMany: jest.fn().mockResolvedValue([
+          workerHeartbeat({
+            status: 'idle',
+            lastSeenAt: new Date('2000-01-01T00:00:00.000Z'),
+          }),
+        ]),
+      },
+    } as never);
+
+    await expect(service.listWorkerHeartbeats()).resolves.toMatchObject([
+      {
+        healthStatus: 'unavailable',
+      },
+    ]);
+  });
 });
+
+function workerHeartbeat(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'worker-heartbeat-1',
+    workerName: 'outbox-worker',
+    queueName: 'outbox',
+    status: 'idle',
+    lastSeenAt: new Date(),
+    processedCount: 2,
+    failedCount: 1,
+    metadata: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}

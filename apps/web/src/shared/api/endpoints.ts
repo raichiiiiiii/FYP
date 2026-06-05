@@ -221,6 +221,7 @@ export const endpoints = {
     outboxEvent: (id: string) => `/integrations/outbox/${id}`,
     reconciliation: (organizationId?: string | null) =>
       scopedPath('/integrations/reconciliation', organizationId),
+    workers: '/integrations/workers',
     fabricStatus: '/integrations/fabric/status',
     fabricAnchor: '/integrations/fabric/anchors',
     esignPackage: '/integrations/esign/packages',

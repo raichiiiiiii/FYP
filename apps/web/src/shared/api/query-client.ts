@@ -132,6 +132,7 @@ export const queryKeys = {
   },
   integrations: {
     fabricStatus: ['integrations', 'fabric-status'] as const,
+    workers: ['integrations', 'workers'] as const,
     outbox: (organizationId?: string | null) =>
       scopedKey('integrations', 'outbox', organizationId),
     reconciliation: (organizationId?: string | null) =>

@@ -74,6 +74,21 @@ export type FabricRuntimeStatus = {
   message: string
 }
 
+export type WorkerHeartbeatView = {
+  id: string
+  workerName: string
+  queueName: string
+  status: string
+  healthStatus: 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'pending'
+  lastSeenAt: string
+  processedCount: number
+  failedCount: number
+  metadata?: Record<string, unknown> | null
+  message: string
+  createdAt: string
+  updatedAt: string
+}
+
 type RequestBody = Record<string, unknown>
 
 export function useIntegrations(session: AppSession) {
@@ -131,6 +146,15 @@ export function useIntegrations(session: AppSession) {
       fetchQuery<T>(
         queryKeys.integrations.fabricStatus,
         endpoints.integrations.fabricStatus,
+      ),
+    [fetchQuery],
+  )
+
+  const listWorkerHeartbeats = useCallback(
+    <T = WorkerHeartbeatView[]>() =>
+      fetchQuery<T>(
+        queryKeys.integrations.workers,
+        endpoints.integrations.workers,
       ),
     [fetchQuery],
   )
@@ -206,6 +230,7 @@ export function useIntegrations(session: AppSession) {
     listReconciliation,
     listWebhookSubscriptions,
     getFabricStatus,
+    listWorkerHeartbeats,
     queueFabricAnchor,
     queueEsignPackage,
     queueErpSync,

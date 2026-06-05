@@ -18,7 +18,7 @@ decisions, or deeper backend implementation.
 | 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values, `AuditAnchor` has nullable real Gateway metadata fields, worker anchor persistence stores those fields when present, hash-record anchor status returns typed Fabric metadata, and `GET /api/v1/hash-records/:id/fabric-verification` validates local hash state against stored anchor/outbox evidence. | Direct chaincode query verification remains deferred until local Fabric Gateway material exists. |
 | 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. Hash-record Fabric verification now distinguishes mock, pending, failed, unavailable, anchored-but-not-fully-verified, verified stored metadata, and local hash mismatch states. | Needs real Gateway chaincode query verification once Fabric network material is available. |
 | 6 | Graph UI Fabric anchor overlay | Complete for repository read-model and UI mapping. Backend project graph now emits permission-filtered `HashRecord` and `AuditAnchor` nodes plus `verifies` and `anchors` edges; frontend graph model, filters, legends, and styles understand `hash_record`, `anchor`, `verifies`, and `anchors`. | Browser E2E and screenshot evidence remain under Phase 10. |
-| 7 | Integrations and operations Gateway mode UI | Partially complete. Backend status support and frontend Fabric mode/status card exist. | Worker health heartbeat remains required. |
+| 7 | Integrations and operations Gateway mode UI | Complete for repository-visible runtime status. Backend status support, frontend Fabric mode/status card, DB-backed worker heartbeat, API worker status, and Operations UI worker heartbeat table exist. | Real external adapter health probes still require provider/runtime integration. |
 | 8 | Unit test expansion | Partially complete. Config, API status, gateway-mode mock-guard, Gateway adapter, payload builder, adapter registry, hash-record verification, and graph overlay tests exist. | Remaining test work is direct chaincode verification helpers, E2E evidence states, and gated real Fabric integration tests. |
 | 9 | Integration test expansion | Not complete. | Requires local Fabric test network or gated CI service. |
 | 10 | Browser E2E and screenshot documentation | Partially complete. E2E now confirms the Fabric runtime card on the Integrations route. | Graph overlay E2E, screenshot documentation, and seeded real/mock anchor states remain required. |
@@ -37,7 +37,7 @@ decisions, or deeper backend implementation.
 | FG-005 | 4 | Database metadata | `AuditAnchor` now has migration-backed nullable fields for transaction ID, block number, channel, chaincode, commit status, endorsement status, and verification timestamp. Hash-record anchor status and the Fabric verification endpoint expose these fields without reporting mock anchors as verified. | API can represent and evaluate real Gateway metadata when a real adapter supplies it. | Keep closed for schema/API shape; continue direct chaincode query work after local Fabric Gateway material is available. | Evidence / Audit | Closed |
 | FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacked canonicalization detail from backend. | Verification UX was underspecified for auditors. | Added canonical hash verification guide based on `AuditHashService` behavior. | Evidence / Audit | Closed |
 | FG-007 | 6 | Graph anchor overlay data | Backend graph read model exposes `HashRecord` and `AuditAnchor` nodes only for already-visible source records, adds `verifies` and `anchors` edges, and prunes edges whose endpoints are hidden. Frontend mapping, filters, legend, and tests support the overlay. | Graph can visualize Fabric/evidence relationships without exposing finance anchors when finance source records are hidden. | Keep closed for repository graph overlay. Continue browser E2E/screenshot evidence under Phase 10. | Graph / Evidence | Closed |
-| FG-008 | 7 | Worker health | Worker has no health heartbeat/status endpoint. | Operations UI cannot distinguish idle, stopped, degraded, and unavailable worker states. | Add worker heartbeat table or API health endpoint and surface it in operations UI. | Operations | Open |
+| FG-008 | 7 | Worker health | `WorkerHeartbeat` is migration-backed. The outbox worker records starting/running/idle/disabled heartbeats and processed/failed counts. API exposes `/api/v1/integrations/workers`, and Operations UI classifies recent, stale, disabled, and degraded queue states. | Operations UI can distinguish configured worker heartbeat states instead of inferring worker health from API process health alone. | Keep closed for repository heartbeat/status. Continue real provider health probes separately. | Operations | Closed |
 | FG-009 | 7 | Gateway UI card | Frontend did not render the Fabric mode/status endpoint. | Reviewers previously had to inspect API/docs to see mock vs gateway mode. | Added Integrations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Closed |
 | FG-010 | 9 | Real integration tests | No gated real Fabric integration test environment exists. | CI cannot prove real Gateway anchoring. | Add optional CI job gated by Fabric secrets or run local Fabric network in integration tests. | QA / Operations | Open |
 | FG-011 | 10 | E2E evidence states | Browser tests cannot cover real verified Fabric state without real adapter or controlled fixture endpoint. | UI screenshot documentation remains limited to mock/pending/failed states. | Add seeded mock and real-mode test cases once API model and adapter exist. | QA | Open |
@@ -97,7 +97,7 @@ decisions, or deeper backend implementation.
 
 - [x] Add frontend API hook for Fabric status endpoint.
 - [x] Add Fabric status card showing mock, gateway, degraded, unavailable, pending, and retrying states.
-- [ ] Add worker heartbeat/queue status support.
+- [x] Add worker heartbeat/queue status support.
 - [x] Link operations screen to deployment runbook.
 
 ### Phase 8 - Unit Tests
@@ -139,7 +139,7 @@ decisions, or deeper backend implementation.
 ### Phase 13 - Post-Demo Hardening
 
 - [ ] Production OIDC and invitation flow.
-- [ ] Worker health endpoint.
+- [x] Worker health endpoint.
 - [ ] Backend summary DTOs for dashboards and reports.
 - [ ] Real export endpoints.
 - [ ] Loss exception workflow completion.
@@ -164,6 +164,10 @@ Last local verification date: 2026-06-05.
 | `corepack pnpm --dir apps/api test -- hash-records fabric-env integration-status` | Passed | Covers hash-record Fabric verification states, API Fabric env validation, and updated Gateway adapter status reporting. |
 | `corepack pnpm --dir apps/api test -- graph` | Passed | Covers backend graph hash/anchor overlay and finance-role leakage prevention. |
 | `corepack pnpm --dir apps/web test -- --run graph` | Passed | Covers frontend graph mapping, role filtering, legends, filters, and hash/anchor overlay relationships. |
+| `corepack pnpm prisma:generate` | Passed | Regenerated Prisma client after adding `WorkerHeartbeat`. |
+| `corepack pnpm --dir apps/worker test -- heartbeat` | Passed | Covers outbox worker heartbeat writes for idle and successful processing runs. |
+| `corepack pnpm --dir apps/api test -- integration-status` | Passed | Covers Fabric status and worker heartbeat health classification. |
+| `corepack pnpm --dir apps/web test -- --run integrations` | Passed | Covers integration/operations status model including worker heartbeat and Fabric runtime card. |
 | `corepack pnpm prisma:generate` | Passed | Regenerated Prisma client after adding `AuditAnchor` Fabric metadata fields. |
 | `corepack pnpm lint` | Passed | Repository lint completed. |
 | `corepack pnpm typecheck` | Passed | Web TypeScript project references completed. |
