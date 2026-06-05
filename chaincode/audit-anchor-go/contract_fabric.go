@@ -1,5 +1,3 @@
-//go:build fabric
-
 package main
 
 import (
