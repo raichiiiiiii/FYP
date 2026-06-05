@@ -143,3 +143,22 @@ No certificate or private key contents were recorded.
 | Go not on `PATH` | Local tooling | Install Go or expose the existing Go binary to PowerShell, then run `go version` and chaincode tests. |
 | Chaincode unit/build-tag validation not run | Local tooling / repository verification | Run `go test ./...` and `go test -tags fabric ./...` in `chaincode/audit-anchor-go`. |
 | Browser screenshot evidence for real Gateway state not captured | UAT evidence | Capture reviewer screenshots after running the real Gateway path and loading a real hash record in the web UI. |
+
+## Post-Run Cleanup
+
+The local Fabric test network was stopped with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File infra\fabric\scripts\stop-local-network.ps1
+```
+
+The script removed Fabric peer, orderer, CA, and generated chaincode containers.
+It printed non-fatal Docker volume lookup errors for already-removed volumes.
+
+After cleanup, `docker ps` showed only MEPN local infrastructure containers:
+
+```text
+mepn-redis
+mepn-postgres
+mepn-minio
+```
