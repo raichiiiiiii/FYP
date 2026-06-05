@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { readFabricEnv } from '../../config/fabric-env';
 import { IntegrationAdapterError } from '../integration-adapter-error';
 import type { AdapterResult } from '../integration-adapter.types';
@@ -14,6 +14,8 @@ import {
 @Injectable()
 export class FabricGatewayAnchorAdapter {
   constructor(
+    @Optional()
+    @Inject(FabricGatewayClientFactory)
     private readonly clientFactory = new FabricGatewayClientFactory(),
   ) {}
 

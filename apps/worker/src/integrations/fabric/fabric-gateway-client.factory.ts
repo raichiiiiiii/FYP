@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { createPrivateKey } from 'node:crypto';
 import * as grpc from '@grpc/grpc-js';
+import { Injectable } from '@nestjs/common';
 import {
   connect,
   signers,
@@ -18,9 +19,11 @@ export type FabricGatewaySubmitResult = {
 
 export type FabricGatewayClient = {
   submitCreateAnchor(args: string[]): Promise<FabricGatewaySubmitResult>;
+  evaluateReadAnchor(anchorId: string): Promise<Record<string, unknown>>;
   close(): void;
 };
 
+@Injectable()
 export class FabricGatewayClientFactory {
   async create(env: FabricEnv): Promise<FabricGatewayClient> {
     const [identityCert, privateKeyPem, tlsCert] = await Promise.all([
@@ -78,6 +81,21 @@ class SdkFabricGatewayClient implements FabricGatewayClient {
       blockNumber: toSafeNumber(status.blockNumber),
       commitStatus: 'VALID',
     };
+  }
+
+  async evaluateReadAnchor(anchorId: string): Promise<Record<string, unknown>> {
+    const result = await this.contract.evaluateTransaction(
+      'ReadAnchor',
+      anchorId,
+    );
+    const decoded = Buffer.from(result).toString('utf8');
+    const parsed = JSON.parse(decoded) as unknown;
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('ReadAnchor did not return a JSON object');
+    }
+
+    return parsed as Record<string, unknown>;
   }
 
   close() {

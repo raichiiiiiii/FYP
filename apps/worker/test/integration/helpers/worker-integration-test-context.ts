@@ -90,8 +90,12 @@ export async function createWorkerIntegrationContext() {
 }
 
 export async function closeWorkerIntegrationContext(
-  context: WorkerIntegrationContext,
+  context?: WorkerIntegrationContext,
 ) {
+  if (!context) {
+    return;
+  }
+
   await context.moduleRef.close();
 }
 

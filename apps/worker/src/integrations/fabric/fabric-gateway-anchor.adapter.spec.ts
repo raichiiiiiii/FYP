@@ -45,6 +45,7 @@ describe('FabricGatewayAnchorAdapter', () => {
     const close = jest.fn();
     const client: FabricGatewayClient = {
       submitCreateAnchor,
+      evaluateReadAnchor: jest.fn(),
       close,
     };
     const create = jest.fn().mockResolvedValue(client);
