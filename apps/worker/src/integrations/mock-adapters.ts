@@ -1,13 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import { readFabricEnv } from '../config/fabric-env';
-
-export type AdapterResult = {
-  integrationType: string;
-  externalReference: string;
-  status: string;
-  responsePayload: Prisma.InputJsonObject;
-};
+import type { AdapterResult } from './integration-adapter.types';
 
 @Injectable()
 export class MockIntegrationAdapters {

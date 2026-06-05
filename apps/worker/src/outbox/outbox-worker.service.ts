@@ -7,7 +7,8 @@ import {
 import type { OutboxEvent, Prisma } from '@prisma/client';
 import { readWorkerEnv } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
-import { MockIntegrationAdapters } from '../integrations/mock-adapters';
+import { IntegrationAdapterError } from '../integrations/integration-adapter-error';
+import { IntegrationAdapterRegistry } from '../integrations/integration-adapter-registry';
 
 @Injectable()
 export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -18,7 +19,7 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly adapters: MockIntegrationAdapters,
+    private readonly adapters: IntegrationAdapterRegistry,
   ) {}
 
   async onModuleInit() {
@@ -93,8 +94,8 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private async processEvent(event: OutboxEvent) {
     try {
-      const payload = this.asObject(event.payload);
-      const result = this.adapters.dispatch(event.eventType, payload);
+      const payload = this.eventPayload(event);
+      const result = await this.adapters.dispatch(event.eventType, payload);
       await this.storeExternalReference(event, result);
       await this.prisma.outboxEvent.update({
         where: {
@@ -107,6 +108,7 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
         },
       });
     } catch (error) {
+      await this.storeFailureReference(event, error);
       await this.retry(event, error);
     }
   }
@@ -216,9 +218,66 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  private async storeFailureReference(event: OutboxEvent, error: unknown) {
+    const requestPayload = this.asObject(event.payload);
+    const adapterError =
+      error instanceof IntegrationAdapterError ? error : undefined;
+    const message =
+      error instanceof Error ? error.message : 'Unknown worker error';
+
+    await this.prisma.integrationReconciliationRecord.upsert({
+      where: {
+        outboxEventId: event.id,
+      },
+      create: {
+        organizationId: event.organizationId,
+        outboxEventId: event.id,
+        integrationType:
+          event.eventType === 'FABRIC_ANCHOR_REQUESTED' ? 'FABRIC' : 'INTERNAL',
+        aggregateType: event.aggregateType,
+        aggregateId: event.aggregateId,
+        externalReference: null,
+        status: adapterError?.status || 'FAILED',
+        requestPayload,
+        responsePayload: {
+          error: message,
+          retryable: adapterError?.retryable ?? true,
+          ...(adapterError?.details || {}),
+        },
+        attempts: event.attempts,
+        lastError: message,
+      },
+      update: {
+        status: adapterError?.status || 'FAILED',
+        responsePayload: {
+          error: message,
+          retryable: adapterError?.retryable ?? true,
+          ...(adapterError?.details || {}),
+        },
+        attempts: event.attempts,
+        lastError: message,
+      },
+    });
+  }
+
   private async retry(event: OutboxEvent, error: unknown) {
     const message =
       error instanceof Error ? error.message : 'Unknown worker error';
+    const adapterError =
+      error instanceof IntegrationAdapterError ? error : undefined;
+
+    if (adapterError && !adapterError.retryable) {
+      await this.prisma.outboxEvent.update({
+        where: {
+          id: event.id,
+        },
+        data: {
+          status: 'FAILED',
+          lastError: message,
+        },
+      });
+      return;
+    }
 
     if (event.attempts >= this.env.maxAttempts) {
       await this.prisma.outboxEvent.update({
@@ -252,6 +311,21 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     return {};
+  }
+
+  private eventPayload(event: OutboxEvent): Prisma.InputJsonObject {
+    const payload = this.asObject(event.payload);
+
+    return {
+      ...payload,
+      aggregateType: event.aggregateType,
+      aggregateId: event.aggregateId,
+      ...(event.idempotencyKey
+        ? {
+            idempotencyKey: event.idempotencyKey,
+          }
+        : {}),
+    };
   }
 
   private stringValue(value: unknown, fallback: string) {
