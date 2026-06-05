@@ -42,6 +42,33 @@ Important constraints:
 - Ledger/P&L must never calculate or imply guaranteed fixed return.
 - Figma Make remains visual/interaction reference only.
 
+## Repository State Reconciliation
+
+Last reconciled: 2026-06-06.
+
+This section classifies each soon-to-be feature against the current repository
+state. The classifications are intentionally conservative:
+
+- `evidence-only`: implementation scaffolding exists; remaining work is to run
+  an environment or UAT evidence capture.
+- `implementation-required`: production code, API, workflow, or UI work remains.
+- `environment-blocked`: work depends on VM, Fabric Gateway, provider, or other
+  runtime material outside the repository.
+- `partially scaffolded`: schema, UI, tests, or docs exist, but the feature is
+  not complete end-to-end.
+
+| Feature | Classification | Current repository state | Required next action |
+|---|---|---|---|
+| Run Azure VM Fabric Gateway deployment | evidence-only; environment-blocked | GitHub Actions workflow, Fabric secret materialization scripts, validation script, smoke script, Docker Compose read-only secret mounts, and deployment docs exist. No latest VM run evidence is recorded yet. | Run the `Deploy to Azure VM` workflow against the configured VM and capture sanitized deployment evidence. |
+| Generate real Fabric proof screenshots | evidence-only; environment-blocked | API-side `ReadAnchor` verification, web proof panel, and gated Playwright screenshot flow exist. The gated spec skips until a live Gateway-anchored hash record id is provided. | Create or locate a real Gateway-anchored hash record, set `FABRIC_GATEWAY_UAT_HASH_RECORD_ID`, and run the gated UAT screenshot spec. |
+| Production OIDC/invitation flow | implementation-required; partially scaffolded | Runtime auth is still dev-login oriented. `OIDC_ENABLED` is surfaced in session data and placeholder OIDC files exist, but no complete OIDC start/callback flow is implemented. Prisma has an `Invitation` model, but it stores a raw token and there is no complete invitation lifecycle API/UI. | Add production dev-login guard, token-hash invitation lifecycle, OIDC test/provider adapter, frontend login mode handling, audit events, and UAT evidence. |
+| Report aggregate DTOs and exports | implementation-required | Reports currently exist as frontend demo/report surfaces. No backend `reports` module, aggregate report endpoints, export job model, audited export lifecycle, or download route exists. | Add backend report DTOs, export job persistence, JSON export/download, frontend export flow, and evidence docs. |
+| Loss exception workflow | implementation-required; partially scaffolded | Prisma has a basic `LossException` model and finance service can include/display loss exceptions, but there is no complete classification workflow, reviewer decision lifecycle, evidence attachment flow, API controller, or closure gate for unresolved exceptions. | Define the domain contract, extend schema/service/API, enforce closure gate, add UI/UAT flow, and prove no guaranteed fixed return. |
+| Accessibility automation | implementation-required | Manual UI improvements and testing strategy docs exist, but no automated axe/contrast/focus accessibility test suite or CI evidence is present. | Add accessibility test helper, critical-route specs, fix high-priority findings, and record evidence. |
+| Backup/restore proof | implementation-required | Deployment docs mention limitations, but there are no repeatable backup, restore, or restore-smoke scripts. | Add PostgreSQL/object-storage backup and restore scripts, smoke checks, runbook, and evidence template. |
+| Richer dashboard/procurement/finance summaries | implementation-required; partially scaffolded | Dashboard has a backend summary endpoint, but procurement and finance summary DTOs are not complete. Current dashboard task grouping is basic and does not cover all review queues, workflow blockers, exceptions, or readiness states. | Define summary DTO contracts, extend dashboard summary, add procurement and finance summary endpoints, replace remaining production aggregations, and test role filtering. |
+| Graph saved views and risk scoring | implementation-required; partially scaffolded | Read-only graph with hash/anchor overlay, filters, role filtering, and E2E coverage exists. Backend-owned risk metadata, query-param filters, persisted saved views, and saved layout state are not implemented. | Define risk contract, add backend risk metadata, implement query-param filters, add saved views if feasible, and prove no role leakage. |
+
 ## Implemented Features
 
 | Area | Implemented feature | Evidence / primary files |
@@ -147,4 +174,3 @@ Future production auth should follow this path:
 - Do not add UI-only business rule enforcement without backend guards.
 - Do not implement guaranteed fixed-return calculations.
 - Keep every feature slice small, tested, and documented.
-
