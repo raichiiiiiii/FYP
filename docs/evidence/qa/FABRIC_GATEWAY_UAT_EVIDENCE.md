@@ -71,15 +71,40 @@ real proof screenshots.
 
 ## Verification Result
 
-- Latest repository E2E status: `corepack pnpm test:e2e` passed with this
-  real Gateway UAT spec skipped because `FABRIC_GATEWAY_UAT_HASH_RECORD_ID` was
-  not set.
-- Local canonical hash matches stored HashRecord: Pending live Gateway UAT run.
-- Stored AuditAnchor hash matches local canonical hash: Pending live Gateway UAT run.
-- `ReadAnchor` returned the same canonical hash: Pending live Gateway UAT run.
-- Real transaction ID present: Pending live Gateway UAT run.
-- Block number present if available: Pending live Gateway UAT run.
-- Mock labels absent: Pending live Gateway UAT run.
+- Latest readiness status: API/UI proof path is implemented and protected by
+  actor context, but live Gateway proof is blocked.
+- Latest live attempt date: 2026-06-06.
+- Latest live attempt environment: Azure VM at `20.244.24.76`.
+- Latest live attempt hash record id:
+  `4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3`.
+- Local canonical hash matches stored HashRecord: Not verified in screenshot
+  flow because the live Gateway proof precondition failed.
+- Stored AuditAnchor hash matches local canonical hash: Not verified; no real
+  transaction metadata was produced for the live attempt.
+- `ReadAnchor` returned the same canonical hash: Not verified; API returned
+  `status=unavailable`.
+- Real transaction ID present: No.
+- Block number present if available: No.
+- Mock labels absent: Pending screenshot run.
+
+Latest live endpoint result:
+
+```json
+{
+  "status": "unavailable",
+  "verificationStatus": "FABRIC_UNAVAILABLE",
+  "verified": false,
+  "transactionIdPresent": false,
+  "onChainHashPresent": false,
+  "reviewerSummary": "The anchor request reached the integration boundary, but Fabric was unavailable."
+}
+```
+
+Blocker record:
+
+```text
+docs/evidence/blockers/2026-06-06-phase-2-slice-2-2-blocker.md
+```
 
 ## Notes
 
@@ -93,7 +118,8 @@ real proof screenshots.
 ## Remaining Limitations
 
 - A reviewer-facing real Gateway screenshot requires a live hash record that was
-  anchored through Fabric Gateway mode. Provide that record through
-  `FABRIC_GATEWAY_UAT_HASH_RECORD_ID` before running the gated Playwright spec.
+  anchored through Fabric Gateway mode and returns `verified=true` from
+  `ReadAnchor`. The latest Azure VM attempt returned `FABRIC_UNAVAILABLE`, so
+  the screenshot flow must not run yet.
 - Seeded/mock Fabric states remain valid for UI behavior coverage only and must
   not be presented as proof of real on-chain anchoring.
