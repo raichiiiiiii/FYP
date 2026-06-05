@@ -244,7 +244,7 @@ Status values:
 | 0 | 0.1 Repository state audit | Complete | `90a69b7 docs(roadmap): reconcile soon-to-be repository state` | `corepack pnpm lint`; `corepack pnpm typecheck` | Repository reconciliation table in this file. | None. |
 | 0 | 0.2 Phase/slice implementation matrix | Complete | `35cdfe1 docs(roadmap): add phased implementation slices` | `corepack pnpm lint`; `corepack pnpm typecheck` | Phased implementation matrix in this file. | None. |
 | 0 | 0.3 Implementation tracking checklist | Complete | `docs(roadmap): add soon-to-be implementation tracker` | `corepack pnpm lint`; `corepack pnpm typecheck` | This tracking checklist. | None. |
-| 1 | 1.1 Deployment workflow and secret mapping audit | Planned | Pending | Pending | Pending deploy audit notes. | None yet. |
+| 1 | 1.1 Deployment workflow and secret mapping audit | Complete | `chore(deploy): verify fabric gateway secret mapping` | `bash -n` deploy/validate/smoke scripts; `corepack pnpm lint`; `corepack pnpm typecheck`; `corepack pnpm test:unit` | `docs/evidence/deployment/FABRIC_SECRET_MAPPING_AUDIT.md` | None. |
 | 1 | 1.2 Fabric secret validation hardening | Planned | Pending | Pending | Pending validation dry-run evidence. | None yet. |
 | 1 | 1.3 VM evidence collection hardening | Planned | Pending | Pending | Pending sanitized evidence script output. | None yet. |
 | 1 | 1.4 Deployment execution/evidence | Blocked | Pending | Pending | Pending VM deployment evidence. | Requires reachable Azure VM, SSH access through configured secrets, valid Fabric Gateway material, and successful Docker Compose run. |
