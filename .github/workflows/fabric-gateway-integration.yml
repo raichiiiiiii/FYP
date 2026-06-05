@@ -1,0 +1,106 @@
+name: Fabric Gateway Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_real_fabric:
+        description: Type run-real-fabric to execute real Gateway integration tests.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  fabric-gateway-integration:
+    if: ${{ inputs.confirm_real_fabric == 'run-real-fabric' }}
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: mepn
+          POSTGRES_PASSWORD: mepn
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mepn -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare Fabric Gateway certificates
+        shell: bash
+        env:
+          FABRIC_IDENTITY_CERT_PEM: ${{ secrets.FABRIC_IDENTITY_CERT_PEM }}
+          FABRIC_PRIVATE_KEY_PEM: ${{ secrets.FABRIC_PRIVATE_KEY_PEM }}
+          FABRIC_TLS_CERT_PEM: ${{ secrets.FABRIC_TLS_CERT_PEM }}
+          FABRIC_GATEWAY_URL: ${{ secrets.FABRIC_GATEWAY_URL }}
+          FABRIC_MSP_ID: ${{ secrets.FABRIC_MSP_ID }}
+          FABRIC_CHANNEL: ${{ secrets.FABRIC_CHANNEL }}
+          FABRIC_CHAINCODE: ${{ secrets.FABRIC_CHAINCODE }}
+          FABRIC_PEER_ENDPOINT: ${{ secrets.FABRIC_PEER_ENDPOINT }}
+          FABRIC_GATEWAY_HOST_ALIAS: ${{ secrets.FABRIC_GATEWAY_HOST_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          for name in \
+            FABRIC_IDENTITY_CERT_PEM \
+            FABRIC_PRIVATE_KEY_PEM \
+            FABRIC_TLS_CERT_PEM \
+            FABRIC_GATEWAY_URL \
+            FABRIC_MSP_ID \
+            FABRIC_CHANNEL \
+            FABRIC_CHAINCODE \
+            FABRIC_PEER_ENDPOINT \
+            FABRIC_GATEWAY_HOST_ALIAS
+          do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required Fabric secret: ${name}"
+              exit 1
+            fi
+          done
+
+          install -m 700 -d "$RUNNER_TEMP/fabric"
+          printf '%s' "$FABRIC_IDENTITY_CERT_PEM" > "$RUNNER_TEMP/fabric/client.crt"
+          printf '%s' "$FABRIC_PRIVATE_KEY_PEM" > "$RUNNER_TEMP/fabric/client.key"
+          printf '%s' "$FABRIC_TLS_CERT_PEM" > "$RUNNER_TEMP/fabric/ca.crt"
+          chmod 600 "$RUNNER_TEMP/fabric/client.crt" "$RUNNER_TEMP/fabric/client.key" "$RUNNER_TEMP/fabric/ca.crt"
+
+      - name: Run gated Fabric Gateway integration tests
+        env:
+          TEST_DATABASE_URL: postgresql://mepn:mepn@localhost:5432/mepn_test
+          DATABASE_URL: postgresql://mepn:mepn@localhost:5432/mepn_test
+          FABRIC_TEST_NETWORK_ENABLED: 'true'
+          FABRIC_ENABLED: 'true'
+          FABRIC_MODE: gateway
+          FABRIC_GATEWAY_URL: ${{ secrets.FABRIC_GATEWAY_URL }}
+          FABRIC_MSP_ID: ${{ secrets.FABRIC_MSP_ID }}
+          FABRIC_CHANNEL: ${{ secrets.FABRIC_CHANNEL }}
+          FABRIC_CHAINCODE: ${{ secrets.FABRIC_CHAINCODE }}
+          FABRIC_PEER_ENDPOINT: ${{ secrets.FABRIC_PEER_ENDPOINT }}
+          FABRIC_GATEWAY_HOST_ALIAS: ${{ secrets.FABRIC_GATEWAY_HOST_ALIAS }}
+          FABRIC_IDENTITY_CERT_PATH: ${{ runner.temp }}/fabric/client.crt
+          FABRIC_PRIVATE_KEY_PATH: ${{ runner.temp }}/fabric/client.key
+          FABRIC_TLS_CERT_PATH: ${{ runner.temp }}/fabric/ca.crt
+          FABRIC_SUBMIT_TIMEOUT_MS: ${{ vars.FABRIC_SUBMIT_TIMEOUT_MS || '30000' }}
+          FABRIC_COMMIT_TIMEOUT_MS: ${{ vars.FABRIC_COMMIT_TIMEOUT_MS || '30000' }}
+        run: corepack pnpm --dir apps/worker test:integration -- fabric

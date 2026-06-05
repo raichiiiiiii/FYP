@@ -390,10 +390,53 @@ FABRIC_PEER_ENDPOINT=YOUR_PEER_ENDPOINT
 FABRIC_GATEWAY_HOST_ALIAS=YOUR_PEER_HOST_ALIAS
 ```
 
-Current limitation: Gateway mode is configuration-guarded, but the real worker
-Fabric Gateway adapter and chaincode are still roadmap items. If
-`FABRIC_MODE=gateway` is enabled before the real adapter exists, Fabric anchor
-requests must fail/retry instead of producing mock success.
+Current limitation: Gateway mode is configuration-guarded and the worker has a
+real Fabric Gateway adapter, but real anchoring is not proven until the local or
+external Fabric network, deployed `audit-anchor` chaincode, MSP identity
+material, TLS material, and Gateway environment variables are present. If
+Gateway mode is misconfigured, Fabric anchor requests must fail/retry instead of
+producing mock success.
+
+### Optional Fabric Gateway Integration Workflow
+
+The manual workflow below runs the gated worker integration test against a real
+Fabric Gateway target. It is intentionally separate from normal CI.
+
+```text
+.github/workflows/fabric-gateway-integration.yml
+```
+
+Required GitHub repository secrets:
+
+| Secret | Meaning |
+| --- | --- |
+| `FABRIC_GATEWAY_URL` | Reachable Gateway URL for the peer/gateway target |
+| `FABRIC_MSP_ID` | MSP ID for the submitted identity |
+| `FABRIC_CHANNEL` | Channel containing the audit anchor chaincode |
+| `FABRIC_CHAINCODE` | Chaincode name, for example `audit-anchor` |
+| `FABRIC_PEER_ENDPOINT` | Peer endpoint used by the Gateway client |
+| `FABRIC_GATEWAY_HOST_ALIAS` | TLS host alias for the Gateway connection |
+| `FABRIC_IDENTITY_CERT_PEM` | Client identity certificate body |
+| `FABRIC_PRIVATE_KEY_PEM` | Client private key body |
+| `FABRIC_TLS_CERT_PEM` | Peer/Gateway TLS CA certificate body |
+
+Optional GitHub Actions variables:
+
+| Variable | Default |
+| --- | --- |
+| `FABRIC_SUBMIT_TIMEOUT_MS` | `30000` |
+| `FABRIC_COMMIT_TIMEOUT_MS` | `30000` |
+
+Trigger the workflow manually from GitHub Actions and type:
+
+```text
+run-real-fabric
+```
+
+The workflow writes certificate/key material only to the runner temporary
+directory and does not upload Fabric material as an artifact. The Fabric Gateway
+must be reachable from the GitHub-hosted runner; otherwise use a self-hosted
+runner, VPN, or run the local gated integration test from the operator machine.
 
 ## 11. Validate Compose Configuration
 

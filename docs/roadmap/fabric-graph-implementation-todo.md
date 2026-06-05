@@ -23,7 +23,7 @@ decisions, or deeper backend implementation.
 | 9 | Integration test expansion | Partially complete. Default worker integration tests remain mock-safe and a gated `FABRIC_TEST_NETWORK_ENABLED=true` real Gateway integration spec exists. | Enabled real-Fabric execution is blocked by missing Gateway env/material and local Fabric network setup. |
 | 10 | Browser E2E and screenshot documentation | Partially complete. E2E now confirms the Fabric runtime card on the Integrations route and hash-detail reviewer states for mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified anchors. | Graph overlay E2E and screenshot documentation remain required. Seeded verified metadata is not real Fabric proof. |
 | 11 | UAT testing | Partially complete. Fabric mode/evidence fields, evidence package template, and mock-vs-gateway tester instructions exist. | Formal reviewer-led UAT execution remains required. |
-| 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs, Fabric secret-mount docs, and release note. | Needs optional gated Fabric integration workflow and automated secret delivery. |
+| 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs, Fabric secret-mount docs, optional manual Fabric Gateway integration workflow, and release note. | Automated Azure VM secret delivery remains unresolved. |
 | 13 | Post-demo product hardening | Not complete. | Requires product hardening backlog execution. |
 
 ## Blockers
@@ -42,7 +42,7 @@ decisions, or deeper backend implementation.
 | FG-010 | 9 | Real integration tests | A gated real Fabric Gateway worker integration test exists and is skipped by default. When enabled, it requires Gateway env/material, submits a hash-only anchor, checks reconciliation/audit anchor metadata, and queries `ReadAnchor` for the on-chain hash. Local execution with the gate enabled currently fails on missing `FABRIC_GATEWAY_URL`. | CI/default tests remain deterministic, but real Gateway anchoring still cannot be proven in this environment. | Provide local Fabric Gateway env/material from `infra/fabric/scripts/export-gateway-env.ps1` after the test network is installed and chaincode is deployed, then rerun the enabled test. | QA / Operations | Partial |
 | FG-011 | 10 | E2E evidence states | Browser E2E now exercises the hash-detail Fabric verification panel against API-backed seeded states for mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified anchors. The seeded verified case is explicitly labelled as stored metadata with no direct chaincode query. | UI state coverage is stronger, but real verified Fabric proof and screenshot documentation are still blocked by missing Gateway network/material. | Capture screenshots for these states and rerun the real Gateway path after `infra/fabric/scripts/export-gateway-env.ps1` can provide network material. | QA | Partial |
 | FG-012 | 11 | UAT instructions | UAT materials previously lacked real Gateway setup and evidence capture fields. | Reviewers could confuse mock prototype state with real Fabric verification. | Added Fabric mode/evidence fields, UAT evidence package template, and mock-vs-gateway tester instructions. | QA / Product | Closed |
-| FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. GitHub Actions secret handling for Fabric materials is not implemented. | Gateway mode has a documented VM file-mount path, but automated secret delivery remains blocked. | Add GitHub Actions or external secret-manager handling for Fabric materials when real Gateway deployment is ready. | Operations | Partial |
+| FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. A manual `fabric-gateway-integration.yml` workflow can write Fabric PEM secrets to runner temporary files for gated integration tests without affecting normal CI. | Gateway integration CI can be manually triggered, but automated secret delivery to the Azure VM remains blocked. | Add VM secret delivery through GitHub Actions, a managed secret store, or an operator runbook once the real Gateway deployment target is ready. | Operations | Partial |
 | FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, and accessibility automation remain outside the Fabric slice. | Demo can proceed with caveats, but production readiness is incomplete. | Track these in post-demo hardening backlog with owners and acceptance tests. | Product / Engineering | Open |
 
 ## TODO Checklist
@@ -132,7 +132,7 @@ decisions, or deeper backend implementation.
 
 ### Phase 12 - CI, Deployment, Release Readiness
 
-- [ ] Add optional gated Fabric integration CI job.
+- [x] Add optional gated Fabric integration CI job.
 - [x] Add Azure VM Fabric secret-mount documentation.
 - [ ] Add GitHub Actions or external secret-manager handling for Fabric cert/key material.
 - [x] Add release note separating demo mock mode from real Gateway readiness.

@@ -20,10 +20,10 @@ artifacts, ledgers, or other Fabric runtime secrets. The `.gitignore` in this
 directory intentionally ignores everything except this README and the ignore
 file itself.
 
-The current repository does not yet include the real Fabric Gateway adapter.
-Gateway mode is documented and guarded, but real submissions remain a roadmap
-item until chaincode, network access, identity material, and adapter code are
-implemented.
+The repository includes a worker-side real Fabric Gateway adapter behind
+`FABRIC_MODE=gateway`. Real submissions are still not proven until chaincode,
+network access, identity material, and Gateway environment variables are
+available.
 
 For local development, use the scaffold under:
 
