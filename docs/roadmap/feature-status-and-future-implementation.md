@@ -228,6 +228,76 @@ work, and resume from the blocked slice after the external condition is fixed.
 | 9.5 Graph UI saved views/risk | Add reviewer-facing risk and saved view controls. | Web graph UI/model/tests/E2E | Render risk legend/badges, saved view selector/actions if API exists, query filters, no-leak DOM assertions. | UI tests; graph E2E; build. | Risk overlay works and role filtering remains strict. | `feat(graph): add risk overlay and saved view ui` | Block if saved view API is Partial; resume with risk/query filters only. |
 | 9.6 Graph evidence/docs | Record graph implementation status. | Graph evidence docs, roadmap, screenshots | Update evidence, screenshots, and roadmap; mark saved views Implemented or Partial. | `lint`; `typecheck`. | Evidence and status match actual graph capability. | `docs(graph): document risk scoring saved view evidence` | Block only if screenshot/evidence status is unknown. |
 
+## Soon-To-Be Implementation Tracking Checklist
+
+Status values:
+
+- `Planned`: not started.
+- `In progress`: currently being edited or validated.
+- `Complete`: committed and validation passed.
+- `Partial`: scaffolding exists but implementation/evidence is incomplete.
+- `Blocked`: cannot proceed without external runtime, credentials, product
+  decision, or infrastructure.
+
+| Phase | Slice | Status | Commit | Tests run | Evidence | Blocker |
+|---|---|---|---|---|---|---|
+| 0 | 0.1 Repository state audit | Complete | `90a69b7 docs(roadmap): reconcile soon-to-be repository state` | `corepack pnpm lint`; `corepack pnpm typecheck` | Repository reconciliation table in this file. | None. |
+| 0 | 0.2 Phase/slice implementation matrix | Complete | `35cdfe1 docs(roadmap): add phased implementation slices` | `corepack pnpm lint`; `corepack pnpm typecheck` | Phased implementation matrix in this file. | None. |
+| 0 | 0.3 Implementation tracking checklist | Complete | `docs(roadmap): add soon-to-be implementation tracker` | `corepack pnpm lint`; `corepack pnpm typecheck` | This tracking checklist. | None. |
+| 1 | 1.1 Deployment workflow and secret mapping audit | Planned | Pending | Pending | Pending deploy audit notes. | None yet. |
+| 1 | 1.2 Fabric secret validation hardening | Planned | Pending | Pending | Pending validation dry-run evidence. | None yet. |
+| 1 | 1.3 VM evidence collection hardening | Planned | Pending | Pending | Pending sanitized evidence script output. | None yet. |
+| 1 | 1.4 Deployment execution/evidence | Blocked | Pending | Pending | Pending VM deployment evidence. | Requires reachable Azure VM, SSH access through configured secrets, valid Fabric Gateway material, and successful Docker Compose run. |
+| 1 | 1.5 Deployment roadmap update | Planned | Pending | Pending | Pending evidence/blocker link. | Depends on Slice 1.4 result. |
+| 2 | 2.1 Verification API/UI readiness | Planned | Pending | Pending | Pending readiness test evidence. | None yet. |
+| 2 | 2.2 Live Gateway hash precondition | Blocked | Pending | Pending | Pending live Gateway hash record id. | Requires real Gateway-anchored hash record and successful API verification. |
+| 2 | 2.3 Gated screenshot flow | Blocked | Pending | Pending | Pending real Gateway screenshots. | Requires Slice 2.2 live hash record id. |
+| 2 | 2.4 Fabric Gateway UAT evidence package | Planned | Pending | Pending | Pending UAT evidence doc. | Depends on Slice 2.3 screenshots or blocker. |
+| 2 | 2.5 Proof screenshot roadmap update | Planned | Pending | Pending | Pending roadmap update. | Depends on Slice 2.3/2.4. |
+| 3 | 3.1 Auth config and production dev-login guard | Planned | Pending | Pending | Pending auth tests. | None yet. |
+| 3 | 3.2 Invitation schema hardening | Planned | Pending | Pending | Pending migration/test evidence. | Possible schema migration conflict. |
+| 3 | 3.3 Invitation API | Planned | Pending | Pending | Pending API integration evidence. | Requires invite policy and role mapping to remain stable. |
+| 3 | 3.4 OIDC adapter/callback | Planned | Pending | Pending | Pending mocked OIDC integration evidence. | Real provider config may remain deployment-time. |
+| 3 | 3.5 Frontend login/invite UI | Planned | Pending | Pending | Pending auth E2E evidence. | Depends on API slices. |
+| 3 | 3.6 Auth docs/UAT | Planned | Pending | Pending | Pending auth evidence docs. | Depends on UI/API slices. |
+| 4 | 4.1 Report API DTOs | Planned | Pending | Pending | Pending report DTO tests. | Report field scope must remain conservative. |
+| 4 | 4.2 Export job model | Planned | Pending | Pending | Pending migration/test evidence. | Possible schema migration conflict. |
+| 4 | 4.3 JSON export/download | Planned | Pending | Pending | Pending export artifact evidence. | Storage/export location decision may be needed. |
+| 4 | 4.4 Reports frontend | Planned | Pending | Pending | Pending reports E2E evidence. | Depends on report API/export slices. |
+| 4 | 4.5 Reports docs/evidence | Planned | Pending | Pending | Pending report evidence docs. | Depends on export evidence. |
+| 5 | 5.1 Loss exception domain contract | Planned | Pending | Pending | Pending domain contract doc. | May require Shariah/product decision. |
+| 5 | 5.2 Loss exception domain model | Planned | Pending | Pending | Pending migration/test evidence. | Possible schema migration conflict. |
+| 5 | 5.3 Loss exception API/permissions | Planned | Pending | Pending | Pending API integration evidence. | Reviewer permission matrix must be stable. |
+| 5 | 5.4 Closure gate | Planned | Pending | Pending | Pending direct API bypass tests. | Depends on exception lifecycle model. |
+| 5 | 5.5 Loss exception UI/UAT | Planned | Pending | Pending | Pending UAT screenshots/spec. | Depends on backend slices. |
+| 5 | 5.6 Loss exception docs/evidence | Planned | Pending | Pending | Pending evidence docs. | Depends on UAT. |
+| 6 | 6.1 Accessibility tooling setup | Planned | Pending | Pending | Pending accessibility smoke evidence. | Possible dependency/tooling conflict. |
+| 6 | 6.2 Critical route accessibility specs | Planned | Pending | Pending | Pending critical-route a11y results. | Depends on test helper and stable seeded routes. |
+| 6 | 6.3 Accessibility fixes | Planned | Pending | Pending | Pending passing a11y spec. | Depends on findings from Slice 6.2. |
+| 6 | 6.4 Accessibility CI/evidence | Planned | Pending | Pending | Pending `ACCESSIBILITY_EVIDENCE.md`. | Depends on stable a11y command. |
+| 7 | 7.1 Backup/restore data inventory | Planned | Pending | Pending | Pending backup scope doc. | Storage ownership must be clear. |
+| 7 | 7.2 PostgreSQL backup script | Planned | Pending | Pending | Pending backup artifact evidence. | Requires reachable local/VM database. |
+| 7 | 7.3 PostgreSQL restore script | Planned | Pending | Pending | Pending restore dry-run evidence. | Requires disposable restore target. |
+| 7 | 7.4 Restore smoke proof | Planned | Pending | Pending | Pending restore smoke output. | Depends on backup/restore scripts. |
+| 7 | 7.5 Backup/restore docs/evidence | Planned | Pending | Pending | Pending runbook/evidence docs. | Depends on smoke proof or blocker. |
+| 8 | 8.1 Summary DTO contract | Planned | Pending | Pending | Pending DTO contract tests/docs. | Role visibility must remain stable. |
+| 8 | 8.2 Dashboard summary extension | Planned | Pending | Pending | Pending dashboard summary tests. | Depends on available data relationships. |
+| 8 | 8.3 Procurement summary endpoint | Planned | Pending | Pending | Pending procurement summary tests. | Some procurement analytics may remain out of scope. |
+| 8 | 8.4 Finance summary endpoint | Planned | Pending | Pending | Pending finance summary tests. | Loss exception fields may depend on Phase 5. |
+| 8 | 8.5 Frontend summary replacement | Planned | Pending | Pending | Pending summary E2E evidence. | Depends on backend endpoints. |
+| 8 | 8.6 Summary docs/evidence | Planned | Pending | Pending | Pending summary docs/screenshots. | Depends on UI/E2E. |
+| 9 | 9.1 Graph risk contract | Planned | Pending | Pending | Pending graph risk contract doc. | Risk semantics may need product decision. |
+| 9 | 9.2 Backend graph risk metadata | Planned | Pending | Pending | Pending graph API tests. | Must avoid leaking hidden source data. |
+| 9 | 9.3 Query-param graph filters | Planned | Pending | Pending | Pending graph E2E evidence. | Route semantics must remain stable. |
+| 9 | 9.4 Saved views API | Planned | Pending | Pending | Pending saved-view API tests. | May be deferred if schema scope is too large. |
+| 9 | 9.5 Graph UI saved views/risk | Planned | Pending | Pending | Pending graph screenshots/E2E. | Depends on API slices. |
+| 9 | 9.6 Graph evidence/docs | Planned | Pending | Pending | Pending graph evidence docs. | Depends on E2E/screenshots. |
+| 10 | 10.1 Final roadmap reconciliation | Planned | Pending | Pending | Pending final roadmap update. | Depends on prior phase outcomes. |
+| 10 | 10.2 Final evidence index | Planned | Pending | Pending | Pending `docs/evidence/EVIDENCE_INDEX.md`. | Depends on evidence generated or blockers recorded. |
+| 10 | 10.3 Final test matrix | Planned | Pending | Pending | Pending `docs/testing/final-validation-matrix.md`. | Depends on available commands/results. |
+| 10 | 10.4 Full regression pass | Planned | Pending | Pending | Pending final validation results. | Block if non-environment validation fails. |
+| 10 | 10.5 Final implementation report | Planned | Pending | Pending | Pending release summary. | Depends on final validation/blockers. |
+
 ## Proposed Delighter Features
 
 These features are not required for FYP completion, but would improve review,
