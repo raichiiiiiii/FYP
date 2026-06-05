@@ -54,15 +54,17 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-mepn-documents}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-change_me}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change_me}
+      BLOCKCHAIN_ANCHOR_ADAPTER: ${BLOCKCHAIN_ANCHOR_ADAPTER:-mock}
       FABRIC_ENABLED: ${FABRIC_ENABLED:-false}
       FABRIC_MODE: ${FABRIC_MODE:-mock}
       FABRIC_GATEWAY_URL: ${FABRIC_GATEWAY_URL:-}
       FABRIC_MSP_ID: ${FABRIC_MSP_ID:-}
+      FABRIC_IDENTITY: ${FABRIC_IDENTITY:-}
       FABRIC_CHANNEL: ${FABRIC_CHANNEL:-}
       FABRIC_CHAINCODE: ${FABRIC_CHAINCODE:-}
-      FABRIC_IDENTITY_CERT_PATH: ${FABRIC_IDENTITY_CERT_PATH:-}
-      FABRIC_PRIVATE_KEY_PATH: ${FABRIC_PRIVATE_KEY_PATH:-}
-      FABRIC_TLS_CERT_PATH: ${FABRIC_TLS_CERT_PATH:-}
+      FABRIC_IDENTITY_CERT_PATH: ${FABRIC_IDENTITY_CERT_PATH:-/run/secrets/fabric/identity/cert.pem}
+      FABRIC_PRIVATE_KEY_PATH: ${FABRIC_PRIVATE_KEY_PATH:-/run/secrets/fabric/identity/key.pem}
+      FABRIC_TLS_CERT_PATH: ${FABRIC_TLS_CERT_PATH:-/run/secrets/fabric/tls/ca.crt}
       FABRIC_PEER_ENDPOINT: ${FABRIC_PEER_ENDPOINT:-}
       FABRIC_GATEWAY_HOST_ALIAS: ${FABRIC_GATEWAY_HOST_ALIAS:-}
       FABRIC_SUBMIT_TIMEOUT_MS: ${FABRIC_SUBMIT_TIMEOUT_MS:-30000}
@@ -75,7 +77,7 @@ services:
       minio:
         condition: service_started
     volumes:
-      - ./deploy/fabric:/run/secrets/fabric:ro
+      - ${FABRIC_SECRET_MOUNT:-./deploy/fabric}:/run/secrets/fabric:ro
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/v1/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 30s
@@ -95,15 +97,17 @@ services:
       WORKER_POLL_ENABLED: ${WORKER_POLL_ENABLED:-true}
       WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-5000}
       WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-5}
+      BLOCKCHAIN_ANCHOR_ADAPTER: ${BLOCKCHAIN_ANCHOR_ADAPTER:-mock}
       FABRIC_ENABLED: ${FABRIC_ENABLED:-false}
       FABRIC_MODE: ${FABRIC_MODE:-mock}
       FABRIC_GATEWAY_URL: ${FABRIC_GATEWAY_URL:-}
       FABRIC_MSP_ID: ${FABRIC_MSP_ID:-}
+      FABRIC_IDENTITY: ${FABRIC_IDENTITY:-}
       FABRIC_CHANNEL: ${FABRIC_CHANNEL:-}
       FABRIC_CHAINCODE: ${FABRIC_CHAINCODE:-}
-      FABRIC_IDENTITY_CERT_PATH: ${FABRIC_IDENTITY_CERT_PATH:-}
-      FABRIC_PRIVATE_KEY_PATH: ${FABRIC_PRIVATE_KEY_PATH:-}
-      FABRIC_TLS_CERT_PATH: ${FABRIC_TLS_CERT_PATH:-}
+      FABRIC_IDENTITY_CERT_PATH: ${FABRIC_IDENTITY_CERT_PATH:-/run/secrets/fabric/identity/cert.pem}
+      FABRIC_PRIVATE_KEY_PATH: ${FABRIC_PRIVATE_KEY_PATH:-/run/secrets/fabric/identity/key.pem}
+      FABRIC_TLS_CERT_PATH: ${FABRIC_TLS_CERT_PATH:-/run/secrets/fabric/tls/ca.crt}
       FABRIC_PEER_ENDPOINT: ${FABRIC_PEER_ENDPOINT:-}
       FABRIC_GATEWAY_HOST_ALIAS: ${FABRIC_GATEWAY_HOST_ALIAS:-}
       FABRIC_SUBMIT_TIMEOUT_MS: ${FABRIC_SUBMIT_TIMEOUT_MS:-30000}
@@ -116,7 +120,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./deploy/fabric:/run/secrets/fabric:ro
+      - ${FABRIC_SECRET_MOUNT:-./deploy/fabric}:/run/secrets/fabric:ro
     restart: unless-stopped
 
   postgres:

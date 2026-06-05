@@ -5,7 +5,7 @@ import type {
   WorkerHeartbeat,
 } from '@prisma/client';
 import {
-  fabricGatewayRequiredVariables,
+  missingFabricGatewayConfig,
   readFabricEnv,
 } from '../../../config/fabric-env';
 import { PrismaService } from '../../../database/prisma.service';
@@ -91,11 +91,7 @@ export class IntegrationStatusService {
   getFabricStatus() {
     const fabricEnv = readFabricEnv();
     const missingGatewayConfig =
-      fabricEnv.mode === 'gateway'
-        ? fabricGatewayRequiredVariables.filter(
-            (variable) => !process.env[variable]?.trim(),
-          )
-        : [];
+      fabricEnv.mode === 'gateway' ? missingFabricGatewayConfig() : [];
     const gatewayConfigured =
       fabricEnv.mode === 'gateway' && missingGatewayConfig.length === 0;
 

@@ -13,38 +13,38 @@ test.beforeEach(async () => {
 
 const expectedStates: Array<{
   state: FabricEvidenceState;
-  status: string;
+  displayStatus: string;
   expectedText: string;
 }> = [
   {
     state: 'mock',
-    status: 'ANCHORED_MOCK',
+    displayStatus: 'mock',
     expectedText: 'Mock anchors are useful for workflow testing',
   },
   {
     state: 'pending',
-    status: 'ANCHOR_REQUESTED',
+    displayStatus: 'pending',
     expectedText: 'No verified Fabric proof exists yet',
   },
   {
     state: 'failed',
-    status: 'FAILED',
+    displayStatus: 'failed',
     expectedText: 'Fabric anchoring failed for this hash',
   },
   {
     state: 'unavailable',
-    status: 'FABRIC_UNAVAILABLE',
+    displayStatus: 'unavailable',
     expectedText: 'Fabric was unavailable',
   },
   {
     state: 'anchored',
-    status: 'ANCHORED_NOT_FULLY_VERIFIED',
-    expectedText: 'Treat this as anchored, not fully verified',
+    displayStatus: 'unavailable',
+    expectedText: 'could not complete the Fabric chaincode verification query',
   },
   {
     state: 'verified',
-    status: 'VERIFIED',
-    expectedText: 'marked verified',
+    displayStatus: 'unavailable',
+    expectedText: 'could not complete the Fabric chaincode verification query',
   },
 ];
 
@@ -78,17 +78,12 @@ test('SRS-FABRIC-001 hash detail distinguishes Fabric evidence states honestly',
       .filter({ has: page.getByRole('heading', { name: 'Fabric verification result' }) })
       .last();
 
-    await expect(panel).toContainText(item.status);
+    await expect(panel).toContainText(item.displayStatus);
     await expect(panel).toContainText(item.expectedText);
-    await expect(panel).toContainText(
-      'Direct chaincode query is not available from this API yet',
-    );
-
-    if (item.state === 'verified') {
-      await expect(panel).toContainText('Verified');
-      await expect(panel).toContainText('Yes');
-    } else {
-      await expect(panel).toContainText('No');
+    if (item.state === 'mock') {
+      await expect(panel).toContainText('Mock anchors are not real');
     }
+
+    await expect(panel).toContainText('No');
   }
 });

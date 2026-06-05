@@ -23,6 +23,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@grpc/grpc-js':
+        specifier: ^1.14.4
+        version: 1.14.4
+      '@hyperledger/fabric-gateway':
+        specifier: ^1.11.0
+        version: 1.11.0
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.24(reflect-metadata@0.2.2)(rxjs@7.8.2)

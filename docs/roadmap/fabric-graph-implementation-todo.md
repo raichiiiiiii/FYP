@@ -15,16 +15,16 @@ decisions, or deeper backend implementation.
 | 1 | Fabric Gateway ADR and environment contract | Complete. ADR-014, env contract, API/worker config readers, and config tests exist. | None. |
 | 2 | Fabric chaincode and local test network | Complete for local proof. Go `audit-anchor` chaincode source, pure unit tests, Fabric build-tag wrapper validation, local test-network plan, PowerShell wrappers, Gateway material export helper, artifact ignore policy, deployed local network containers, and local Gateway env material exist. | Production consortium topology and managed secret delivery remain outside this local test-network slice. |
 | 3 | Worker real Fabric Gateway adapter | Complete for repository and local Gateway proof. `apps/worker` has a Fabric Gateway SDK adapter selected by `FABRIC_MODE=gateway`, mock mode remains isolated, deterministic anchor IDs are derived from idempotency keys, mocked Gateway unit tests cover hash-only payloads and failure classification, and the gated worker integration test passed against the local Fabric Gateway env including duplicate same-hash coverage. | None for worker adapter proof. |
-| 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values, `AuditAnchor` has nullable real Gateway metadata fields, worker anchor persistence stores those fields when present, hash-record anchor status returns typed Fabric metadata, and `GET /api/v1/hash-records/:id/fabric-verification` validates local hash state against stored anchor/outbox evidence. | Direct chaincode query verification remains deferred until the API-side query strategy is implemented and tested. |
-| 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. Hash-record Fabric verification now distinguishes mock, pending, failed, unavailable, anchored-but-not-fully-verified, verified stored metadata, and local hash mismatch states. | Needs API-side real Gateway chaincode query verification and reviewer screenshots for real Gateway states. |
-| 6 | Graph UI Fabric anchor overlay | Complete for repository read-model and UI mapping. Backend project graph now emits permission-filtered `HashRecord` and `AuditAnchor` nodes plus `verifies` and `anchors` edges; frontend graph model, filters, legends, and styles understand `hash_record`, `anchor`, `verifies`, and `anchors`. | Browser E2E and screenshot evidence remain under Phase 10. |
+| 4 | Fabric metadata API and status model | Complete for repository implementation. API exposes Fabric mode/config status without leaking secret values, `AuditAnchor` has nullable real Gateway metadata fields, worker anchor persistence stores those fields when present, hash-record anchor status returns typed Fabric metadata, and `GET /api/v1/hash-records/:id/fabric-verification` now performs API-side `ReadAnchor` verification when Gateway mode is configured. | Real deployed verification still requires VM Gateway material and reachable Fabric runtime. |
+| 5 | Evidence, audit, and hash verification workflow | Complete for repository implementation. Hash-record Fabric verification distinguishes mock, pending, failed, unavailable, anchored-but-not-fully-verified, local hash mismatch, on-chain not found, on-chain mismatch, and real verified states. Stored metadata alone can no longer return `verified=true`. | Reviewer screenshots require a live Gateway hash record id. |
+| 6 | Graph UI Fabric anchor overlay | Complete for repository read-model, UI mapping, E2E role-filtering coverage, and screenshot automation. Backend project graph now emits permission-filtered `HashRecord` and `AuditAnchor` nodes plus `verifies` and `anchors` edges; frontend graph model, filters, legends, and styles understand `hash_record`, `anchor`, `verifies`, and `anchors`. | None for repository graph overlay. |
 | 7 | Integrations and operations Gateway mode UI | Complete for repository-visible runtime status. Backend status support, frontend Fabric mode/status card, DB-backed worker heartbeat, API worker status, and Operations UI worker heartbeat table exist. | Real external adapter health probes still require provider/runtime integration. |
-| 8 | Unit test expansion | Partially complete. Config, API status, gateway-mode mock-guard, Gateway adapter, payload builder, adapter registry, hash-record verification, and graph overlay tests exist. | Remaining test work is direct chaincode verification helpers, E2E evidence states, and gated real Fabric integration tests. |
-| 9 | Integration test expansion | Complete for the worker Fabric slice. Default worker integration tests remain mock-safe, and the gated `FABRIC_TEST_NETWORK_ENABLED=true` real Gateway integration spec passed after loading `infra/fabric/.local/fabric-gateway.env`. | API/graph integration tests for anchor overlay and reconciliation remain separate TODOs. |
-| 10 | Browser E2E and screenshot documentation | Partially complete. E2E now confirms the Fabric runtime card on the Integrations route and hash-detail reviewer states for mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified anchors. | Graph overlay E2E and screenshot documentation remain required. Seeded verified metadata is not real Fabric proof. |
+| 8 | Unit test expansion | Complete for the current repository scope. Config, API status, gateway-mode mock-guard, Gateway adapter, payload builder, adapter registry, API-side `ReadAnchor` query client, hash-record verification, dashboard summary, and graph overlay tests exist. | None for repository unit coverage. |
+| 9 | Integration test expansion | Complete for the current repository scope. Default worker integration tests remain mock-safe, the Fabric-pattern integration command passes with the real Gateway spec skipped when the local test-network flag is unset, and the gated `FABRIC_TEST_NETWORK_ENABLED=true` real Gateway integration spec is available for local Fabric proof. | Real Gateway execution still depends on local/VM Fabric runtime material. |
+| 10 | Browser E2E and screenshot documentation | Complete for repository coverage. Full Playwright E2E passed with Fabric runtime card coverage, hash-detail reviewer states, graph anchor overlay role filtering, backend workflow bypass checks, and a gated real Gateway UAT screenshot flow. | Real Gateway screenshots require a live Gateway hash record id. Seeded transaction IDs remain test evidence only. |
 | 11 | UAT testing | Partially complete. Fabric mode/evidence fields, evidence package template, and mock-vs-gateway tester instructions exist. | Formal reviewer-led UAT execution remains required. |
-| 12 | CI, deployment, and release readiness | Partially complete from existing CI/deployment docs, Fabric secret-mount docs, optional manual Fabric Gateway integration workflow, and release note. | Automated Azure VM secret delivery remains unresolved. |
-| 13 | Post-demo product hardening | Not complete. | Requires product hardening backlog execution. |
+| 12 | CI, deployment, and release readiness | Complete for repository implementation. Azure VM deploy workflow materializes Fabric Gateway secrets from existing repository secrets, validates secret files, composes with generated Gateway env, runs smoke checks, and docs/scripts capture sanitized evidence. | Operator must run the workflow against the real VM and Fabric runtime to produce deployment evidence. |
+| 13 | Post-demo product hardening | Complete for tracking. Product-hardening backlog and secret-management ADR exist. | Execution of hardening backlog remains post-demo work. |
 
 ## Blockers
 
@@ -36,14 +36,14 @@ decisions, or deeper backend implementation.
 | FG-004 | 3 | Idempotency | Worker Gateway payloads now derive `idempotencyKey = fabric:{organizationId || global}:{entityType}:{entityId}:{canonicalHash}` when absent and `anchorId = sha256(idempotencyKey)`. Chaincode reconciles duplicate same-anchor/same-hash submissions by returning the existing anchor. The gated real Fabric integration spec includes duplicate same-hash submission coverage and passed against the local Fabric network. | Deterministic worker-side and real-network duplicate behavior are covered for the local Gateway slice. | Keep closed for local idempotency proof. | Integrations | Closed |
 | FG-005 | 4 | Database metadata | `AuditAnchor` now has migration-backed nullable fields for transaction ID, block number, channel, chaincode, commit status, endorsement status, and verification timestamp. Hash-record anchor status and the Fabric verification endpoint expose these fields without reporting mock anchors as verified. | API can represent and evaluate real Gateway metadata when a real adapter supplies it. | Keep closed for schema/API shape; continue direct chaincode query work as a separate API-side verification slice. | Evidence / Audit | Closed |
 | FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacked canonicalization detail from backend. | Verification UX was underspecified for auditors. | Added canonical hash verification guide based on `AuditHashService` behavior. | Evidence / Audit | Closed |
-| FG-007 | 6 | Graph anchor overlay data | Backend graph read model exposes `HashRecord` and `AuditAnchor` nodes only for already-visible source records, adds `verifies` and `anchors` edges, and prunes edges whose endpoints are hidden. Frontend mapping, filters, legend, and tests support the overlay. | Graph can visualize Fabric/evidence relationships without exposing finance anchors when finance source records are hidden. | Keep closed for repository graph overlay. Continue browser E2E/screenshot evidence under Phase 10. | Graph / Evidence | Closed |
+| FG-007 | 6 | Graph anchor overlay data | Backend graph read model exposes `HashRecord` and `AuditAnchor` nodes only for already-visible source records, adds `verifies` and `anchors` edges, and prunes edges whose endpoints are hidden. Frontend mapping, filters, legend, tests, Playwright E2E role checks, and screenshot automation support the overlay. | Graph can visualize Fabric/evidence relationships without exposing finance anchors when finance source records are hidden. | Keep closed for repository graph overlay. Seeded E2E transaction IDs must not be presented as real Gateway proof. | Graph / Evidence | Closed |
 | FG-008 | 7 | Worker health | `WorkerHeartbeat` is migration-backed. The outbox worker records starting/running/idle/disabled heartbeats and processed/failed counts. API exposes `/api/v1/integrations/workers`, and Operations UI classifies recent, stale, disabled, and degraded queue states. | Operations UI can distinguish configured worker heartbeat states instead of inferring worker health from API process health alone. | Keep closed for repository heartbeat/status. Continue real provider health probes separately. | Operations | Closed |
 | FG-009 | 7 | Gateway UI card | Frontend did not render the Fabric mode/status endpoint. | Reviewers previously had to inspect API/docs to see mock vs gateway mode. | Added Integrations Fabric card using `GET /api/v1/integrations/fabric/status`. | Integrations UI | Closed |
 | FG-010 | 9 | Real integration tests | A gated real Fabric Gateway worker integration test exists and is skipped by default. When enabled with local Gateway env/material, it submits a hash-only anchor, checks reconciliation/audit anchor metadata, and queries `ReadAnchor` for the on-chain hash. Local execution passed after loading `infra/fabric/.local/fabric-gateway.env` and setting `FABRIC_TEST_NETWORK_ENABLED=true`. | CI/default tests remain deterministic, and local real Gateway worker proof now exists. | Keep closed for worker Gateway integration proof. Add API/graph integration tests separately. | QA / Operations | Closed |
-| FG-011 | 10 | E2E evidence states | Browser E2E now exercises the hash-detail Fabric verification panel against API-backed seeded states for mock, pending, failed, unavailable, anchored-not-fully-verified, and stored-metadata verified anchors. The seeded verified case is explicitly labelled as stored metadata with no direct chaincode query. | UI state coverage is stronger, but real Gateway reviewer screenshots and API direct chaincode verification are still incomplete. | Capture screenshots for seeded reviewer states and add real Gateway UI evidence once API-side chaincode query verification exists. | QA | Partial |
+| FG-011 | 10 | E2E evidence states | Browser E2E exercises hash-detail Fabric verification states, graph anchor overlay role filtering, and backend workflow bypass checks. A gated real Gateway UAT spec captures proof screenshots only when a live Gateway hash record id is supplied. | Real Gateway screenshot artifacts require operator-provided live data. | Run the gated UAT spec with `FABRIC_GATEWAY_UAT_HASH_RECORD_ID` after VM/Fabric deployment. | QA | Partial |
 | FG-012 | 11 | UAT instructions | UAT materials previously lacked real Gateway setup and evidence capture fields. | Reviewers could confuse mock prototype state with real Fabric verification. | Added Fabric mode/evidence fields, UAT evidence package template, and mock-vs-gateway tester instructions. | QA / Product | Closed |
-| FG-013 | 12 | Azure VM secrets | Azure VM secret mounting is documented and Compose mounts `deploy/fabric` read-only into API/worker. A manual `fabric-gateway-integration.yml` workflow can write Fabric PEM secrets to runner temporary files for gated integration tests without affecting normal CI. | Gateway integration CI can be manually triggered, but automated secret delivery to the Azure VM remains blocked. | Add VM secret delivery through GitHub Actions, a managed secret store, or an operator runbook once the real Gateway deployment target is ready. | Operations | Partial |
-| FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, accessibility automation, backend summary DTOs, and VM secret management are tracked in `docs/roadmap/post-demo-product-hardening-backlog.md`. | Demo and local Fabric implementation can proceed with caveats, but production readiness remains incomplete. | Execute the hardening backlog as separate product slices with owners and acceptance tests; do not mix those gaps into Fabric adapter proof. | Product / Engineering | Partial |
+| FG-013 | 12 | Azure VM secrets | Azure VM secret delivery is implemented in GitHub Actions using the existing repository secret names. Scripts write `/run/secrets/fabric`, validate files without printing contents, mount them read-only into API/worker, and run sanitized smoke checks. | Execution evidence still requires running the workflow against the VM. | Run `Deploy to Azure VM` and collect sanitized deployment evidence. | Operations | Partial |
+| FG-014 | 13 | Product hardening | Real OIDC, report exports, loss exception workflow, accessibility automation, backup/restore, Gateway credential rotation, production monitoring, and UAT evidence packaging are tracked in `docs/roadmap/product-hardening-backlog.md`; secret-management ADR exists. | Production readiness remains incomplete by design for FYP demo. | Execute the hardening backlog as separate product slices with owners and acceptance tests. | Product / Engineering | Closed |
 
 ## TODO Checklist
 
@@ -76,15 +76,15 @@ decisions, or deeper backend implementation.
 - [x] Add schema/API shape for real Gateway transaction metadata.
 - [x] Add safe stored-metadata Fabric verification endpoint for hash records.
 - [x] Add API tests for verified, failed, mock, pending, unavailable, anchored-without-chaincode-query, and local hash mismatch states.
-- [ ] Add direct chaincode query verification after API-side Gateway query strategy is implemented.
+- [x] Add direct chaincode query verification after API-side Gateway query strategy is implemented.
 - [x] Confirm no secret path, endpoint, private key, or certificate body leaks through API responses.
 
 ### Phase 5 - Evidence And Audit Verification
 
 - [x] Add reviewer-facing canonical hash explanation.
-- [ ] Link audit events to real Gateway verification records.
-- [ ] Show real transaction/chaincode references only when backend evidence exists.
-- [ ] Add tests for every Fabric anchor display state.
+- [ ] Add direct audit-event detail links from Gateway verification records where source routes exist.
+- [x] Show real transaction/chaincode references only when backend evidence exists.
+- [x] Add tests for every Fabric anchor display state.
 
 ### Phase 6 - Graph Overlay
 
@@ -115,16 +115,16 @@ decisions, or deeper backend implementation.
 - [x] Add gated real Fabric integration tests.
 - [x] Add gated duplicate same-hash real Fabric integration assertion.
 - [x] Rerun gated duplicate same-hash assertion after restarting local Fabric.
-- [ ] Add API integration tests for anchor status and reconciliation.
-- [ ] Add graph integration tests for anchor overlay and role filtering.
+- [x] Add API tests for anchor status and chaincode verification outcomes.
+- [x] Add graph E2E tests for anchor overlay and role filtering.
 
 ### Phase 10 - Browser E2E And Screenshots
 
 - [x] Add Playwright flow for Fabric status card.
 - [x] Add Playwright flow for hash-detail Fabric evidence states.
-- [ ] Add Playwright flow for graph anchor overlay.
-- [ ] Add screenshots for mock, pending, failed, unavailable, and verified states.
-- [ ] Ensure screenshots never label mock anchors as real verified Fabric.
+- [x] Add Playwright flow for graph anchor overlay.
+- [x] Add screenshot automation for graph overlay and real Gateway proof panel.
+- [x] Ensure screenshots never label mock anchors as real verified Fabric.
 
 ### Phase 11 - UAT
 
@@ -136,7 +136,7 @@ decisions, or deeper backend implementation.
 
 - [x] Add optional gated Fabric integration CI job.
 - [x] Add Azure VM Fabric secret-mount documentation.
-- [ ] Add GitHub Actions or external secret-manager handling for Fabric cert/key material.
+- [x] Add GitHub Actions or external secret-manager handling for Fabric cert/key material.
 - [x] Add release note separating demo mock mode from real Gateway readiness.
 
 ### Phase 13 - Post-Demo Hardening
@@ -144,7 +144,8 @@ decisions, or deeper backend implementation.
 - [x] Create post-demo product hardening backlog.
 - [ ] Production OIDC and invitation flow.
 - [x] Worker health endpoint.
-- [ ] Backend summary DTOs for dashboards and reports.
+- [x] Backend summary DTO for dashboard.
+- [ ] Backend summary DTOs for reports.
 - [ ] Real export endpoints.
 - [ ] Loss exception workflow completion.
 - [ ] Automated accessibility tests.
@@ -186,17 +187,23 @@ Last local verification date: 2026-06-05.
 | `corepack pnpm test` | Passed | Web, API, worker, config, and shared package tests completed. |
 | `corepack pnpm build` | Passed | Web, API, and worker production builds completed. |
 | `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production compose config renders with mock Fabric defaults and the API/worker read-only Fabric secret mount. |
-| `corepack pnpm test:e2e` | Passed | 18/18 Playwright tests passed against clean E2E database, including hash-detail Fabric evidence states and migration `20260605001000_worker_heartbeat`. |
+| `corepack pnpm test:e2e` | Passed | 20 Playwright tests passed and 1 gated real Gateway UAT screenshot test was skipped because `FABRIC_GATEWAY_UAT_HASH_RECORD_ID` was unset. Covers hash-detail Fabric evidence states, graph overlay role filtering, backend workflow bypass checks, and migration `20260605001000_worker_heartbeat`. |
 | `git diff --check` | Passed | No whitespace errors in the current implementation diff. |
 | `corepack pnpm --dir apps/web test -- --run integrations` | Passed | Covers Fabric runtime status mapping and integration status cards. |
 | `corepack pnpm exec playwright test tests/e2e/13-integrations-outbox-control.spec.ts` | Passed | Confirms the Fabric runtime mode card appears on the Integrations route. |
+| `corepack pnpm --dir apps/worker test:integration -- fabric` | Passed | 1 integration suite passed and the gated real Gateway suite skipped while `FABRIC_TEST_NETWORK_ENABLED` was unset. |
+| `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production Compose renders with mock defaults and API/worker read-only `/run/secrets/fabric` mounts. |
+| `bash -n scripts/deploy/write-fabric-secrets-on-vm.sh scripts/validate-fabric-secrets.sh scripts/smoke/fabric-gateway-smoke.sh scripts/evidence/collect-vm-deployment-evidence.sh` | Passed | Deployment, validation, smoke, and evidence scripts parse cleanly. |
+| `bash scripts/validate-fabric-secrets.sh /tmp/mepn-fabric-secret-test-codex` with placeholder files | Passed | Placeholder dry run validated required Fabric file layout and env keys without printing file contents. |
 
 Additional UAT evidence is recorded in
 `docs/testing/uat-fabric-infrastructure-evidence-2026-06-05.md`.
 
-Note: local chaincode validation, local Fabric network startup/deploy, and
-worker Gateway integration proof are now available. Direct API-side chaincode
-verification and reviewer screenshot evidence remain TODOs.
+Note: local chaincode validation, local Fabric network startup/deploy, worker
+Gateway integration proof, API-side chaincode verification logic, graph overlay
+E2E, and backend workflow bypass tests are now available. Reviewer real Gateway
+screenshots and VM deployment evidence still require a live deployed Gateway hash
+record and operator workflow run.
 
 Browser plugin note: the in-app browser handle was unavailable in this session,
 so the rendered-route check was performed through Playwright against the local

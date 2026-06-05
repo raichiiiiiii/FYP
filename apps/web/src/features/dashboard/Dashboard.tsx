@@ -17,8 +17,8 @@ import { SmartTaskInbox } from './SmartTaskInbox'
 import {
   countTasksByPriority,
   getActionableTasks,
-  getDashboardContent,
 } from './dashboard.model'
+import type { DashboardContent } from './dashboard.types'
 
 export function Dashboard() {
   const { authorization, session } = useAppSession()
@@ -27,14 +27,10 @@ export function Dashboard() {
   })
   const [organizationState, setOrganizationState] =
     useState<LoadState<Organization> | null>(null)
-
-  const dashboardContent = useMemo(
-    () =>
-      authorization.status === 'ready'
-        ? getDashboardContent(authorization.roleCodes)
-        : null,
-    [authorization],
-  )
+  const [dashboardState, setDashboardState] =
+    useState<LoadState<DashboardContent>>({
+      status: 'loading',
+    })
   const healthUrl = useMemo(() => `${apiBaseUrl}/health`, [])
 
   const requestHealth = useCallback(
@@ -49,6 +45,19 @@ export function Dashboard() {
 
     return apiRequest<Organization>(`/orgs/${session.organizationId}`)
   }, [session.organizationId])
+
+  const requestDashboardSummary = useCallback(() => {
+    if (authorization.status !== 'ready' || !session.organizationId) {
+      return Promise.reject(new Error('Organization session is required'))
+    }
+
+    const params = new URLSearchParams({
+      organizationId: session.organizationId,
+      roleCodes: authorization.roleCodes.join(','),
+    })
+
+    return apiRequest<DashboardContent>(`/dashboard/summary?${params}`)
+  }, [authorization, session.organizationId])
 
   async function refreshHealth() {
     setHealthState({ status: 'loading' })
@@ -89,6 +98,38 @@ export function Dashboard() {
   useEffect(() => {
     let cancelled = false
 
+    if (authorization.status !== 'ready') {
+      return () => {
+        cancelled = true
+      }
+    }
+
+    requestDashboardSummary()
+      .then((data) => {
+        if (!cancelled) {
+          setDashboardState({ status: 'ready', data })
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDashboardState({
+            status: 'error',
+            message: getErrorMessage(
+              error,
+              'Unable to load dashboard summary',
+            ),
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authorization.status, requestDashboardSummary])
+
+  useEffect(() => {
+    let cancelled = false
+
     if (!session.organizationId) {
       return () => {
         cancelled = true
@@ -115,9 +156,15 @@ export function Dashboard() {
     }
   }, [requestOrganization, session.organizationId])
 
-  if (!dashboardContent) {
+  if (dashboardState.status === 'loading') {
     return <LoadingState message="Preparing role-aware dashboard..." />
   }
+
+  if (dashboardState.status === 'error') {
+    return <ErrorState message={dashboardState.message} />
+  }
+
+  const dashboardContent = dashboardState.data
 
   const health = healthState.status === 'ready' ? healthState.data : null
   const organization =

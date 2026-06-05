@@ -9,6 +9,7 @@ import { EvidenceItemsController } from './evidence-items/evidence-items.control
 import { EvidenceItemsService } from './evidence-items/evidence-items.service';
 import { EvidencePacksController } from './evidence-packs/evidence-packs.controller';
 import { EvidencePacksService } from './evidence-packs/evidence-packs.service';
+import { FabricChaincodeQueryService } from './hash-records/fabric-chaincode-query.service';
 import { HashRecordsController } from './hash-records/hash-records.controller';
 import { HashRecordsService } from './hash-records/hash-records.service';
 import { ObjectStorageService } from './object-storage/object-storage.service';
@@ -25,6 +26,7 @@ import { ObjectStorageService } from './object-storage/object-storage.service';
     DocumentsService,
     EvidenceItemsService,
     EvidencePacksService,
+    FabricChaincodeQueryService,
     HashRecordsService,
     ObjectStorageService,
   ],

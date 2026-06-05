@@ -531,6 +531,9 @@ function GraphCanvas({
                       .join(' ')}
                     onFocus={() => onSelectNode(node.id)}
                     onMouseEnter={() => onSelectNode(node.id)}
+                    data-testid={`graph-node-${node.type}`}
+                    data-entity-type={node.entityType}
+                    data-entity-id={node.entityId}
                     style={{
                       left: node.position.x,
                       top: node.position.y,
@@ -572,7 +575,11 @@ export function GraphInspectorPanel({
   selectedNode: NetworkNode | null
 }) {
   return (
-    <aside className="graph-inspector" aria-label="Graph details and legend">
+    <aside
+      className="graph-inspector"
+      aria-label="Graph details and legend"
+      data-testid="graph-inspector"
+    >
       <section className="graph-inspector-card">
         <span>Selected record</span>
         {selectedNode ? (

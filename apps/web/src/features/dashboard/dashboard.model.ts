@@ -1,6 +1,5 @@
 import type { AppRoleCode } from '../../shared/types'
-import { dashboardFixtures } from './dashboard.fixtures'
-import type { DashboardContent, DashboardRole, SmartTask } from './dashboard.types'
+import type { DashboardRole, SmartTask } from './dashboard.types'
 
 const rolePriority: DashboardRole[] = [
   'sme_admin',
@@ -33,10 +32,6 @@ export function resolveDashboardRole(roleCodes: AppRoleCode[]): DashboardRole {
     rolePriority.find((role) => roles.includes(role)) ??
     'procurement_officer'
   )
-}
-
-export function getDashboardContent(roleCodes: AppRoleCode[]): DashboardContent {
-  return dashboardFixtures[resolveDashboardRole(roleCodes)]
 }
 
 export function getActionableTasks(tasks: SmartTask[]) {

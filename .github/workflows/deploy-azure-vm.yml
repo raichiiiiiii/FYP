@@ -14,20 +14,49 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          FABRIC_IDENTITY_CERT_PEM: ${{ secrets.FABRIC_IDENTITY_CERT_PEM }}
+          FABRIC_PRIVATE_KEY_PEM: ${{ secrets.FABRIC_PRIVATE_KEY_PEM }}
+          FABRIC_TLS_CERT_PEM: ${{ secrets.FABRIC_TLS_CERT_PEM }}
+          FABRIC_GATEWAY_URL: ${{ secrets.FABRIC_GATEWAY_URL }}
+          FABRIC_GATEWAY_HOST_ALIAS: ${{ secrets.FABRIC_GATEWAY_HOST_ALIAS }}
+          FABRIC_PEER_ENDPOINT: ${{ secrets.FABRIC_PEER_ENDPOINT }}
+          FABRIC_MSP_ID: ${{ secrets.FABRIC_MSP_ID }}
+          FABRIC_CHANNEL: ${{ secrets.FABRIC_CHANNEL }}
+          FABRIC_CHAINCODE: ${{ secrets.FABRIC_CHAINCODE }}
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           port: 22
+          envs: FABRIC_IDENTITY_CERT_PEM,FABRIC_PRIVATE_KEY_PEM,FABRIC_TLS_CERT_PEM,FABRIC_GATEWAY_URL,FABRIC_GATEWAY_HOST_ALIAS,FABRIC_PEER_ENDPOINT,FABRIC_MSP_ID,FABRIC_CHANNEL,FABRIC_CHAINCODE
           script: |
-            set -e
+            set -euo pipefail
 
             cd /opt/mepn
 
             git fetch origin main
             git reset --hard origin/main
 
-            docker compose -f docker-compose.prod.yml --env-file .env.production build
-            docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+            bash scripts/deploy/write-fabric-secrets-on-vm.sh
+            bash scripts/validate-fabric-secrets.sh /run/secrets/fabric
 
-            docker compose -f docker-compose.prod.yml --env-file .env.production ps
+            docker compose \
+              -f docker-compose.prod.yml \
+              --env-file .env.production \
+              --env-file /run/secrets/fabric/env.generated \
+              build
+
+            docker compose \
+              -f docker-compose.prod.yml \
+              --env-file .env.production \
+              --env-file /run/secrets/fabric/env.generated \
+              up -d
+
+            docker compose \
+              -f docker-compose.prod.yml \
+              --env-file .env.production \
+              --env-file /run/secrets/fabric/env.generated \
+              ps
+
+            APP_BASE_URL=http://localhost bash scripts/smoke/fabric-gateway-smoke.sh

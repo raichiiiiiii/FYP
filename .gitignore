@@ -23,6 +23,15 @@ yarn-error.log*
 .turbo/
 .cache/
 
+e2e-output.txt
+vm-smoke-output.txt
+
 artifacts/
 playwright-report/
 test-results/
+
+deploy/fabric/**
+!deploy/fabric/
+!deploy/fabric/README.md
+
+vm-mepn-fyp-key.pem

@@ -327,6 +327,19 @@ export class FinanceService {
       evidencePack?.organizationId,
       'Evidence pack',
     );
+    this.requireRevenueGeneratingOpportunity({
+      purchaseOrder,
+      evidencePack,
+      estimatedCapital: numericValue(
+        input.estimatedCapital,
+        'estimatedCapital',
+        project.budget || purchaseOrder?.totalAmount || 0,
+      ),
+      expectedProfit:
+        input.expectedProfit === undefined
+          ? undefined
+          : numericValue(input.expectedProfit, 'expectedProfit'),
+    });
 
     const opportunity = await this.prisma.procurementOpportunity.create({
       data: {
@@ -404,6 +417,7 @@ export class FinanceService {
         'Opportunity does not belong to the organization',
       );
     }
+    this.requireExistingOpportunityEligible(opportunity);
 
     const requestedCapital = positiveNumber(
       input.requestedCapital,
@@ -1714,6 +1728,78 @@ export class FinanceService {
         `${label} does not belong to the organization`,
       );
     }
+  }
+
+  private requireRevenueGeneratingOpportunity(input: {
+    purchaseOrder: { totalAmount: number } | null;
+    evidencePack: { id: string } | null;
+    estimatedCapital: number;
+    expectedProfit?: number;
+  }) {
+    const hasRevenueSource = Boolean(input.purchaseOrder || input.evidencePack);
+
+    if (!hasRevenueSource) {
+      throw this.workflowRuleViolation({
+        message:
+          'Mudarabah opportunities require a revenue-generating source document such as a buyer purchase order, contract award, sales order, tender result, or equivalent evidence pack.',
+        requiredState: 'REVENUE_SOURCE_PRESENT',
+        actualState: 'NO_REVENUE_SOURCE',
+        nextAllowedActions: [
+          'Link a buyer purchase order',
+          'Link an evidence pack containing equivalent revenue evidence',
+        ],
+      });
+    }
+
+    if (input.estimatedCapital <= 0) {
+      throw this.workflowRuleViolation({
+        message:
+          'Mudarabah opportunities require a positive requested capital amount.',
+        requiredState: 'REQUESTED_CAPITAL_POSITIVE',
+        actualState: 'REQUESTED_CAPITAL_NOT_POSITIVE',
+        nextAllowedActions: ['Enter a positive requested capital amount'],
+      });
+    }
+
+    if (input.expectedProfit === undefined || input.expectedProfit <= 0) {
+      throw this.workflowRuleViolation({
+        message:
+          'Mudarabah opportunities must be revenue-generating; expected profit must be positive before an application can be created.',
+        requiredState: 'EXPECTED_PROFIT_POSITIVE',
+        actualState: 'EXPECTED_PROFIT_NOT_POSITIVE',
+        nextAllowedActions: [
+          'Enter expected revenue and cost evidence that produces positive expected profit',
+        ],
+      });
+    }
+  }
+
+  private requireExistingOpportunityEligible(
+    opportunity: Prisma.ProcurementOpportunityGetPayload<{
+      include: typeof opportunityInclude;
+    }>,
+  ) {
+    this.requireRevenueGeneratingOpportunity({
+      purchaseOrder: opportunity.purchaseOrder,
+      evidencePack: opportunity.evidencePack,
+      estimatedCapital: opportunity.estimatedCapital,
+      expectedProfit: opportunity.expectedProfit ?? undefined,
+    });
+  }
+
+  private workflowRuleViolation(input: {
+    message: string;
+    requiredState: string;
+    actualState: string;
+    nextAllowedActions: string[];
+  }) {
+    return new BadRequestException({
+      code: 'WORKFLOW_RULE_VIOLATION',
+      message: input.message,
+      requiredState: input.requiredState,
+      actualState: input.actualState,
+      nextAllowedActions: input.nextAllowedActions,
+    });
   }
 
   private sumLedger(

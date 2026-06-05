@@ -23,6 +23,7 @@ describe('readFabricEnv', () => {
       mode: 'mock',
       gatewayUrl: '',
       mspId: '',
+      identity: '',
       channel: '',
       chaincode: '',
       identityCertPath: '',
@@ -64,6 +65,39 @@ describe('readFabricEnv', () => {
       submitTimeoutMs: 45000,
       commitTimeoutMs: 60000,
     });
+  });
+
+  it('supports deployment aliases and mounted secret defaults for gateway mode', () => {
+    expect(
+      readFabricEnv({
+        BLOCKCHAIN_ANCHOR_ADAPTER: 'fabric',
+        FABRIC_GATEWAY_URL: 'grpcs://fabric-gateway.example:7051',
+        FABRIC_MSP_ID: 'Org1MSP',
+        FABRIC_CHANNEL_NAME: 'mepn-audit',
+        FABRIC_CHAINCODE_NAME: 'audit-anchor',
+        FABRIC_PEER_ENDPOINT: 'peer0.org1.example:7051',
+        FABRIC_GATEWAY_HOST_ALIAS: 'peer0.org1.example',
+        FABRIC_IDENTITY: 'gateway-admin',
+      }),
+    ).toMatchObject({
+      enabled: true,
+      mode: 'gateway',
+      channel: 'mepn-audit',
+      chaincode: 'audit-anchor',
+      identity: 'gateway-admin',
+      identityCertPath: '/run/secrets/fabric/identity/cert.pem',
+      privateKeyPath: '/run/secrets/fabric/identity/key.pem',
+      tlsCertPath: '/run/secrets/fabric/tls/ca.crt',
+    });
+  });
+
+  it('does not allow BLOCKCHAIN_ANCHOR_ADAPTER=fabric to run mock mode', () => {
+    expect(() =>
+      readFabricEnv({
+        BLOCKCHAIN_ANCHOR_ADAPTER: 'fabric',
+        FABRIC_MODE: 'mock',
+      }),
+    ).toThrow('BLOCKCHAIN_ANCHOR_ADAPTER=fabric requires FABRIC_MODE=gateway');
   });
 
   it('rejects invalid mode and timeout values', () => {

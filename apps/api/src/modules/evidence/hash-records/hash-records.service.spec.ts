@@ -4,6 +4,10 @@ import type {
   IntegrationReconciliationRecord,
   OutboxEvent,
 } from '@prisma/client';
+import {
+  FabricChaincodeAnchorNotFoundError,
+  FabricChaincodeUnavailableError,
+} from './fabric-chaincode-query.service';
 import { HashRecordsService } from './hash-records.service';
 
 const now = new Date('2026-06-05T00:00:00.000Z');
@@ -60,7 +64,7 @@ describe('HashRecordsService fabricVerification', () => {
     });
   });
 
-  it('reports real anchor metadata as anchored but not fully verified without chaincode query', async () => {
+  it('reports real anchor metadata as unavailable without API chaincode query', async () => {
     const service = serviceWith({
       anchor: auditAnchor({
         anchorType: 'FABRIC',
@@ -73,10 +77,11 @@ describe('HashRecordsService fabricVerification', () => {
 
     await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
       verificationStatus: 'ANCHORED_NOT_FULLY_VERIFIED',
+      status: 'unavailable',
       verified: false,
       fabric: {
         chaincodeQueryAvailable: false,
-        chaincodeHashMatch: null,
+        chaincodeVerificationStatus: 'UNAVAILABLE',
         anchor: {
           fabricTransactionId: 'real-tx-1',
         },
@@ -128,7 +133,7 @@ describe('HashRecordsService fabricVerification', () => {
     });
   });
 
-  it('reports verified when stored non-mock anchor metadata is marked verified', async () => {
+  it('does not verify stored non-mock metadata without a chaincode read', async () => {
     const service = serviceWith({
       anchor: auditAnchor({
         anchorType: 'FABRIC',
@@ -141,8 +146,9 @@ describe('HashRecordsService fabricVerification', () => {
     });
 
     await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
-      verificationStatus: 'VERIFIED',
-      verified: true,
+      verificationStatus: 'ANCHORED_NOT_FULLY_VERIFIED',
+      status: 'unavailable',
+      verified: false,
       fabric: {
         chaincodeQueryAvailable: false,
         anchor: {
@@ -150,6 +156,114 @@ describe('HashRecordsService fabricVerification', () => {
           status: 'VERIFIED',
           fabricTransactionId: 'real-tx-1',
         },
+      },
+    });
+  });
+
+  it('reports verified when ReadAnchor returns the matching hash', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor({
+        anchorType: 'FABRIC',
+        status: 'VERIFIED',
+        metadata: {
+          anchorId:
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        },
+      }),
+      chaincodeAnchor: {
+        anchorId:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        entityType: 'PurchaseOrder',
+        entityId: 'po-1',
+        canonicalHash,
+      },
+    });
+
+    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+      status: 'verified',
+      verificationStatus: 'VERIFIED',
+      verified: true,
+      localCanonicalHash: canonicalHash,
+      storedAnchorHash: canonicalHash,
+      onChainAnchorHash: canonicalHash,
+      transactionId: 'real-tx-1',
+      channelName: 'mepn-audit',
+      chaincodeName: 'audit-anchor',
+      fabric: {
+        chaincodeQueryAvailable: true,
+        chaincodeHashMatch: true,
+        chaincodeVerificationStatus: 'VERIFIED',
+      },
+    });
+  });
+
+  it('reports not_found when ReadAnchor cannot find the stored anchor', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor({
+        anchorType: 'FABRIC',
+        status: 'ANCHORED',
+      }),
+      chaincodeError: new FabricChaincodeAnchorNotFoundError(
+        'anchor not found',
+      ),
+    });
+
+    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+      status: 'not_found',
+      verified: false,
+      fabric: {
+        chaincodeVerificationStatus: 'NOT_FOUND',
+      },
+    });
+  });
+
+  it('reports mismatch when ReadAnchor returns a different canonical hash', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor({
+        anchorType: 'FABRIC',
+        status: 'VERIFIED',
+      }),
+      chaincodeAnchor: {
+        anchorId:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        entityType: 'PurchaseOrder',
+        entityId: 'po-1',
+        canonicalHash:
+          'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      },
+    });
+
+    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+      status: 'mismatch',
+      verificationStatus: 'HASH_MISMATCH',
+      verified: false,
+      onChainAnchorHash:
+        'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      fabric: {
+        chaincodeHashMatch: false,
+        chaincodeVerificationStatus: 'MISMATCH',
+      },
+    });
+  });
+
+  it('reports unavailable when Gateway material or Fabric runtime is unavailable', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor({
+        anchorType: 'FABRIC',
+        status: 'VERIFIED',
+      }),
+      chaincodeError: new FabricChaincodeUnavailableError(
+        'Fabric Gateway secret/config material is missing or unreadable',
+      ),
+    });
+
+    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+      status: 'unavailable',
+      verified: false,
+      mismatchReason:
+        'Fabric Gateway secret/config material is missing or unreadable',
+      fabric: {
+        chaincodeVerificationStatus: 'UNAVAILABLE',
       },
     });
   });
@@ -164,6 +278,13 @@ function serviceWith(input: {
       })
     | null;
   recomputedHash?: string;
+  chaincodeAnchor?: {
+    anchorId: string;
+    entityType: string;
+    entityId: string;
+    canonicalHash: string;
+  };
+  chaincodeError?: Error;
 }) {
   const record = input.record ?? hashRecord();
   const findUnique = jest.fn().mockResolvedValue(record);
@@ -175,6 +296,30 @@ function serviceWith(input: {
     canonicalText: record.canonicalText,
     hashAlgorithm: 'SHA-256',
   });
+  const readAnchor = jest.fn();
+
+  if (input.chaincodeError) {
+    readAnchor.mockRejectedValue(input.chaincodeError);
+  } else if (input.chaincodeAnchor) {
+    readAnchor.mockResolvedValue({
+      anchor: input.chaincodeAnchor,
+      context: {
+        mode: 'fabric-gateway',
+        channelName: 'mepn-audit',
+        chaincodeName: 'audit-anchor',
+        fabricPeerEndpoint: 'peer0.org1.example:7051',
+        gatewayUrl: 'grpcs://fabric-gateway.example:7051',
+        mspId: 'Org1MSP',
+        identity: 'gateway-admin',
+      },
+    });
+  }
+  const fabricChaincode =
+    input.chaincodeAnchor || input.chaincodeError
+      ? {
+          readAnchor,
+        }
+      : undefined;
 
   return new HashRecordsService(
     {
@@ -194,6 +339,7 @@ function serviceWith(input: {
       hashCanonicalJson: jest.fn(),
     } as never,
     {} as never,
+    fabricChaincode as never,
   );
 }
 

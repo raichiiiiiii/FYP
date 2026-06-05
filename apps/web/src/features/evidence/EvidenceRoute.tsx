@@ -108,11 +108,27 @@ type HashVerification = {
 
 type FabricVerification = {
   id: string
+  hashRecordId?: string
   entityType: string
   entityId: string
+  mode?: string
+  status?: string
   verificationStatus: string
   verified: boolean
   reviewerSummary: string
+  localCanonicalHash?: string
+  storedAnchorHash?: string | null
+  onChainAnchorHash?: string | null
+  transactionId?: string | null
+  blockNumber?: string | null
+  channelName?: string | null
+  chaincodeName?: string | null
+  fabricPeerEndpoint?: string | null
+  gatewayUrl?: string | null
+  mspId?: string | null
+  identity?: string | null
+  checkedAt?: string
+  mismatchReason?: string | null
   localHash: {
     algorithm: string
     storedHash: string
@@ -141,6 +157,21 @@ type FabricVerification = {
       lastError?: string | null
       attempts: number
       updatedAt: string
+    } | null
+    gateway?: {
+      mode: string
+      channelName: string
+      chaincodeName: string
+      fabricPeerEndpoint: string
+      gatewayUrl: string
+      mspId: string
+      identity: string
+    } | null
+    onChainAnchor?: {
+      anchorId: string
+      canonicalHash: string
+      entityType: string
+      entityId: string
     } | null
   }
 }
@@ -441,8 +472,11 @@ function FabricVerificationPanel({
   const anchor = result.fabric.anchor
   const outbox = result.fabric.outboxEvent
   const reconciliation = result.fabric.reconciliation
+  const isGatewayMode = result.mode === 'fabric-gateway'
   const chaincodeNote = result.fabric.chaincodeQueryAvailable
-    ? 'Chaincode query path is available for this verification.'
+    ? result.verified
+      ? 'ReadAnchor returned matching on-chain evidence for this hash.'
+      : 'Chaincode query path is available, but this verification is not complete.'
     : 'Direct chaincode query is not available from this API yet; stored metadata alone is not full on-chain proof.'
 
   return (
@@ -450,21 +484,33 @@ function FabricVerificationPanel({
       <div className="section-heading-row">
         <div>
           <h2>Fabric verification result</h2>
-          <p>
-            This panel is API-backed. Mock anchors, pending work, failed
-            attempts, and unavailable Fabric are never displayed as real verified
-            Fabric proof.
-          </p>
+          {isGatewayMode ? (
+            <p>
+              This panel is API-backed. On-chain verification is shown only after
+              the API successfully reads the audit-anchor chaincode and compares
+              local, stored, and on-chain hashes.
+            </p>
+          ) : (
+            <p>
+              This panel is API-backed. Mock anchors, pending work, failed
+              attempts, and unavailable Fabric are never displayed as real
+              verified Fabric proof.
+            </p>
+          )}
         </div>
         <Link to="/integrations">Review integration state</Link>
       </div>
       <div className="details-grid">
         <article>
-          <span>Status</span>
-          <strong>{result.verificationStatus}</strong>
+          <span>Gateway mode</span>
+          <strong>{isGatewayMode ? 'Fabric Gateway' : 'Mock or not configured'}</strong>
         </article>
         <article>
-          <span>Verified</span>
+          <span>Status</span>
+          <strong>{result.status ?? result.verificationStatus}</strong>
+        </article>
+        <article>
+          <span>On-chain verified</span>
           <strong>{result.verified ? 'Yes' : 'No'}</strong>
         </article>
         <article>
@@ -483,6 +529,68 @@ function FabricVerificationPanel({
           <span>Chaincode query</span>
           <strong>{chaincodeNote}</strong>
         </article>
+        <article className="wide">
+          <span>Local canonical hash</span>
+          <strong className="hash-text">
+            {result.localCanonicalHash ?? result.localHash.computedHash}
+          </strong>
+        </article>
+        {result.storedAnchorHash ? (
+          <article className="wide">
+            <span>Stored anchor hash</span>
+            <strong className="hash-text">{result.storedAnchorHash}</strong>
+          </article>
+        ) : null}
+        {result.onChainAnchorHash ? (
+          <article className="wide">
+            <span>On-chain anchor hash</span>
+            <strong className="hash-text">{result.onChainAnchorHash}</strong>
+          </article>
+        ) : null}
+        {result.mismatchReason ? (
+          <article className="wide">
+            <span>Mismatch or unavailable reason</span>
+            <strong>{result.mismatchReason}</strong>
+          </article>
+        ) : null}
+        {isGatewayMode ? (
+          <>
+            <article>
+              <span>Fabric channel</span>
+              <strong>{result.channelName ?? 'Unavailable'}</strong>
+            </article>
+            <article>
+              <span>Fabric chaincode</span>
+              <strong>{result.chaincodeName ?? 'Unavailable'}</strong>
+            </article>
+            <article>
+              <span>MSP ID</span>
+              <strong>{result.mspId ?? 'Unavailable'}</strong>
+            </article>
+            <article>
+              <span>Identity</span>
+              <strong>{result.identity ?? 'Unavailable'}</strong>
+            </article>
+            <article>
+              <span>Gateway endpoint</span>
+              <strong>{result.gatewayUrl ?? 'Unavailable'}</strong>
+            </article>
+            <article>
+              <span>Peer endpoint</span>
+              <strong>{result.fabricPeerEndpoint ?? 'Unavailable'}</strong>
+            </article>
+            <article className="wide">
+              <span>Transaction ID</span>
+              <strong className="hash-text">
+                {result.transactionId ?? 'Unavailable'}
+              </strong>
+            </article>
+            <article>
+              <span>Block number</span>
+              <strong>{result.blockNumber ?? 'Unavailable'}</strong>
+            </article>
+          </>
+        ) : null}
         {anchor ? (
           <>
             <article>

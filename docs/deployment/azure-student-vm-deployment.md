@@ -331,9 +331,9 @@ path, private key path, and submit/commit timeouts. Do not commit Fabric
 identity material. Mount certificate/key files through a private VM path or a
 future secret-management mechanism.
 
-### Fabric Gateway Certificate Mount
+### Fabric Gateway Secret Mount
 
-The production Compose file mounts this repository path:
+For local development, the production Compose file mounts this repository path:
 
 ```text
 deploy/fabric/
@@ -345,38 +345,40 @@ into the API and worker containers as:
 /run/secrets/fabric
 ```
 
-The directory is committed with only a README and `.gitignore`. Runtime
-certificate and key files must be copied onto the VM manually and must never be
-committed.
-
-Example VM setup for Gateway mode:
-
-```bash
-cd /opt/mepn
-mkdir -p deploy/fabric
-chmod 700 deploy/fabric
-
-# Copy these files through SCP, SFTP, or another private channel.
-# Do not create them in Git and do not paste private keys into logs.
-ls -l deploy/fabric
-```
-
-Expected runtime files:
+For deployed Azure VM Gateway mode, the GitHub Actions deployment workflow
+materializes Fabric material directly under:
 
 ```text
-deploy/fabric/client.crt
-deploy/fabric/client.key
-deploy/fabric/ca.crt
+/run/secrets/fabric/
 ```
 
-Recommended `.env.production` values for those mounted files:
+and sets `FABRIC_SECRET_MOUNT=/run/secrets/fabric` through the generated env
+file. Runtime certificate and key files must never be committed or printed in
+logs.
+
+Expected VM runtime files:
+
+```text
+/run/secrets/fabric/
+  identity/
+    cert.pem
+    key.pem
+  tls/
+    ca.crt
+  connection-profile.json
+  env.generated
+```
+
+Recommended generated env values for those mounted files:
 
 ```env
+BLOCKCHAIN_ANCHOR_ADAPTER=fabric
 FABRIC_ENABLED=true
 FABRIC_MODE=gateway
-FABRIC_IDENTITY_CERT_PATH=/run/secrets/fabric/client.crt
-FABRIC_PRIVATE_KEY_PATH=/run/secrets/fabric/client.key
-FABRIC_TLS_CERT_PATH=/run/secrets/fabric/ca.crt
+FABRIC_SECRET_MOUNT=/run/secrets/fabric
+FABRIC_IDENTITY_CERT_PATH=/run/secrets/fabric/identity/cert.pem
+FABRIC_PRIVATE_KEY_PATH=/run/secrets/fabric/identity/key.pem
+FABRIC_TLS_CERT_PATH=/run/secrets/fabric/tls/ca.crt
 ```
 
 Also set:
@@ -391,11 +393,10 @@ FABRIC_GATEWAY_HOST_ALIAS=YOUR_PEER_HOST_ALIAS
 ```
 
 Current limitation: Gateway mode is configuration-guarded and the worker has a
-real Fabric Gateway adapter, but real anchoring is not proven until the local or
-external Fabric network, deployed `audit-anchor` chaincode, MSP identity
-material, TLS material, and Gateway environment variables are present. If
-Gateway mode is misconfigured, Fabric anchor requests must fail/retry instead of
-producing mock success.
+real Fabric Gateway adapter. API-side verification now requires a successful
+`ReadAnchor` chaincode query before reporting `verified=true`. If Gateway mode
+is misconfigured, Fabric anchor requests and verification must fail clearly
+instead of producing mock success.
 
 ### Optional Fabric Gateway Integration Workflow
 
@@ -737,6 +738,15 @@ Required repository secrets:
 AZURE_VM_HOST
 AZURE_VM_USER
 AZURE_VM_SSH_KEY
+FABRIC_CHAINCODE
+FABRIC_CHANNEL
+FABRIC_GATEWAY_HOST_ALIAS
+FABRIC_GATEWAY_URL
+FABRIC_IDENTITY_CERT_PEM
+FABRIC_MSP_ID
+FABRIC_PEER_ENDPOINT
+FABRIC_PRIVATE_KEY_PEM
+FABRIC_TLS_CERT_PEM
 ```
 
 Set them in:
@@ -752,6 +762,15 @@ Secret meaning:
 | `AZURE_VM_HOST` | VM public IP address or DNS name |
 | `AZURE_VM_USER` | SSH username, for example `azureuser` |
 | `AZURE_VM_SSH_KEY` | Private SSH key with access to the VM |
+| `FABRIC_CHAINCODE` | Deployed audit anchor chaincode name |
+| `FABRIC_CHANNEL` | Channel containing the audit anchor chaincode |
+| `FABRIC_GATEWAY_HOST_ALIAS` | TLS host alias for the Gateway connection |
+| `FABRIC_GATEWAY_URL` | Gateway URL used by Fabric Gateway clients |
+| `FABRIC_IDENTITY_CERT_PEM` | Client identity certificate body |
+| `FABRIC_MSP_ID` | MSP ID for the Gateway identity |
+| `FABRIC_PEER_ENDPOINT` | Peer endpoint used by the Gateway client |
+| `FABRIC_PRIVATE_KEY_PEM` | Client private key body |
+| `FABRIC_TLS_CERT_PEM` | Peer/Gateway TLS CA certificate body |
 
 Do not store `.env.production` in GitHub secrets for this workflow. The runtime
 environment file must already exist on the VM at:
@@ -766,9 +785,18 @@ The workflow connects over SSH and runs:
 cd /opt/mepn
 git fetch origin main
 git reset --hard origin/main
-docker compose -f docker-compose.prod.yml --env-file .env.production build
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
-docker compose -f docker-compose.prod.yml --env-file .env.production ps
+bash scripts/deploy/write-fabric-secrets-on-vm.sh
+bash scripts/validate-fabric-secrets.sh /run/secrets/fabric
+docker compose -f docker-compose.prod.yml \
+  --env-file .env.production \
+  --env-file /run/secrets/fabric/env.generated build
+docker compose -f docker-compose.prod.yml \
+  --env-file .env.production \
+  --env-file /run/secrets/fabric/env.generated up -d
+docker compose -f docker-compose.prod.yml \
+  --env-file .env.production \
+  --env-file /run/secrets/fabric/env.generated ps
+APP_BASE_URL=http://localhost bash scripts/smoke/fabric-gateway-smoke.sh
 ```
 
 Trigger options:
@@ -785,9 +813,29 @@ Manual trigger:
 5. Select the branch to deploy.
 6. Confirm the run.
 
-The workflow must not print `.env.production` or any secret values. Review the
-workflow logs after each deployment and confirm only Docker Compose status is
-shown.
+The workflow must not print `.env.production`, PEM values, private keys, or
+generated secret file contents. Review the workflow logs after each deployment
+and confirm only sanitized validation, smoke-test output, and Docker Compose
+status are shown.
+
+To rotate Fabric Gateway material:
+
+1. Update the Fabric-related GitHub repository secrets listed above.
+2. Run the `Deploy to Azure VM` workflow manually.
+3. Confirm `scripts/validate-fabric-secrets.sh` passes in the workflow log.
+4. Confirm `scripts/smoke/fabric-gateway-smoke.sh` reports Gateway mode and no
+   mock verification claim.
+
+To collect reviewer-safe VM evidence after deployment:
+
+```bash
+cd /opt/mepn
+OUTPUT_FILE=docs/evidence/deployment/latest-vm-deployment-evidence.txt \
+  bash scripts/evidence/collect-vm-deployment-evidence.sh
+```
+
+The evidence script redacts PEM blocks, tokens, passwords, and private-key
+markers before writing the output file.
 
 ## 22. Handover Checklist
 
