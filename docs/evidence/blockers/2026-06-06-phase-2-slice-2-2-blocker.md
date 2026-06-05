@@ -40,6 +40,23 @@ POST http://20.244.24.76/api/v1/hash-records
 GET  http://20.244.24.76/api/v1/hash-records/{hashRecordId}/fabric-verification?organizationId={organizationId}&actorUserId={actorUserId}
 ```
 
+Follow-up diagnosis used only public status APIs and sanitized VM inspection:
+
+```powershell
+curl -fsS "http://20.244.24.76/api/v1/integrations/fabric/status"
+curl -fsS "http://20.244.24.76/api/v1/integrations/workers"
+curl -fsS "http://20.244.24.76/api/v1/integrations/outbox?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc"
+curl -fsS "http://20.244.24.76/api/v1/integrations/reconciliation?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc"
+curl -fsS "http://20.244.24.76/api/v1/hash-records/4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3/fabric-verification?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc&actorUserId=61177dbf-0b0a-4edc-91a3-643dd779c5b3"
+```
+
+```bash
+ssh -i ./vm-mepn-fyp-key.pem azureuser@20.244.24.76
+cd /opt/mepn
+docker compose -f docker-compose.prod.yml --env-file .env.production --env-file /run/secrets/fabric/env.generated ps
+bash scripts/validate-fabric-secrets.sh /run/secrets/fabric
+```
+
 Created UAT record identifiers:
 
 ```text
@@ -69,16 +86,65 @@ The Fabric verification endpoint returned:
 }
 ```
 
+The outbox/reconciliation diagnosis showed the actual worker failure:
+
+```text
+outbox status: FAILED
+outbox attempts: 5
+reconciliation status: FABRIC_UNAVAILABLE
+lastError: 14 UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:7051.
+```
+
+Safe VM checks showed:
+
+```text
+docker compose ps: API, frontend, reverse proxy, worker, PostgreSQL, Redis, and MinIO are running.
+worker heartbeat: healthy/idle, processedCount=0, failedCount=5.
+Fabric integration status: gateway mode configured, no missing gateway config.
+Fabric secret validation: passed for /run/secrets/fabric without printing contents.
+worker/API mounted Fabric secret files: present.
+worker Fabric env keys: all required keys are set.
+```
+
+The existing smoke script also revealed a repository script gap after Slice 2.1:
+
+```text
+Hash record Fabric verification:
+curl: (22) The requested URL returned error: 403
+```
+
+Cause: `scripts/smoke/fabric-gateway-smoke.sh` passed `HASH_RECORD_ID` without
+the now-required `organizationId` and `actorUserId` query parameters. This was
+fixed in the repository by adding
+`HASH_RECORD_ORGANIZATION_ID`/`ORGANIZATION_ID` and
+`HASH_RECORD_ACTOR_USER_ID`/`ACTOR_USER_ID` support.
+
 No PEM blocks, private keys, generated env contents, tokens, passwords, or VM
 credentials were printed or committed.
 
 ## Blocker Type
 
-External Fabric runtime.
+External Fabric runtime plus one local smoke-script follow-up.
 
 The repository implementation and deployed Gateway configuration are present,
 but the worker was unable to produce a real Fabric anchor for this hash record.
-The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified proof.
+The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified
+proof. The concrete runtime failure is that the worker attempted to connect to
+`127.0.0.1:7051` from inside the worker container and received
+`ECONNREFUSED`.
+
+Root-cause classification:
+
+```text
+5. Peer endpoint unreachable
+```
+
+The configured Fabric peer endpoint is loopback from the worker container's
+perspective. On the Azure VM this means the worker is trying to reach Fabric
+inside itself, not a reachable Fabric peer/gateway runtime. This should be fixed
+by changing the deployed Fabric endpoint configuration or making a real Fabric
+peer/gateway reachable from the VM/container. Do not replace this with mock
+anchoring.
 
 ## Implemented Work
 
@@ -90,12 +156,20 @@ The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified proof
 - Confirmed the hash-record Fabric verification endpoint enforces actor context.
 - Confirmed the endpoint does not report `verified=true` when Fabric is
   unavailable.
+- Confirmed public outbox/reconciliation status contains the concrete failure:
+  `ECONNREFUSED 127.0.0.1:7051`.
+- Confirmed VM Fabric secret files and required env keys are present without
+  printing secret contents.
+- Fixed `scripts/smoke/fabric-gateway-smoke.sh` so hash-record verification
+  accepts organization and actor context.
 
 ## Remaining Work
 
-- Inspect the deployed worker logs and reconciliation/outbox record for
-  `hashRecordId=4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3`.
-- Confirm the VM can reach the configured Fabric Gateway peer endpoint.
+- Update the deployed Fabric endpoint configuration so the worker does not use
+  loopback (`127.0.0.1:7051`) unless a real Fabric peer/gateway is actually
+  running inside the same worker container.
+- Confirm the VM/container can reach the configured Fabric Gateway peer
+  endpoint.
 - Confirm the mounted cert/key/TLS material matches the peer/channel/chaincode
   runtime.
 - Confirm `audit-anchor` chaincode is deployed and reachable by the configured
@@ -123,16 +197,27 @@ The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified proof
    safe API/database queries. Do not print `.env.production` or Fabric secret
    files.
 
-3. Confirm Gateway network reachability from the worker container to the
-   configured peer endpoint.
+3. Fix the deployed Fabric endpoint configuration. The previous worker attempt
+   failed with `ECONNREFUSED 127.0.0.1:7051`, so `FABRIC_PEER_ENDPOINT` must
+   point to a reachable Fabric peer/gateway from inside the worker container.
 
-4. After resolving the Fabric runtime issue, retry:
+4. If using the smoke script, include actor context:
+
+   ```bash
+   APP_BASE_URL=http://localhost \
+   HASH_RECORD_ID=4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3 \
+   HASH_RECORD_ORGANIZATION_ID=dd36d97b-fded-4047-9550-dcf2528a8efc \
+   HASH_RECORD_ACTOR_USER_ID=61177dbf-0b0a-4edc-91a3-643dd779c5b3 \
+     bash scripts/smoke/fabric-gateway-smoke.sh
+   ```
+
+5. After resolving the Fabric runtime issue, retry:
 
    ```bash
    curl "http://20.244.24.76/api/v1/hash-records/4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3/fabric-verification?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc&actorUserId=61177dbf-0b0a-4edc-91a3-643dd779c5b3"
    ```
 
-5. Continue only if the response contains:
+6. Continue only if the response contains:
 
    ```json
    {
@@ -141,7 +226,7 @@ The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified proof
    }
    ```
 
-6. Run the gated screenshot spec with the live ids:
+7. Run the gated screenshot spec with the live ids:
 
    ```powershell
    $env:FABRIC_GATEWAY_UAT_HASH_RECORD_ID="4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3"
@@ -149,6 +234,32 @@ The API correctly reported `FABRIC_UNAVAILABLE` and did not claim verified proof
    $env:FABRIC_GATEWAY_UAT_USER_ID="61177dbf-0b0a-4edc-91a3-643dd779c5b3"
    corepack pnpm test:e2e -- tests/e2e/15-fabric-gateway-uat-proof.spec.ts
    ```
+
+## Validation After Follow-Up Diagnosis
+
+```text
+bash -n scripts/smoke/fabric-gateway-smoke.sh: passed
+corepack pnpm lint: passed
+corepack pnpm typecheck: passed
+git diff --check: passed
+corepack pnpm test:unit: passed
+corepack pnpm build: passed
+patched public smoke script with organization/actor context: passed and reproduced `status=unavailable`
+corepack pnpm test:integration: failed
+```
+
+The integration failure reproduced when run by itself. It is not caused by the
+smoke-script/docs change in this blocker follow-up. The failing API integration
+tests are:
+
+```text
+test/integration/finance.integration.spec.ts: expected opportunity creation 201, got 400
+test/integration/graph.integration.spec.ts: expected opportunity creation 201, got 400
+```
+
+Those failures should be handled separately from the deployed Fabric Gateway
+runtime blocker. They occur before the smoke script or live hash-record
+verification path is involved.
 
 ## Whether Code Was Committed
 
