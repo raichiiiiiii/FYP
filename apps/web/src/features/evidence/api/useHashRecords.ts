@@ -31,6 +31,15 @@ export function useHashRecords(session: AppSession) {
     [mutate],
   )
 
+  const verifyFabricAnchor = useCallback(
+    <T>(id: string) =>
+      mutate<T>({
+        path: endpoints.hashRecords.fabricVerification(id),
+        method: 'GET',
+      }),
+    [mutate],
+  )
+
   const getHashRecord = useCallback(
     <T>(id: string) =>
       fetchQuery<T>(
@@ -40,5 +49,10 @@ export function useHashRecords(session: AppSession) {
     [fetchQuery],
   )
 
-  return { createHashRecord, getHashRecord, verifyHashRecord }
+  return {
+    createHashRecord,
+    getHashRecord,
+    verifyHashRecord,
+    verifyFabricAnchor,
+  }
 }

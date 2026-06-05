@@ -158,6 +158,8 @@ export const endpoints = {
     create: '/hash-records',
     detail: (id: string) => `/hash-records/${id}`,
     verify: (id: string) => `/hash-records/${id}/verify`,
+    fabricVerification: (id: string) =>
+      `/hash-records/${id}/fabric-verification`,
   },
   opportunities: {
     list: (organizationId?: string | null) =>

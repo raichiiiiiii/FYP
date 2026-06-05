@@ -19,9 +19,9 @@ package to the UAT checklist and defect log.
 | Seed output file | |
 | Organization ID | |
 | User email | |
-| Data source label | API-backed seeded data / frontend fixture / mock adapter / not implemented |
+| Data source label | API-backed seeded data / frontend fixture / mock adapter / stored metadata fixture / not implemented |
 | Fabric mode | mock / gateway / unavailable |
-| Fabric evidence source | mock adapter / outbox pending / failed outbox / real Gateway transaction / not tested |
+| Fabric evidence source | mock adapter / outbox pending / failed outbox / Fabric unavailable / stored metadata fixture / real Gateway transaction / not tested |
 
 ## Required Attachments
 
@@ -48,9 +48,12 @@ Use these labels consistently:
 | Outbox pending | Anchor request is queued or processing. It is not verified. |
 | Failed outbox | Anchor request failed or is retrying. It is not verified. |
 | Fabric unavailable | Gateway or worker evidence cannot be confirmed. |
-| Real Gateway transaction | Backend shows real transaction/chaincode metadata after the real adapter is implemented. |
+| Stored metadata fixture | Seeded reviewer state shows non-mock anchor metadata, but direct chaincode query is unavailable. Treat as anchored or stored-metadata verified only, not full on-chain proof. |
+| Real Gateway transaction | Backend shows real transaction metadata and, when available, chaincode query evidence from the real Gateway path. |
 
 Do not mark a scenario as verified solely because it shows `ANCHORED_MOCK`.
+Do not treat stored metadata as full Fabric proof unless the evidence also
+includes a successful chaincode hash match.
 
 ## Scenario Evidence Table
 

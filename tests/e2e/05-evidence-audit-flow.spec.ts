@@ -88,7 +88,7 @@ test('SRS-EVID-001 evidence pack, hash verification, and audit timeline work fro
   await expect(
     page.getByRole('heading', { name: 'Hash verification detail' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('button', { name: 'Verify hash' }).click();
   await expect(page.getByText('Hash verification passed')).toBeVisible();
   await expect(page.getByText('FABRIC_MOCK')).toBeVisible();
   await expect(

@@ -73,8 +73,9 @@ Use these labels during UAT evidence capture:
 | API-backed seeded data | Created through `pnpm seed:uat` against the running API and PostgreSQL database | Organization, users, memberships, procurement records, evidence pack, finance application, contract, disbursement, ledger, P/L, closure, integration notification |
 | Frontend fixture/demo data | Typed local fixtures used for tests or illustrative UI states where backend summary DTOs are incomplete | Dashboard KPIs, graph example fixture, audit verification edge states |
 | Mock adapter state | External provider behavior routed through mock adapters/outbox | Fabric, ERP, e-signature, finance API/webhook notification |
-| Real Gateway evidence | Fabric Gateway transaction and chaincode evidence produced by the backend/worker after real adapter implementation | Not available until chaincode, identity material, and worker adapter are implemented |
-| Not implemented | Capability intentionally unavailable or disabled | Report exports, production OIDC, worker heartbeat, saved graph layouts |
+| Stored Fabric metadata fixture | Seeded reviewer state used only to demonstrate hash-detail wording for non-mock anchor metadata | E2E/UAT demonstration of `ANCHORED_NOT_FULLY_VERIFIED` or `VERIFIED` stored metadata where direct chaincode query is unavailable |
+| Real Gateway evidence | Fabric Gateway transaction and chaincode evidence produced by the backend/worker after real Gateway mode processes a hash anchor | Not proven until chaincode, identity material, Gateway environment variables, and the local Fabric test network are available |
+| Not implemented | Capability intentionally unavailable or disabled | Report exports, production OIDC, saved graph layouts |
 
 Do not mark a scenario as production-ready solely because a fixture or mock
 adapter produced a useful visual state.
@@ -124,7 +125,9 @@ Before testing any evidence, audit, integration, graph, or closure scenario:
    configuration is present before treating any anchor as external evidence.
 5. If an outbox event is pending, retrying, failed, or unavailable, record the
    scenario as blocked or partial rather than verified.
-6. Do not treat mock transaction IDs, mock reconciliation records, or fixture
+6. If the hash-detail screen says direct chaincode query is unavailable, record
+   stored metadata as anchored or reviewer-visible only, not full on-chain proof.
+7. Do not treat mock transaction IDs, mock reconciliation records, or fixture
    graph states as real Fabric proof.
 
 ## Exit Criteria

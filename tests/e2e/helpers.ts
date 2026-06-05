@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
 
 export const E2E_API_BASE_URL =
@@ -8,6 +9,14 @@ export const E2E_DATABASE_URL =
   'postgresql://mepn:mepn@localhost:5432/mepn_e2e';
 
 type JsonRecord = Record<string, unknown>;
+
+export type FabricEvidenceState =
+  | 'mock'
+  | 'pending'
+  | 'failed'
+  | 'unavailable'
+  | 'anchored'
+  | 'verified';
 
 export type E2ESession = {
   organizationId: string;
@@ -326,6 +335,130 @@ export async function createEvidencePackViaApi(
   });
 }
 
+export async function seedHashRecordFabricState(
+  request: APIRequestContext,
+  session: E2ESession,
+  state: FabricEvidenceState,
+) {
+  const suffix = uniqueSuffix();
+  const entityId = `fabric-state-${state}-${suffix}`;
+  const hashRecord = await apiPost<
+    JsonRecord & {
+      id: string;
+      canonicalHash: string;
+      entityType: string;
+      entityId: string;
+    }
+  >(request, '/hash-records', {
+    organizationId: session.organizationId,
+    actorUserId: session.actorUserId,
+    entityType: 'PurchaseOrder',
+    entityId,
+    canonicalPayload: {
+      entityId,
+      entityType: 'PurchaseOrder',
+      scenario: 'fabric-evidence-state-e2e',
+      state,
+    },
+  });
+
+  const client = new Client({ connectionString: E2E_DATABASE_URL });
+
+  await client.connect();
+
+  try {
+    if (state === 'mock') {
+      await insertAuditAnchor(client, hashRecord, session, {
+        anchorType: 'FABRIC_MOCK',
+        status: 'ANCHORED_MOCK',
+        metadata: {
+          fixture: true,
+          note: 'E2E mock adapter evidence. Not real Fabric proof.',
+        },
+      });
+    }
+
+    if (state === 'failed') {
+      await insertAuditAnchor(client, hashRecord, session, {
+        anchorType: 'FABRIC',
+        status: 'FAILED',
+        metadata: {
+          fixture: true,
+          error: 'E2E seeded Fabric failure',
+        },
+      });
+    }
+
+    if (state === 'unavailable') {
+      const outboxId = await latestHashOutboxId(client, hashRecord, session);
+
+      await client.query(
+        `update "OutboxEvent"
+         set "status" = 'PENDING',
+             "attempts" = 1,
+             "lastError" = '14 UNAVAILABLE: seeded E2E Fabric outage',
+             "updatedAt" = now()
+         where "id" = $1`,
+        [outboxId],
+      );
+      await client.query(
+        `insert into "IntegrationReconciliationRecord" (
+           "id",
+           "organizationId",
+           "outboxEventId",
+           "integrationType",
+           "aggregateType",
+           "aggregateId",
+           "externalReference",
+           "status",
+           "requestPayload",
+           "responsePayload",
+           "lastError",
+           "attempts"
+         ) values ($1, $2, $3, 'FABRIC', $4, $5, null, 'FABRIC_UNAVAILABLE',
+           $6::jsonb, null, '14 UNAVAILABLE: seeded E2E Fabric outage', 1)`,
+        [
+          randomUUID(),
+          session.organizationId,
+          outboxId,
+          hashRecord.entityType,
+          hashRecord.entityId,
+          JSON.stringify({
+            canonicalHash: hashRecord.canonicalHash,
+            fixture: true,
+          }),
+        ],
+      );
+    }
+
+    if (state === 'anchored' || state === 'verified') {
+      await insertAuditAnchor(client, hashRecord, session, {
+        anchorType: 'FABRIC',
+        status: state === 'verified' ? 'VERIFIED' : 'ANCHORED',
+        fabricTransactionId: `real-tx-seeded-${suffix}`,
+        fabricBlockNumber: 42,
+        fabricChannel: 'mepn-audit',
+        fabricChaincode: 'audit-anchor',
+        fabricCommitStatus: 'VALID',
+        fabricEndorsementStatus: 'ENDORSED',
+        fabricVerifiedAt:
+          state === 'verified' ? '2026-06-05T00:00:00.000Z' : null,
+        metadata: {
+          fixture: true,
+          note:
+            state === 'verified'
+              ? 'Seeded stored metadata state; not live chaincode proof.'
+              : 'Seeded anchored metadata state; chaincode query not available.',
+        },
+      });
+    }
+  } finally {
+    await client.end();
+  }
+
+  return hashRecord;
+}
+
 export async function createApprovedFinanceApplicationViaApi(
   request: APIRequestContext,
 ) {
@@ -414,4 +547,84 @@ async function parseApiResponse<T>(
 
 function quoteIdentifier(identifier: string) {
   return `"${identifier.replace(/"/g, '""')}"`;
+}
+
+async function latestHashOutboxId(
+  client: Client,
+  hashRecord: { entityType: string; entityId: string },
+  session: E2ESession,
+) {
+  const result = await client.query<{ id: string }>(
+    `select "id"
+     from "OutboxEvent"
+     where "organizationId" = $1
+       and "eventType" = 'FABRIC_ANCHOR_REQUESTED'
+       and "aggregateType" = $2
+       and "aggregateId" = $3
+     order by "createdAt" desc
+     limit 1`,
+    [session.organizationId, hashRecord.entityType, hashRecord.entityId],
+  );
+
+  const row = result.rows[0];
+
+  if (!row) {
+    throw new Error('Seeded hash record did not create an outbox event');
+  }
+
+  return row.id;
+}
+
+async function insertAuditAnchor(
+  client: Client,
+  hashRecord: {
+    canonicalHash: string;
+  },
+  session: E2ESession,
+  input: {
+    anchorType: string;
+    status: string;
+    metadata?: JsonRecord;
+    fabricTransactionId?: string | null;
+    fabricBlockNumber?: number | null;
+    fabricChannel?: string | null;
+    fabricChaincode?: string | null;
+    fabricCommitStatus?: string | null;
+    fabricEndorsementStatus?: string | null;
+    fabricVerifiedAt?: string | null;
+  },
+) {
+  await client.query(
+    `insert into "AuditAnchor" (
+       "id",
+       "organizationId",
+       "anchorType",
+       "status",
+       "rootHash",
+       "metadata",
+       "anchoredAt",
+       "fabricTransactionId",
+       "fabricBlockNumber",
+       "fabricChannel",
+       "fabricChaincode",
+       "fabricCommitStatus",
+       "fabricEndorsementStatus",
+       "fabricVerifiedAt"
+     ) values ($1, $2, $3, $4, $5, $6::jsonb, now(), $7, $8, $9, $10, $11, $12, $13)`,
+    [
+      randomUUID(),
+      session.organizationId,
+      input.anchorType,
+      input.status,
+      hashRecord.canonicalHash,
+      JSON.stringify(input.metadata ?? { fixture: true }),
+      input.fabricTransactionId ?? null,
+      input.fabricBlockNumber ?? null,
+      input.fabricChannel ?? null,
+      input.fabricChaincode ?? null,
+      input.fabricCommitStatus ?? null,
+      input.fabricEndorsementStatus ?? null,
+      input.fabricVerifiedAt ?? null,
+    ],
+  );
 }

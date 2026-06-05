@@ -16,7 +16,7 @@ for each scenario and attach screenshots where indicated.
 | User email used for dev login | |
 | Data source observed | API-backed seeded data / frontend fixture / mock adapter / not implemented |
 | Fabric mode observed | mock / gateway / unavailable |
-| Fabric evidence source | mock adapter / outbox pending / real Gateway transaction / not tested |
+| Fabric evidence source | mock adapter / outbox pending / failed anchor / Fabric unavailable / stored metadata fixture / real Gateway transaction / not tested |
 
 ## Pre-UAT Preparation
 
@@ -86,7 +86,7 @@ for each scenario and attach screenshots where indicated.
 | UAT-AUD-04 | Verify hash record | Hash verification result is understandable | | Screenshot |
 | UAT-AUD-05 | Review closure pack | Closure pack is visible and linked to audit/evidence | | Screenshot |
 | UAT-AUD-06 | Open integrations | Auditor can inspect outbox/reconciliation but cannot request actions; mock adapter status is labelled honestly | | Screenshot |
-| UAT-AUD-07 | Confirm Fabric evidence boundary | Auditor can distinguish mock adapter, pending outbox, failed anchor, unavailable Fabric, and real Gateway evidence where available | | Screenshot/notes |
+| UAT-AUD-07 | Confirm Fabric evidence boundary | Auditor can distinguish mock adapter, pending outbox, failed anchor, unavailable Fabric, anchored-not-fully-verified stored metadata, stored-metadata verified state, and real Gateway evidence where available | | Screenshot/notes |
 
 ## Reports And Operations Review
 | ID | Scenario | Expected Result | Status | Evidence |
@@ -115,5 +115,7 @@ Record any screen where the visible data is not directly created by
 - graph example fixture states used in tests or fallback demos
 - audit verification edge states used to demonstrate pending/failed/unavailable
   anchor behavior
+- stored Fabric metadata fixture states used to demonstrate reviewer wording when
+  direct chaincode query is unavailable
 - mock Fabric, ERP, e-signature, finance API, and webhook adapter states
 - disabled report exports

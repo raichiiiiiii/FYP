@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   createApprovedFinanceApplicationViaApi,
   createUserSessionWithRole,
@@ -26,7 +26,7 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await expect(
     page.getByRole('heading', { name: 'Project network canvas' }),
   ).toBeVisible();
-  await page.getByLabel('Project').selectOption(String(fixture.project.id));
+  await selectGraphProject(page, String(fixture.project.id));
   await expect(
     page.getByRole('link', { name: new RegExp(String(fixture.project.name)) }),
   ).toBeVisible();
@@ -45,7 +45,7 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
 
   await setSession(page, procurementOfficer);
   await page.goto('/graph/projects');
-  await page.getByLabel('Project').selectOption(String(fixture.project.id));
+  await selectGraphProject(page, String(fixture.project.id));
   await expect(
     page.locator('.graph-summary article').filter({ hasText: 'Finance layer' }),
   ).toContainText('Hidden');
@@ -56,3 +56,11 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
     }),
   ).toHaveCount(0);
 });
+
+async function selectGraphProject(page: Page, projectId: string) {
+  await page
+    .locator('.graph-toolbar label')
+    .filter({ hasText: 'Project' })
+    .locator('select')
+    .selectOption(projectId);
+}

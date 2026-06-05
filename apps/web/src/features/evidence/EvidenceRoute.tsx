@@ -106,6 +106,45 @@ type HashVerification = {
   anchorStatus?: AnchorStatus
 }
 
+type FabricVerification = {
+  id: string
+  entityType: string
+  entityId: string
+  verificationStatus: string
+  verified: boolean
+  reviewerSummary: string
+  localHash: {
+    algorithm: string
+    storedHash: string
+    computedHash: string
+    match: boolean
+    source: string
+  }
+  fabric: {
+    chaincodeQueryAvailable: boolean
+    chaincodeHashMatch: boolean | null
+    chaincodeVerificationStatus: string
+    anchor?: AnchorStatus | null
+    outboxEvent?: {
+      id: string
+      status: string
+      attempts: number
+      lastError?: string | null
+      idempotencyKey?: string | null
+      processedAt?: string | null
+      createdAt: string
+    } | null
+    reconciliation?: {
+      id: string
+      status: string
+      externalReference?: string | null
+      lastError?: string | null
+      attempts: number
+      updatedAt: string
+    } | null
+  }
+}
+
 type AnchorStatus = {
   status: string
   anchorType: string
@@ -114,6 +153,13 @@ type AnchorStatus = {
   requestedAt?: string
   anchoredAt?: string | null
   rootHash?: string
+  fabricTransactionId?: string | null
+  fabricBlockNumber?: number | null
+  fabricChannel?: string | null
+  fabricChaincode?: string | null
+  fabricCommitStatus?: string | null
+  fabricEndorsementStatus?: string | null
+  fabricVerifiedAt?: string | null
 }
 
 type DocumentPreview = {
@@ -304,6 +350,29 @@ function AnchorStatusPanel({ anchorStatus }: { anchorStatus?: AnchorStatus }) {
               <strong className="hash-text">{anchorStatus.rootHash}</strong>
             </article>
           ) : null}
+          {anchorStatus.fabricTransactionId ? (
+            <article className="wide">
+              <span>Fabric transaction</span>
+              <strong className="hash-text">
+                {anchorStatus.fabricTransactionId}
+              </strong>
+            </article>
+          ) : null}
+          {anchorStatus.fabricChannel || anchorStatus.fabricChaincode ? (
+            <article>
+              <span>Fabric channel / chaincode</span>
+              <strong>
+                {anchorStatus.fabricChannel ?? 'Unknown channel'} /{' '}
+                {anchorStatus.fabricChaincode ?? 'Unknown chaincode'}
+              </strong>
+            </article>
+          ) : null}
+          {anchorStatus.fabricCommitStatus ? (
+            <article>
+              <span>Commit status</span>
+              <strong>{anchorStatus.fabricCommitStatus}</strong>
+            </article>
+          ) : null}
           {anchorStatus.requestedAt ? (
             <article>
               <span>Requested</span>
@@ -349,6 +418,123 @@ function anchorReviewerNote(anchorStatus: AnchorStatus) {
   }
 
   return 'Anchor work is pending or not yet verified. Local hash evidence remains available for review.'
+}
+
+function FabricVerificationPanel({
+  result,
+}: {
+  result: FabricVerification | null
+}) {
+  if (!result) {
+    return (
+      <section className="table-section">
+        <h2>Fabric verification result</h2>
+        <EmptyNotice>
+          Run Fabric verification to compare the local canonical hash with stored
+          anchor metadata. This does not query chaincode unless the backend
+          explicitly reports that chaincode query is available.
+        </EmptyNotice>
+      </section>
+    )
+  }
+
+  const anchor = result.fabric.anchor
+  const outbox = result.fabric.outboxEvent
+  const reconciliation = result.fabric.reconciliation
+  const chaincodeNote = result.fabric.chaincodeQueryAvailable
+    ? 'Chaincode query path is available for this verification.'
+    : 'Direct chaincode query is not available from this API yet; stored metadata alone is not full on-chain proof.'
+
+  return (
+    <section className="table-section">
+      <div className="section-heading-row">
+        <div>
+          <h2>Fabric verification result</h2>
+          <p>
+            This panel is API-backed. Mock anchors, pending work, failed
+            attempts, and unavailable Fabric are never displayed as real verified
+            Fabric proof.
+          </p>
+        </div>
+        <Link to="/integrations">Review integration state</Link>
+      </div>
+      <div className="details-grid">
+        <article>
+          <span>Status</span>
+          <strong>{result.verificationStatus}</strong>
+        </article>
+        <article>
+          <span>Verified</span>
+          <strong>{result.verified ? 'Yes' : 'No'}</strong>
+        </article>
+        <article>
+          <span>Local hash match</span>
+          <strong>{result.localHash.match ? 'Matches' : 'Mismatch'}</strong>
+        </article>
+        <article>
+          <span>Hash source</span>
+          <strong>{result.localHash.source}</strong>
+        </article>
+        <article className="wide">
+          <span>Reviewer summary</span>
+          <strong>{result.reviewerSummary}</strong>
+        </article>
+        <article className="wide">
+          <span>Chaincode query</span>
+          <strong>{chaincodeNote}</strong>
+        </article>
+        {anchor ? (
+          <>
+            <article>
+              <span>Anchor type</span>
+              <strong>{anchor.anchorType}</strong>
+            </article>
+            <article>
+              <span>Anchor status</span>
+              <strong>{anchor.status}</strong>
+            </article>
+            {anchor.fabricTransactionId ? (
+              <article className="wide">
+                <span>Fabric transaction</span>
+                <strong className="hash-text">
+                  {anchor.fabricTransactionId}
+                </strong>
+              </article>
+            ) : null}
+            {anchor.fabricChannel || anchor.fabricChaincode ? (
+              <article>
+                <span>Channel / chaincode</span>
+                <strong>
+                  {anchor.fabricChannel ?? 'Unknown channel'} /{' '}
+                  {anchor.fabricChaincode ?? 'Unknown chaincode'}
+                </strong>
+              </article>
+            ) : null}
+          </>
+        ) : null}
+        {outbox ? (
+          <article>
+            <span>Outbox</span>
+            <strong>
+              {outbox.status}, attempts {outbox.attempts}
+            </strong>
+          </article>
+        ) : null}
+        {reconciliation ? (
+          <article>
+            <span>Reconciliation</span>
+            <strong>{reconciliation.status}</strong>
+          </article>
+        ) : null}
+        {outbox?.lastError || reconciliation?.lastError ? (
+          <article className="wide">
+            <span>Last error</span>
+            <strong>{outbox?.lastError ?? reconciliation?.lastError}</strong>
+          </article>
+        ) : null}
+      </div>
+    </section>
+  )
 }
 
 function DocumentsScreen({ session }: { session: AppSession }) {
@@ -1402,9 +1588,12 @@ function HashRecordsScreen({ session }: { session: AppSession }) {
 
 function HashRecordDetailScreen({ session }: { session: AppSession }) {
   const { id = '' } = useParams()
-  const { getHashRecord, verifyHashRecord } = useHashRecords(session)
+  const { getHashRecord, verifyFabricAnchor, verifyHashRecord } =
+    useHashRecords(session)
   const [record, setRecord] = useState<HashRecord | null>(null)
   const [verification, setVerification] = useState<HashVerification | null>(null)
+  const [fabricVerification, setFabricVerification] =
+    useState<FabricVerification | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   const loadRecord = useCallback(
@@ -1441,6 +1630,22 @@ function HashRecordDetailScreen({ session }: { session: AppSession }) {
       setMessage(result.valid ? 'Hash verification passed' : 'Hash changed')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to verify hash')
+    }
+  }
+
+  async function verifyFabric() {
+    setMessage(null)
+
+    try {
+      const result = await verifyFabricAnchor<FabricVerification>(id)
+      setFabricVerification(result)
+      setMessage('Fabric verification state loaded')
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Unable to verify Fabric anchor',
+      )
     }
   }
 
@@ -1482,6 +1687,9 @@ function HashRecordDetailScreen({ session }: { session: AppSession }) {
             <button type="button" onClick={() => void verify()}>
               Verify hash
             </button>
+            <button type="button" onClick={() => void verifyFabric()}>
+              Verify Fabric anchor
+            </button>
             <Link to={entityPathFor(record.entityType, record.entityId) ?? '/audit/search'}>
               Open source record
             </Link>
@@ -1502,6 +1710,7 @@ function HashRecordDetailScreen({ session }: { session: AppSession }) {
             </section>
           ) : null}
           <AnchorStatusPanel anchorStatus={anchorStatus} />
+          <FabricVerificationPanel result={fabricVerification} />
         </>
       ) : (
         <EmptyNotice>Loading hash record...</EmptyNotice>
