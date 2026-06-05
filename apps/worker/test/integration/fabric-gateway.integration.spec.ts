@@ -1,5 +1,6 @@
 import { readFabricEnv } from '../../src/config/fabric-env';
 import {
+  buildFabricAnchorCommand,
   calculateFabricAnchorId,
   deriveFabricIdempotencyKey,
 } from '../../src/integrations/fabric/fabric-anchor-payload';
@@ -14,6 +15,7 @@ const fabricTestEnabled = process.env.FABRIC_TEST_NETWORK_ENABLED === 'true';
 const fabricDescribe = fabricTestEnabled ? describe : describe.skip;
 const canonicalHash =
   '1111111111111111111111111111111111111111111111111111111111111111';
+const timestamp = '2026-06-05T00:00:00.000Z';
 
 fabricDescribe('Integration: real Fabric Gateway anchor path', () => {
   let context: WorkerIntegrationContext | undefined;
@@ -64,7 +66,7 @@ fabricDescribe('Integration: real Fabric Gateway anchor path', () => {
           entityType: 'PurchaseOrder',
           entityId: 'po-fabric-test',
           canonicalHash,
-          timestamp: '2026-06-05T00:00:00.000Z',
+          timestamp,
         },
       },
     });
@@ -118,6 +120,26 @@ fabricDescribe('Integration: real Fabric Gateway anchor path', () => {
       expect(onChainAnchor).toMatchObject({
         anchorId,
         canonicalHash,
+      });
+
+      const duplicateCommand = buildFabricAnchorCommand({
+        organizationId: 'org-fabric-test',
+        entityType: 'PurchaseOrder',
+        entityId: 'po-fabric-test',
+        canonicalHash,
+        timestamp,
+        idempotencyKey,
+      });
+      const duplicateSubmission = await client.submitCreateAnchor(
+        duplicateCommand.chaincodeArgs,
+      );
+      const reconciledAnchor = await client.evaluateReadAnchor(anchorId);
+
+      expect(duplicateSubmission.transactionId).toEqual(expect.any(String));
+      expect(reconciledAnchor).toMatchObject({
+        anchorId,
+        canonicalHash,
+        idempotencyKey,
       });
     } finally {
       client.close();

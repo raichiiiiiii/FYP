@@ -403,7 +403,8 @@ The next executable slices are:
 1. Install Go or expose the existing Go binary on `PATH`.
 2. Run `go test ./...` and `go test -tags fabric ./...` from
    `chaincode/audit-anchor-go`.
-3. Add explicit duplicate/idempotent same-anchor real-network coverage.
+3. Restart local Fabric and rerun the newly added gated duplicate/idempotent
+   same-anchor real-network assertion.
 4. Add direct chaincode query verification to the API only after the safe query
    path is available and tested.
 5. Capture screenshots/UAT evidence for real Gateway verified state.
