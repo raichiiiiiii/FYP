@@ -36,6 +36,15 @@ fabricDescribe('Integration: real Fabric Gateway anchor path', () => {
       throw new Error('Worker integration context was not initialized');
     }
 
+    await context.prisma.organization.create({
+      data: {
+        id: 'org-fabric-test',
+        legalName: 'Fabric Gateway Integration Test Organization',
+        registrationNumber: 'FABRIC-GATEWAY-TEST',
+        deploymentMode: 'standalone_sme',
+      },
+    });
+
     const idempotencyKey = deriveFabricIdempotencyKey({
       organizationId: 'org-fabric-test',
       entityType: 'PurchaseOrder',

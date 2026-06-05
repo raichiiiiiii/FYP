@@ -8,6 +8,8 @@ describe('Integration: mock Fabric anchor adapter', () => {
   let context: WorkerIntegrationContext;
 
   beforeAll(async () => {
+    process.env.FABRIC_ENABLED = 'true';
+    process.env.FABRIC_MODE = 'mock';
     context = await createWorkerIntegrationContext();
   });
 
