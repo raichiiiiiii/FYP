@@ -1,0 +1,238 @@
+# VM Deployment Evidence
+
+Timestamp: 2026-06-05T22:22:29Z
+Branch: main
+Commit: b1610189802b21d71f08630ba26c2d33ce51714c
+
+## Docker Compose ps
+NAME                 IMAGE                COMMAND                  SERVICE         CREATED         STATUS                        PORTS
+mepn_api             mepn-api             "docker-entrypoint.s…"   api             2 minutes ago   Up 2 minutes (healthy)        3000/tcp
+mepn_frontend        mepn-frontend        "/docker-entrypoint.…"   frontend        2 minutes ago   Up 2 minutes (healthy)        80/tcp
+mepn_minio           minio/minio:latest   "/usr/bin/docker-ent…"   minio           2 minutes ago   Up 2 minutes                  9000/tcp
+mepn_postgres        postgres:16-alpine   "docker-entrypoint.s…"   postgres        2 minutes ago   Up 2 minutes (healthy)        5432/tcp
+mepn_redis           redis:7-alpine       "docker-entrypoint.s…"   redis           2 minutes ago   Up 2 minutes (healthy)        6379/tcp
+mepn_reverse_proxy   nginx:alpine         "/docker-entrypoint.…"   reverse-proxy   2 minutes ago   Up About a minute (healthy)   0.0.0.0:80->80/tcp, [::]:80->80/tcp
+mepn_worker          mepn-worker          "docker-entrypoint.s…"   worker          2 minutes ago   Up 2 minutes                  
+
+Section exit code: 0
+
+## Docker Compose logs tail
+mepn_redis  | 1:C 05 Jun 2026 22:20:01.269 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+mepn_redis  | 1:C 05 Jun 2026 22:20:01.271 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+mepn_redis  | 1:C 05 Jun 2026 22:20:01.271 * Redis version=7.4.9, bits=64, commit=00000000, modified=0, pid=1, just started
+mepn_redis  | 1:C 05 Jun 2026 22:20:01.271 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.271 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.271 * monotonic clock: POSIX clock_gettime
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.274 * Running mode=standalone, port=6379.
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.279 * Server initialized
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * Loading RDB produced by version 7.4.9
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * RDB age 227401 seconds
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * RDB memory usage when created 1.00 Mb
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * Done loading RDB, keys loaded: 0, keys expired: 0.
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * DB loaded from disk: 0.039 seconds
+mepn_redis  | 1:M 05 Jun 2026 22:20:01.318 * Ready to accept connections tcp
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/requisitions/:id/reject, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRFQsController {/api/v1/rfqs}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/rfqs, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/rfqs, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/rfqs/:id, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/rfqs/:id/publish, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mQuotationsController {/api/v1/quotations}:[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/quotations, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/quotations, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPurchaseOrdersController {/api/v1/purchase-orders}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchase-orders, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchase-orders, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchase-orders/:id, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/purchase-orders/:id/issue, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReceiptsController {/api/v1/receipts}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/receipts, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInvoicesController {/api/v1/invoices}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProcurementOperationsController {/api/v1/procurement}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/procurement/approvals, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/procurement/approval-rules, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/procurement/approval-rules, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/procurement/approval-rules/:id, PATCH} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/procurement/matching, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDocumentsController {/api/v1/documents}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/upload, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/:id, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/:id/versions, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/:id/versions/upload, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/:id/versions/:versionId/preview, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/documents/:id/versions/:versionId/download, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEvidenceItemsController {/api/v1/evidence-items}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-items, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-items, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEvidencePacksController {/api/v1/evidence-packs}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-packs, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-packs, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-packs/:id, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-packs/:id/export, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-packs/:id/export/download, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHashRecordsController {/api/v1/hash-records}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/hash-records, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/hash-records/:id, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/hash-records/:id/verify, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/hash-records/:id/fabric-verification, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOpportunitiesController {/api/v1/opportunities}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/opportunities, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/opportunities, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/opportunities/:id, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mApplicationsController {/api/v1/applications}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/submit, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/evidence-checklist, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/due-diligence, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/shariah-review, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/approve, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/applications/:id/reject, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEvidenceChecklistsController {/api/v1/evidence-checklists}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/evidence-checklists/:id/complete-item, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mContractsController {/api/v1/contracts}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/contracts, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/contracts, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/contracts/:id/mark-signed, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/contracts/:id/generate-document, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDisbursementsController {/api/v1/disbursements}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/disbursements, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProjectLedgersController {/api/v1/project-ledgers}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/project-ledgers/entries, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/project-ledgers/entries, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProfitLossController {/api/v1/profit-loss}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/profit-loss/statements, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/profit-loss/statements, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mClosuresController {/api/v1/closures}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/closures, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/closures, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mGraphController {/api/v1/graph}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/graph/projects/:projectId, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mErpSyncController {/api/v1/integrations/erp/sync}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/erp/sync, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFabricAnchorController {/api/v1/integrations/fabric/anchors}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/fabric/anchors, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFinanceApiNotificationController {/api/v1/integrations/finance-api/notifications}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/finance-api/notifications, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEsignPackageController {/api/v1/integrations/esign/packages}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/esign/packages, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mWebhooksController {/api/v1/integrations/webhooks}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/webhooks/subscriptions, POST} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/webhooks/subscriptions, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/webhooks/deliveries, POST} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationStatusController {/api/v1/integrations}:[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/outbox, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/outbox/:id, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/reconciliation, GET} route[39m[38;5;3m +1ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/workers, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/integrations/fabric/status, GET} route[39m[38;5;3m +0ms[39m
+mepn_api    | [32m[Nest] 1  - [39m06/05/2026, 10:20:18 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +195ms[39m
+mepn_worker  | [32m[Nest] 1  - [39m06/05/2026, 10:20:24 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+mepn_worker  | [32m[Nest] 1  - [39m06/05/2026, 10:20:24 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +139ms[39m
+mepn_worker  | [32m[Nest] 1  - [39m06/05/2026, 10:20:24 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +2ms[39m
+mepn_worker  | [32m[Nest] 1  - [39m06/05/2026, 10:20:24 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mOutboxWorkerModule dependencies initialized[39m[38;5;3m +2ms[39m
+mepn_frontend  | /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+mepn_frontend  | /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+mepn_frontend  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+mepn_frontend  | 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+mepn_frontend  | 10-listen-on-ipv6-by-default.sh: info: /etc/nginx/conf.d/default.conf differs from the packaged version
+mepn_frontend  | /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+mepn_frontend  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+mepn_frontend  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+mepn_frontend  | /docker-entrypoint.sh: Configuration complete; ready for start up
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: using the "epoll" event method
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: nginx/1.31.1
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: built by gcc 15.2.0 (Alpine 15.2.0) 
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: OS: Linux 6.17.0-1017-azure
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1024:524288
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: start worker processes
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: start worker process 29
+mepn_frontend  | 2026/06/05 22:20:01 [notice] 1#1: start worker process 30
+mepn_frontend  | 127.0.0.1 - - [05/Jun/2026:22:20:31 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "-"
+mepn_frontend  | 172.19.0.8 - - [05/Jun/2026:22:20:53 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/8.5.0" "172.19.0.1"
+mepn_frontend  | 127.0.0.1 - - [05/Jun/2026:22:21:01 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "-"
+mepn_postgres  | 
+mepn_frontend  | 172.19.0.8 - - [05/Jun/2026:22:21:02 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "127.0.0.1"
+mepn_frontend  | 127.0.0.1 - - [05/Jun/2026:22:21:31 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "-"
+mepn_frontend  | 172.19.0.8 - - [05/Jun/2026:22:21:32 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "127.0.0.1"
+mepn_frontend  | 127.0.0.1 - - [05/Jun/2026:22:22:01 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "-"
+mepn_frontend  | 172.19.0.8 - - [05/Jun/2026:22:22:02 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget" "127.0.0.1"
+mepn_postgres  | PostgreSQL Database directory appears to contain a database; Skipping initialization
+mepn_postgres  | 
+mepn_postgres  | 2026-06-05 22:20:01.752 UTC [1] LOG:  starting PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+mepn_postgres  | 2026-06-05 22:20:01.752 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+mepn_postgres  | 2026-06-05 22:20:01.752 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+mepn_postgres  | 2026-06-05 22:20:01.760 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+mepn_postgres  | 2026-06-05 22:20:01.777 UTC [29] LOG:  database system was interrupted; last known up at 2026-06-05 22:12:24 UTC
+mepn_postgres  | 2026-06-05 22:20:02.319 UTC [29] LOG:  database system was not properly shut down; automatic recovery in progress
+mepn_postgres  | 2026-06-05 22:20:02.325 UTC [29] LOG:  redo starts at 0/258D348
+mepn_postgres  | 2026-06-05 22:20:02.328 UTC [29] LOG:  invalid record length at 0/25A4F70: expected at least 24, got 0
+mepn_postgres  | 2026-06-05 22:20:02.328 UTC [29] LOG:  redo done at 0/25A4F48 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+mepn_postgres  | 2026-06-05 22:20:02.336 UTC [27] LOG:  checkpoint starting: end-of-recovery immediate wait
+mepn_postgres  | 2026-06-05 22:20:02.363 UTC [27] LOG:  checkpoint complete: wrote 13 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.008 s, sync=0.008 s, total=0.031 s; sync files=12, longest=0.004 s, average=0.001 s; distance=95 kB, estimate=95 kB; lsn=0/25A4F70, redo lsn=0/25A4F70
+mepn_postgres  | 2026-06-05 22:20:02.370 UTC [1] LOG:  database system is ready to accept connections
+mepn_reverse_proxy  | /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+mepn_reverse_proxy  | /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+mepn_reverse_proxy  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+mepn_reverse_proxy  | 10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+mepn_reverse_proxy  | 10-listen-on-ipv6-by-default.sh: info: Enabled listen on IPv6 in /etc/nginx/conf.d/default.conf
+mepn_reverse_proxy  | /docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+mepn_reverse_proxy  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+mepn_reverse_proxy  | /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+mepn_reverse_proxy  | /docker-entrypoint.sh: Configuration complete; ready for start up
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:32 +0000] "GET /api/v1/health HTTP/1.1" 200 131 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:32 +0000] "GET /api/v1/integrations/fabric/status HTTP/1.1" 200 545 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:53 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:53 +0000] "GET /api/v1/health HTTP/1.1" 200 131 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:53 +0000] "GET /api/v1/ready HTTP/1.1" 404 75 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 172.19.0.1 - - [05/Jun/2026:22:20:53 +0000] "GET /api/v1/integrations/fabric/status HTTP/1.1" 200 545 "-" "curl/8.5.0"
+mepn_reverse_proxy  | 127.0.0.1 - - [05/Jun/2026:22:21:02 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget"
+mepn_reverse_proxy  | 127.0.0.1 - - [05/Jun/2026:22:21:32 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget"
+mepn_reverse_proxy  | 127.0.0.1 - - [05/Jun/2026:22:22:02 +0000] "GET / HTTP/1.1" 200 464 "-" "Wget"
+mepn_minio          | MinIO Object Storage Server
+mepn_minio          | Copyright: 2015-2026 MinIO, Inc.
+mepn_minio          | License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+mepn_minio          | Version: RELEASE.2025-09-07T16-13-09Z (go1.24.6 linux/amd64)
+mepn_minio          | 
+mepn_minio          | API: http://172.19.0.3:9000  http://127.0.0.1:9000 
+mepn_minio          | WebUI: http://172.19.0.3:9001 http://127.0.0.1:9001  
+mepn_minio          | 
+mepn_minio          | Docs: https://docs.min.io
+
+Section exit code: 0
+
+## HTTP home HEAD
+HTTP/1.1 200 OK
+Server: nginx/1.31.1
+Date: Fri, 05 Jun 2026 22:22:29 GMT
+Content-Type: text/html
+Content-Length: 464
+Connection: keep-alive
+Last-Modified: Fri, 05 Jun 2026 14:25:17 GMT
+ETag: "6a22dc4d-1d0"
+Accept-Ranges: bytes
+
+
+Section exit code: 0
+
+## API health
+{"status":"ok","service":"mepn-api","database":"ok","redis":"ok","environment":"production","timestamp":"2026-06-05T22:22:29.419Z"}
+Section exit code: 0
+
+## API readiness
+curl: (22) The requested URL returned error: 404
+
+Section exit code: 22
+
+## Fabric integration status
+{"enabled":true,"mode":"gateway","gatewayConfigured":true,"realGatewayAdapterImplemented":true,"anchorResultSource":"worker-gateway-adapter","missingGatewayConfig":[],"configuredChannel":"configured","configuredChaincode":"configured","configuredMspId":"configured","submitTimeoutMs":30000,"commitTimeoutMs":30000,"securityBoundary":"document hashes and minimal metadata only","message":"Gateway mode is configured for the worker Fabric Gateway adapter. Real anchoring still requires deployed network material and successful worker processing."}
+Section exit code: 0
+
+## Hash record Fabric verification
+HASH_RECORD_ID was not provided; Fabric verification endpoint evidence skipped.
+
+Summary status: passed critical deployment smoke checks.

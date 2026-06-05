@@ -150,3 +150,50 @@ Yes. This blocker note contains only sanitized status, command names, a GitHub
 Actions run id, and a Docker container conflict message. It does not contain
 secret values.
 
+## Resolution
+
+Resolved on 2026-06-06.
+
+Follow-up inspection over SSH showed no remaining `mepn_api` container name
+conflict, and the deployment workflow was re-run successfully:
+
+```bash
+gh workflow run deploy-azure-vm.yml --ref main
+gh run watch 27043095990 --exit-status
+```
+
+Successful workflow run:
+
+```text
+https://github.com/raichiiiiiii/FYP/actions/runs/27043095990
+```
+
+Sanitized VM evidence was collected with:
+
+```bash
+cd /opt/mepn
+OUTPUT_FILE=/tmp/mepn-vm-deployment-evidence.txt \
+  bash scripts/evidence/collect-vm-deployment-evidence.sh
+```
+
+Evidence file committed in the repository:
+
+```text
+docs/evidence/deployment/latest-vm-deployment-evidence.txt
+```
+
+Resolved outcome:
+
+- `docker compose ps` shows API, frontend, reverse proxy, worker, PostgreSQL,
+  Redis, and MinIO running.
+- API, frontend, reverse proxy, PostgreSQL, and Redis health checks are healthy.
+- Public `curl -I http://20.244.24.76/` returns `200 OK`.
+- Public `/api/v1/health` returns `status=ok`, `database=ok`, and `redis=ok`.
+- Public `/api/v1/integrations/fabric/status` reports Gateway mode configured
+  with no missing Gateway config.
+- `/api/v1/ready` is not currently implemented and returned `404`; this was
+  recorded as non-critical evidence, not hidden.
+- Hash-record Fabric verification evidence was skipped because no live
+  Gateway-anchored hash record id was provided for this deployment evidence run.
+- No PEM blocks, private keys, generated env contents, tokens, passwords, or VM
+  credentials were committed.
