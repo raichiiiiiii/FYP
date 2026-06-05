@@ -37,6 +37,7 @@ OUTPUT_FILE=docs/evidence/deployment/latest-vm-deployment-evidence.txt \
 | `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` renders | Passed locally | Confirms API/worker read-only Fabric secret mounts and mock defaults render. |
 | Fabric secret validation script parses | Passed locally | `bash -n` passed for deployment, validation, smoke, and evidence scripts. |
 | Placeholder Fabric secret layout validates without printing contents | Passed locally | `scripts/validate-fabric-secrets.sh` passed against placeholder files under `/tmp`. |
+| VM evidence collection dry-run | Passed locally | `DRY_RUN=true` wrote a sanitized command plan without contacting a VM. |
 | `docker compose ps` shows frontend/API/worker/postgres/redis/minio running | Pending VM run | Requires running the deploy workflow or VM command manually. |
 | Frontend responds to `curl -I /` | Pending VM run | |
 | API health responds at `/api/v1/health` | Pending VM run | |
