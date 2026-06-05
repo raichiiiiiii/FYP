@@ -564,12 +564,21 @@ model AuditAnchor {
   rootHash         String
   metadata         Json?
   anchoredAt       DateTime?
+  fabricTransactionId     String?
+  fabricBlockNumber       Int?
+  fabricChannel           String?
+  fabricChaincode         String?
+  fabricCommitStatus      String?
+  fabricEndorsementStatus String?
+  fabricVerifiedAt        DateTime?
   createdAt        DateTime  @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
   @@index([status])
+  @@index([fabricTransactionId])
+  @@index([fabricChannel, fabricChaincode])
   @@index([createdAt])
 }
 

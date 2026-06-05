@@ -159,6 +159,13 @@ export class HashRecordsService {
         anchorType: anchor.anchorType,
         anchoredAt: anchor.anchoredAt,
         rootHash: anchor.rootHash,
+        fabricTransactionId: anchor.fabricTransactionId,
+        fabricBlockNumber: anchor.fabricBlockNumber,
+        fabricChannel: anchor.fabricChannel,
+        fabricChaincode: anchor.fabricChaincode,
+        fabricCommitStatus: anchor.fabricCommitStatus,
+        fabricEndorsementStatus: anchor.fabricEndorsementStatus,
+        fabricVerifiedAt: anchor.fabricVerifiedAt,
         metadata: anchor.metadata,
       };
     }

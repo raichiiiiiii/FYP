@@ -13,9 +13,9 @@ decisions, or deeper backend implementation.
 |---|---|---|---|
 | 0 | Roadmap baseline and traceability | Complete. Module roadmap, graph feature intake, integration outbox feature intake, and implementation plan exist. | None. |
 | 1 | Fabric Gateway ADR and environment contract | Complete. ADR-014, env contract, API/worker config readers, and config tests exist. | None. |
-| 2 | Fabric chaincode and local test network | Partially complete. Local test-network plan and artifact ignore policy exist. | Blocked by chaincode contract implementation, local Fabric network setup, and Fabric toolchain. |
+| 2 | Fabric chaincode and local test network | Partially complete. Go `audit-anchor` chaincode source, pure unit tests, local test-network plan, and artifact ignore policy exist. | Blocked by local Go/Fabric toolchain execution, Fabric Contract API wrapper validation, and local Fabric network setup/deployment. |
 | 3 | Worker real Fabric Gateway adapter | Partially complete. Gateway mode now blocks mock anchor success. | Real Fabric Gateway SDK adapter remains required. |
-| 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values. | Real anchor metadata, verification metadata, and schema/API updates remain required. |
+| 4 | Fabric metadata API and status model | Partially complete. API exposes Fabric mode/config status without leaking secret values, `AuditAnchor` now has nullable real Gateway metadata fields, worker anchor persistence stores those fields when present, and hash-record anchor status returns typed Fabric metadata. | API tests for every submitted/committed/verified/failed/mock/unavailable state and a real Fabric verification endpoint remain required. |
 | 5 | Evidence, audit, and hash verification workflow | Partially complete from prior audit/evidence work. | Needs real Gateway transaction/chaincode verification once adapter exists. |
 | 6 | Graph UI Fabric anchor overlay | Not complete. | Needs backend read model for anchor/hash nodes and permission-filtered overlay data. |
 | 7 | Integrations and operations Gateway mode UI | Partially complete. Backend status support and frontend Fabric mode/status card exist. | Worker health heartbeat remains required. |
@@ -30,11 +30,11 @@ decisions, or deeper backend implementation.
 
 | ID | Phase | Area | Blocker | Impact | Proposed resolution | Owner | Status |
 |---|---|---|---|---|---|---|---|
-| FG-001 | 2 | Fabric chaincode | No chaincode contract exists for hash-only audit anchors. | Real Fabric anchoring cannot be implemented or tested. | Implement and test an `AuditAnchor` chaincode contract that stores hashes, entity references, submitter metadata, and timestamps only. | Integrations | Open |
+| FG-001 | 2 | Fabric chaincode | Go `audit-anchor` chaincode source and pure unit tests now exist under `chaincode/audit-anchor-go/`. Local execution was not possible because the Go toolchain is not installed in this Windows environment. | Real Fabric anchoring still cannot be proven until chaincode tests and deployment run against a Fabric network. | Install Go and Fabric tooling, run `go test ./...`, validate the `fabric` build-tag wrapper, then deploy the contract to the local Fabric test network. | Integrations | Partial |
 | FG-002 | 2 | Fabric local network | No local Fabric test network or deployment script is committed. | Gateway adapter and integration tests have no target. | Add local Fabric test-network instructions/scripts with generated test certificates outside committed secrets. | Integrations / Operations | Open |
 | FG-003 | 3 | Worker adapter | Real Fabric Gateway SDK adapter is not implemented. | Gateway mode cannot submit anchors; worker correctly refuses mock success in gateway mode. | Add Fabric SDK dependency and implement adapter behind the current outbox dispatch boundary. | Integrations | Open |
-| FG-004 | 3 | Idempotency | Gateway submit idempotency behavior is not designed. | Retried outbox events could duplicate chaincode writes if adapter is added naively. | Use outbox idempotency keys and deterministic anchor IDs in chaincode and worker adapter. | Integrations | Open |
-| FG-005 | 4 | Database metadata | Current anchor schema is sufficient for mock anchors but not fully modeled for real submit/commit/verify lifecycle. | API cannot show complete real Gateway evidence. | Add migration-backed fields or metadata shaping for transaction ID, block number, commit status, chaincode name, channel, and verification timestamp. | Evidence / Audit | Open |
+| FG-004 | 3 | Idempotency | Deterministic anchor ID/idempotency behavior is implemented in the chaincode core. Worker Gateway retry/reconciliation logic still depends on the real adapter. | Chaincode duplicate handling is designed in code, but outbox retries cannot be proven against real Fabric yet. | Reuse the existing outbox idempotency key in the real worker Gateway adapter and add duplicate/retry tests with a mocked SDK and local test network. | Integrations | Partial |
+| FG-005 | 4 | Database metadata | `AuditAnchor` now has migration-backed nullable fields for transaction ID, block number, channel, chaincode, commit status, endorsement status, and verification timestamp. Hash-record anchor status exposes these fields. | API can represent real Gateway metadata when a real adapter supplies it. | Keep closed for schema/API shape; continue state-specific tests and verification endpoint work under Phase 4/5 tasks. | Evidence / Audit | Closed |
 | FG-006 | 5 | Hash canonicalization docs | Reviewer-facing hash explanation lacked canonicalization detail from backend. | Verification UX was underspecified for auditors. | Added canonical hash verification guide based on `AuditHashService` behavior. | Evidence / Audit | Closed |
 | FG-007 | 6 | Graph anchor overlay data | Backend graph read model does not expose anchor/hash overlay nodes. | Graph cannot visualize Fabric/evidence relationships. | Extend graph read model with permission-filtered anchor/hash nodes and edges. | Graph / Evidence | Open |
 | FG-008 | 7 | Worker health | Worker has no health heartbeat/status endpoint. | Operations UI cannot distinguish idle, stopped, degraded, and unavailable worker states. | Add worker heartbeat table or API health endpoint and surface it in operations UI. | Operations | Open |
@@ -49,9 +49,11 @@ decisions, or deeper backend implementation.
 
 ### Phase 2 - Fabric Chaincode And Test Network
 
-- [ ] Define chaincode package location and language.
-- [ ] Implement hash-only audit anchor chaincode.
-- [ ] Add chaincode unit tests.
+- [x] Define chaincode package location and language.
+- [x] Implement hash-only audit anchor chaincode.
+- [x] Add chaincode unit tests.
+- [ ] Run chaincode unit tests after Go is installed locally or in CI.
+- [ ] Validate Fabric Contract API wrapper with the `fabric` build tag after Fabric dependency/toolchain setup.
 - [x] Add local Fabric test network instructions.
 - [x] Ensure generated certs, keys, ledgers, and channel artifacts are ignored.
 
@@ -67,9 +69,9 @@ decisions, or deeper backend implementation.
 ### Phase 4 - API Status And Metadata
 
 - [x] Add API Fabric mode/configuration status summary.
-- [ ] Add schema/API shape for real Gateway transaction metadata.
+- [x] Add schema/API shape for real Gateway transaction metadata.
 - [ ] Add API tests for submitted, committed, verified, failed, mock, and unavailable states.
-- [ ] Confirm no secret path, endpoint, private key, or certificate body leaks through API responses.
+- [x] Confirm no secret path, endpoint, private key, or certificate body leaks through API responses.
 
 ### Phase 5 - Evidence And Audit Verification
 
@@ -139,18 +141,21 @@ decisions, or deeper backend implementation.
 
 ## Verification Evidence
 
-Last local verification date: 2026-06-04.
+Last local verification date: 2026-06-05.
 
 | Command | Result | Notes |
 |---|---|---|
 | `corepack pnpm --dir apps/worker test -- mock-adapters fabric-env` | Passed | Covers worker Fabric env validation and gateway-mode mock-anchor guard. |
 | `corepack pnpm --dir apps/api test -- fabric-env integration-status` | Passed | Covers API Fabric env validation and status redaction. |
+| `go version` | Blocked | Go is not installed locally, so `chaincode/audit-anchor-go` tests could not be executed in this environment. |
+| `corepack pnpm prisma:generate` | Passed | Regenerated Prisma client after adding `AuditAnchor` Fabric metadata fields. |
 | `corepack pnpm lint` | Passed | Repository lint completed. |
 | `corepack pnpm typecheck` | Passed | Web TypeScript project references completed. |
 | `corepack pnpm test` | Passed | Web, API, worker, config, and shared package tests completed. |
 | `corepack pnpm build` | Passed | Web, API, and worker production builds completed. |
 | `docker compose -f docker-compose.prod.yml --env-file .env.production.example config` | Passed | Production compose config renders with mock Fabric defaults and the API/worker read-only Fabric secret mount. |
-| `corepack pnpm test:e2e` | Passed | 17/17 Playwright tests passed against clean E2E database. |
+| `corepack pnpm test:e2e` | Passed | 17/17 Playwright tests passed against clean E2E database, including migration `20260605000000_audit_anchor_fabric_metadata`. |
+| `git diff --check` | Passed | No whitespace errors in the current implementation diff. |
 | `corepack pnpm --dir apps/web test -- --run integrations` | Passed | Covers Fabric runtime status mapping and integration status cards. |
 | `corepack pnpm exec playwright test tests/e2e/13-integrations-outbox-control.spec.ts` | Passed | Confirms the Fabric runtime mode card appears on the Integrations route. |
 

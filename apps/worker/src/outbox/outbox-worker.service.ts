@@ -148,7 +148,7 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (event.eventType === 'FABRIC_ANCHOR_REQUESTED') {
-      await this.storeMockFabricAnchor(event, result.responsePayload);
+      await this.storeFabricAnchor(event, result.responsePayload);
     }
 
     if (event.eventType === 'WEBHOOK_DELIVERY_REQUESTED') {
@@ -156,18 +156,39 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async storeMockFabricAnchor(
+  private async storeFabricAnchor(
     event: OutboxEvent,
     payload: Prisma.InputJsonObject,
   ) {
+    const status = this.stringValue(payload.status, 'ANCHORED_MOCK');
+    const isMock = status === 'ANCHORED_MOCK';
+    const anchoredAt = ['ANCHORED_MOCK', 'ANCHORED', 'VERIFIED'].includes(
+      status,
+    )
+      ? new Date()
+      : null;
+
     await this.prisma.auditAnchor.create({
       data: {
         organizationId: event.organizationId,
-        anchorType: 'FABRIC_MOCK',
-        status: 'ANCHORED_MOCK',
+        anchorType: isMock ? 'FABRIC_MOCK' : 'FABRIC',
+        status,
         rootHash: this.stringValue(payload.canonicalHash, 'mock'),
         metadata: payload,
-        anchoredAt: new Date(),
+        anchoredAt,
+        fabricTransactionId: this.nullableStringValue(
+          payload.fabricTransactionId,
+        ),
+        fabricBlockNumber: this.numberValue(payload.fabricBlockNumber),
+        fabricChannel: this.nullableStringValue(payload.fabricChannel),
+        fabricChaincode: this.nullableStringValue(payload.fabricChaincode),
+        fabricCommitStatus: this.nullableStringValue(
+          payload.fabricCommitStatus,
+        ),
+        fabricEndorsementStatus: this.nullableStringValue(
+          payload.fabricEndorsementStatus,
+        ),
+        fabricVerifiedAt: status === 'VERIFIED' ? new Date() : null,
       },
     });
   }
@@ -235,5 +256,13 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private stringValue(value: unknown, fallback: string) {
     return typeof value === 'string' && value.length ? value : fallback;
+  }
+
+  private nullableStringValue(value: unknown) {
+    return typeof value === 'string' && value.length ? value : null;
+  }
+
+  private numberValue(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 }
