@@ -146,6 +146,34 @@ by changing the deployed Fabric endpoint configuration or making a real Fabric
 peer/gateway reachable from the VM/container. Do not replace this with mock
 anchoring.
 
+## Resolution Decision
+
+Chosen resolution path: use a VM-local Hyperledger Fabric test network for
+FYP/UAT proof unless an external reachable Fabric peer endpoint and matching
+credentials are explicitly provided.
+
+The VM-local runtime is a reviewer proof environment, not a regulated
+production consortium topology. It must still use real Fabric Gateway
+submission, real `audit-anchor` chaincode, and API-side chaincode `ReadAnchor`
+verification before screenshots or evidence can claim on-chain verification.
+
+The dedicated runbook is:
+
+```text
+docs/deployment/vm-local-fabric-runtime.md
+```
+
+Operational constraints for the resume:
+
+- do not use `127.0.0.1:7051` from the worker container unless a real Fabric
+  peer is running inside that same container;
+- connect API/worker containers to a Docker-reachable Fabric peer alias;
+- regenerate `/run/secrets/fabric` from the VM-local Fabric network so the
+  mounted app identity, TLS CA, MSP, channel, and chaincode match the runtime;
+- do not continue to the gated UAT screenshot spec until
+  `/fabric-verification` returns `verified=true` from a successful
+  chaincode read.
+
 ## Implemented Work
 
 - Pushed the Slice 2.1 readiness commit to `origin/main`.
