@@ -4,11 +4,13 @@ import { expect, test } from '@playwright/test';
 import { setSession, type E2ESession } from './helpers';
 
 const hashRecordId = process.env.FABRIC_GATEWAY_UAT_HASH_RECORD_ID;
+const organizationId = process.env.FABRIC_GATEWAY_UAT_ORGANIZATION_ID;
+const actorUserId = process.env.FABRIC_GATEWAY_UAT_USER_ID;
 const screenshotDir = path.resolve('docs/evidence/uat');
 
 test.skip(
-  !hashRecordId,
-  'Set FABRIC_GATEWAY_UAT_HASH_RECORD_ID to capture real Fabric Gateway proof screenshots.',
+  !hashRecordId || !organizationId || !actorUserId,
+  'Set FABRIC_GATEWAY_UAT_HASH_RECORD_ID, FABRIC_GATEWAY_UAT_ORGANIZATION_ID, and FABRIC_GATEWAY_UAT_USER_ID to capture real Fabric Gateway proof screenshots.',
 );
 
 test('UAT-FABRIC-GATEWAY hash record proof panel shows real on-chain verification', async ({
@@ -52,12 +54,11 @@ test('UAT-FABRIC-GATEWAY hash record proof panel shows real on-chain verificatio
 
 function uatSession(): E2ESession {
   return {
-    organizationId:
-      process.env.FABRIC_GATEWAY_UAT_ORGANIZATION_ID || 'org-fabric-uat',
+    organizationId: organizationId!,
     legalName:
       process.env.FABRIC_GATEWAY_UAT_ORGANIZATION_NAME ||
       'Fabric Gateway UAT Organization',
-    actorUserId: process.env.FABRIC_GATEWAY_UAT_USER_ID || 'user-fabric-uat',
+    actorUserId: actorUserId!,
     email:
       process.env.FABRIC_GATEWAY_UAT_USER_EMAIL || 'auditor.fabric.uat@mepn.local',
     displayName: 'Fabric Gateway UAT Auditor',

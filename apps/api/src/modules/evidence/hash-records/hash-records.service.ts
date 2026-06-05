@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type {
   AuditAnchor,
   IntegrationReconciliationRecord,
@@ -55,6 +59,20 @@ type DirectFabricStatus =
 type FabricVerificationBaseResponse = Record<string, unknown> & {
   fabric: Record<string, unknown>;
 };
+
+type FabricVerificationActorInput = {
+  organizationId?: string;
+  actorUserId?: string;
+};
+
+const auditReadRoleCodes = new Set([
+  'ORG_ADMIN',
+  'PROCUREMENT_OFFICER',
+  'APPROVER',
+  'FINANCIER_USER',
+  'SHARIAH_REVIEWER',
+  'AUDITOR',
+]);
 
 @Injectable()
 export class HashRecordsService {
@@ -167,7 +185,7 @@ export class HashRecordsService {
     };
   }
 
-  async fabricVerification(id: string) {
+  async fabricVerification(id: string, actor?: FabricVerificationActorInput) {
     const record = await this.prisma.hashRecord.findUnique({
       where: { id },
     });
@@ -175,6 +193,8 @@ export class HashRecordsService {
     if (!record) {
       throw new NotFoundException('Hash record not found');
     }
+
+    await this.assertCanReadFabricVerification(record, actor);
 
     const [recomputed, anchor, outboxEvent] = await Promise.all([
       this.recompute(record),
@@ -349,6 +369,59 @@ export class HashRecordsService {
           chaincodeVerificationStatus: 'UNAVAILABLE',
         },
       };
+    }
+  }
+
+  private async assertCanReadFabricVerification(
+    record: { organizationId: string | null },
+    actor?: FabricVerificationActorInput,
+  ) {
+    const actorUserId = optionalText(actor?.actorUserId);
+    const organizationId =
+      optionalText(actor?.organizationId) || record.organizationId;
+
+    if (!actorUserId || !organizationId) {
+      throw new ForbiddenException(
+        'Fabric verification requires an active organization actor',
+      );
+    }
+
+    if (record.organizationId && record.organizationId !== organizationId) {
+      throw new ForbiddenException(
+        'Hash record is outside the selected organization',
+      );
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId: actorUserId,
+        organizationId,
+        status: 'active',
+      },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+
+    const roleCode = membership?.role.code;
+    const hasStoredAuditPermission = Boolean(
+      membership?.role.permissions.some((permission) =>
+        ['audit:read', 'AUDIT_READ'].includes(permission.code),
+      ),
+    );
+
+    if (
+      !membership ||
+      !roleCode ||
+      (!auditReadRoleCodes.has(roleCode) && !hasStoredAuditPermission)
+    ) {
+      throw new ForbiddenException(
+        'Fabric verification requires audit read permission',
+      );
     }
   }
 

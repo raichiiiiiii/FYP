@@ -124,6 +124,20 @@ describe('Integration: evidence', () => {
         .expect(200)
     ).body as { valid: boolean; storedHash: string };
 
+    await request(context.app.getHttpServer())
+      .get(`/api/v1/hash-records/${hashRecord.id}/fabric-verification`)
+      .expect(403);
+
+    const fabricVerification = (
+      await request(context.app.getHttpServer())
+        .get(`/api/v1/hash-records/${hashRecord.id}/fabric-verification`)
+        .query({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+        })
+        .expect(200)
+    ).body as { status: string; verified: boolean };
+
     expect(secondVersion.versionNumber).toBe(2);
     expect(uploadedVersion.storageUri).toContain('s3://');
     expect(preview.previewText).toContain(fixture.purchaseOrder.poNumber);
@@ -134,6 +148,12 @@ describe('Integration: evidence', () => {
       expect.objectContaining({
         valid: true,
         storedHash: hashRecord.canonicalHash,
+      }),
+    );
+    expect(fabricVerification).toEqual(
+      expect.objectContaining({
+        status: 'pending',
+        verified: false,
       }),
     );
 

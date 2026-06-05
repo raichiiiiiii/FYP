@@ -7,13 +7,41 @@ verification. It must not be used for mock anchor evidence.
 
 ## Environment
 
-- Date/time:
-- Commit SHA:
+- Date/time: Pending live Gateway screenshot run
+- Commit SHA: Pending live Gateway screenshot run
 - Environment: Azure VM or local Fabric test network
 - Fabric mode: `BLOCKCHAIN_ANCHOR_ADAPTER=fabric`, `FABRIC_MODE=gateway`
-- Channel:
-- Chaincode:
-- MSP ID:
+- Channel: Configured at runtime; do not paste secrets or generated env files
+- Chaincode: Configured at runtime; do not paste secrets or generated env files
+- MSP ID: Configured at runtime; do not paste secrets or generated env files
+
+## Readiness Status
+
+The API and UI are ready for a real Gateway screenshot run:
+
+- `GET /api/v1/hash-records/:id/fabric-verification` exists.
+- The endpoint requires `organizationId` and `actorUserId` query context for an
+  active actor with audit-read capability.
+- The API returns `verified=true` only after a successful chaincode `ReadAnchor`
+  query and matching local, stored-anchor, and on-chain hashes.
+- The web hash detail page calls the endpoint with the current session actor
+  context.
+- The proof panel renders Gateway mode, channel, chaincode, MSP ID, identity,
+  endpoint, transaction ID, block number if present, local hash, stored anchor
+  hash, on-chain hash, mismatch/unavailable reason, and mock/pending/failed
+  states.
+- The gated Playwright proof spec now skips unless the live hash record id,
+  organization id, and user id are all provided.
+
+Latest readiness validation:
+
+```bash
+corepack pnpm --dir apps/api test -- hash-records
+corepack pnpm --dir apps/api test:integration -- evidence
+corepack pnpm --dir apps/web test
+corepack pnpm typecheck
+corepack pnpm lint
+```
 
 ## Commands
 
@@ -29,12 +57,16 @@ FABRIC_GATEWAY_UAT_ORGANIZATION_ID
 FABRIC_GATEWAY_UAT_USER_ID
 ```
 
+The provided organization/user must exist in the backend and the user must have
+audit-read capability in that organization. Placeholder ids are not accepted for
+real proof screenshots.
+
 ## Screenshot Evidence
 
-| Screenshot | Source | Expected result |
+| Screenshot path | Source | Expected result |
 | --- | --- | --- |
-| ![Hash Verification](./docs/evidence/uat/fabric-gateway-hash-record-verification.png) | Playwright gated UAT flow | Hash detail page shows Gateway mode and on-chain verification panel. |
-| ![Proof Panel](./docs/evidence/uat/fabric-gateway-proof-panel.png) | Playwright gated UAT flow | Proof panel shows `On-chain verified: Yes`, transaction metadata, hashes, channel, chaincode, MSP ID, and no mock labels. |
+| `docs/evidence/uat/fabric-gateway-hash-record-verification.png` | Pending Playwright gated UAT flow | Hash detail page shows Gateway mode and on-chain verification panel. |
+| `docs/evidence/uat/fabric-gateway-proof-panel.png` | Pending Playwright gated UAT flow | Proof panel shows `On-chain verified: Yes`, transaction metadata, hashes, channel, chaincode, MSP ID, and no mock labels. |
 
 
 ## Verification Result

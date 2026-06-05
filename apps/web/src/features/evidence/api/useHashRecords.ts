@@ -10,6 +10,7 @@ type ApiBody = Record<string, unknown>
 export function useHashRecords(session: AppSession) {
   const { fetchQuery, mutate } = useApiData()
   const organizationId = session.organizationId
+  const actorUserId = session.actorUserId
 
   const createHashRecord = useCallback(
     <T>(body: ApiBody) =>
@@ -34,10 +35,14 @@ export function useHashRecords(session: AppSession) {
   const verifyFabricAnchor = useCallback(
     <T>(id: string) =>
       mutate<T>({
-        path: endpoints.hashRecords.fabricVerification(id),
+        path: endpoints.hashRecords.fabricVerification(
+          id,
+          organizationId,
+          actorUserId,
+        ),
         method: 'GET',
       }),
-    [mutate],
+    [actorUserId, mutate, organizationId],
   )
 
   const getHashRecord = useCallback(

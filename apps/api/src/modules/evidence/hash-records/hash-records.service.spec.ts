@@ -15,6 +15,32 @@ const canonicalHash =
   'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
 describe('HashRecordsService fabricVerification', () => {
+  it('rejects missing actor context', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor(),
+    });
+
+    await expect(service.fabricVerification('hash-1')).rejects.toThrow(
+      'Fabric verification requires an active organization actor',
+    );
+  });
+
+  it('rejects actors without audit read permission', async () => {
+    const service = serviceWith({
+      anchor: auditAnchor(),
+      membership: membership({
+        role: {
+          code: 'VIEWER',
+          permissions: [],
+        },
+      }),
+    });
+
+    await expect(service.fabricVerification('hash-1', actor())).rejects.toThrow(
+      'Fabric verification requires audit read permission',
+    );
+  });
+
   it('never verifies mock anchors', async () => {
     const service = serviceWith({
       anchor: auditAnchor({
@@ -23,7 +49,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'ANCHORED_MOCK',
       verified: false,
       fabric: {
@@ -39,7 +67,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'ANCHOR_REQUESTED',
       verified: false,
       fabric: {
@@ -58,7 +88,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'FAILED',
       verified: false,
     });
@@ -75,7 +107,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'ANCHORED_NOT_FULLY_VERIFIED',
       status: 'unavailable',
       verified: false,
@@ -102,7 +136,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'HASH_MISMATCH',
       verified: false,
       localHash: {
@@ -122,7 +158,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'FABRIC_UNAVAILABLE',
       verified: false,
       fabric: {
@@ -145,7 +183,9 @@ describe('HashRecordsService fabricVerification', () => {
       }),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       verificationStatus: 'ANCHORED_NOT_FULLY_VERIFIED',
       status: 'unavailable',
       verified: false,
@@ -179,7 +219,9 @@ describe('HashRecordsService fabricVerification', () => {
       },
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       status: 'verified',
       verificationStatus: 'VERIFIED',
       verified: true,
@@ -208,7 +250,9 @@ describe('HashRecordsService fabricVerification', () => {
       ),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       status: 'not_found',
       verified: false,
       fabric: {
@@ -233,7 +277,9 @@ describe('HashRecordsService fabricVerification', () => {
       },
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       status: 'mismatch',
       verificationStatus: 'HASH_MISMATCH',
       verified: false,
@@ -257,7 +303,9 @@ describe('HashRecordsService fabricVerification', () => {
       ),
     });
 
-    await expect(service.fabricVerification('hash-1')).resolves.toMatchObject({
+    await expect(
+      service.fabricVerification('hash-1', actor()),
+    ).resolves.toMatchObject({
       status: 'unavailable',
       verified: false,
       mismatchReason:
@@ -285,6 +333,7 @@ function serviceWith(input: {
     canonicalHash: string;
   };
   chaincodeError?: Error;
+  membership?: unknown;
 }) {
   const record = input.record ?? hashRecord();
   const findUnique = jest.fn().mockResolvedValue(record);
@@ -326,6 +375,11 @@ function serviceWith(input: {
       hashRecord: {
         findUnique,
       },
+      membership: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue(input.membership ?? membership()),
+      },
       auditAnchor: {
         findFirst: findAnchor,
       },
@@ -341,6 +395,27 @@ function serviceWith(input: {
     {} as never,
     fabricChaincode as never,
   );
+}
+
+function actor() {
+  return {
+    organizationId: 'org-1',
+    actorUserId: 'user-1',
+  };
+}
+
+function membership(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'membership-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
+    status: 'active',
+    role: {
+      code: 'AUDITOR',
+      permissions: [],
+    },
+    ...overrides,
+  };
 }
 
 function hashRecord(overrides: Partial<HashRecord> = {}): HashRecord {

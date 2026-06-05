@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import type { CreateHashRecordInput } from './hash-records.service';
 import { HashRecordsService } from './hash-records.service';
 
@@ -22,7 +22,14 @@ export class HashRecordsController {
   }
 
   @Get(':id/fabric-verification')
-  verifyFabricAnchor(@Param('id') id: string) {
-    return this.hashRecordsService.fabricVerification(id);
+  verifyFabricAnchor(
+    @Param('id') id: string,
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+  ) {
+    return this.hashRecordsService.fabricVerification(id, {
+      organizationId,
+      actorUserId,
+    });
   }
 }
