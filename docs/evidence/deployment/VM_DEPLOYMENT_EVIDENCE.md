@@ -38,7 +38,8 @@ OUTPUT_FILE=docs/evidence/deployment/latest-vm-deployment-evidence.txt \
 | Fabric secret validation script parses | Passed locally | `bash -n` passed for deployment, validation, smoke, and evidence scripts. |
 | Placeholder Fabric secret layout validates without printing contents | Passed locally | `scripts/validate-fabric-secrets.sh` passed against placeholder files under `/tmp`. |
 | VM evidence collection dry-run | Passed locally | `DRY_RUN=true` wrote a sanitized command plan without contacting a VM. |
-| `docker compose ps` shows frontend/API/worker/postgres/redis/minio running | Pending VM run | Requires running the deploy workflow or VM command manually. |
+| GitHub Actions deploy workflow reached VM | Failed at container startup | Run `27024510947` wrote and validated Fabric secret files and built images, then failed on a stale/conflicting `mepn_api` Docker container. See `docs/evidence/blockers/2026-06-06-phase-1-slice-1-4-blocker.md`. |
+| `docker compose ps` shows frontend/API/worker/postgres/redis/minio running | Blocked | Requires resolving the stale/conflicting `mepn_api` container and rerunning the deploy workflow. |
 | Frontend responds to `curl -I /` | Pending VM run | |
 | API health responds at `/api/v1/health` | Pending VM run | |
 | API readiness responds at `/api/v1/ready` if available | Pending VM run | |
