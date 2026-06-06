@@ -541,6 +541,7 @@
 .entry-card-stack {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .entry-panel,
@@ -584,12 +585,15 @@
 .entry-action-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  min-width: 0;
 }
 
 .entry-mini-card {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
   padding: 18px;
 }
 
@@ -613,6 +617,19 @@
 
 .entry-mini-card .button {
   justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.entry-mini-card .field,
+.entry-mini-card input {
+  min-width: 0;
+  width: 100%;
+}
+
+.entry-mini-card input {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .entry-inline-warning {
