@@ -72,6 +72,15 @@
 | Containers running on Azure VM | Previously verified | Prior VM compose status showed reverse proxy, frontend, API, PostgreSQL, Redis, MinIO healthy and worker running. |
 | Logs clean on Azure VM | Not rerun | Run `docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail=100` on the VM during the next manual deployment. |
 
+## Backup / Restore Evidence
+
+| Check | Result | Notes |
+|---|---|---|
+| PostgreSQL backup script | Pass | `scripts/backup/backup-postgres.sh` created a non-empty gzip artifact from local infra PostgreSQL under ignored `artifacts/backup-smoke/`. |
+| PostgreSQL restore script | Pass | `scripts/backup/restore-postgres.sh` restored the artifact into disposable database `mepn_restore_smoke` after explicit `--yes`. |
+| Restore smoke script | Pass | `scripts/backup/smoke-restore.sh --require-demo-data` verified required tables and non-zero sanitized counts. |
+| Evidence doc | Recorded | `docs/evidence/deployment/BACKUP_RESTORE_EVIDENCE.md` records commands, safety notes, and limitations. |
+
 ## Known Issues And Risks
 
 - `format:check` is documented in the testing strategy but is not currently a

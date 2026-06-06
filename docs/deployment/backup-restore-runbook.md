@@ -2,8 +2,8 @@
 
 ## Status
 
-Phase 7.4 PostgreSQL backup, restore, and restore-smoke scripts are
-implemented. Evidence template is added in the final Phase 7 docs slice.
+Phase 7.5 PostgreSQL backup, restore, restore-smoke scripts, and evidence are
+implemented for the current FYP review scope.
 
 ## Runtime Data Inventory
 
@@ -148,5 +148,7 @@ events. It does not print row contents or secret values.
 
 ## Known Gaps Before Later Phase 7 Slices
 
-- MinIO/object-storage backup automation remains a later enhancement; the first
-  executable slice focuses on PostgreSQL proof.
+- MinIO/object-storage backup automation remains future hardening; the current
+  executable proof focuses on PostgreSQL workflow state.
+- Managed backup scheduling, retention policies, and off-VM artifact storage
+  remain production hardening.
