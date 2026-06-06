@@ -4298,7 +4298,7 @@ textarea {
 
 .graph-legend-grid .is-muted,
 .graph-relationship-list .is-muted {
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .graph-node-swatch {

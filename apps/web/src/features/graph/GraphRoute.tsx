@@ -575,7 +575,7 @@ export function GraphInspectorPanel({
   selectedNode: NetworkNode | null
 }) {
   return (
-    <aside
+    <div
       className="graph-inspector"
       aria-label="Graph details and legend"
       data-testid="graph-inspector"
@@ -617,7 +617,7 @@ export function GraphInspectorPanel({
       </section>
       <GraphPermissionNote graph={graph} />
       <GraphLegend graph={graph} />
-    </aside>
+    </div>
   )
 }
 

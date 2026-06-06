@@ -880,6 +880,10 @@ export function LegacyApplicationDetailScreen({
               <div
                 className="finance-readiness-bar"
                 aria-label="Evidence readiness progress"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={evidenceReadiness.progress}
+                role="progressbar"
               >
                 <span style={{ width: `${evidenceReadiness.progress}%` }} />
               </div>

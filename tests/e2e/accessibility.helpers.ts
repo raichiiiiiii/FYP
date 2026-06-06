@@ -37,6 +37,26 @@ export async function expectNoAccessibilityViolations(
   expect(formatViolations(violations)).toEqual([]);
 }
 
+export async function expectKeyboardFocusMoves(page: Page) {
+  await page.keyboard.press('Tab');
+
+  const activeElement = await page.evaluate(() => {
+    const element = document.activeElement;
+
+    if (!element || element === document.body) {
+      return null;
+    }
+
+    return {
+      tagName: element.tagName,
+      text: element.textContent?.trim().slice(0, 80) ?? '',
+      ariaLabel: element.getAttribute('aria-label'),
+    };
+  });
+
+  expect(activeElement).not.toBeNull();
+}
+
 function formatViolations(violations: Result[]) {
   return violations.map((violation) => ({
     id: violation.id,
