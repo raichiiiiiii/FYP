@@ -32,6 +32,7 @@ describe('IntegrationStatusService Fabric status', () => {
   it('reports explicit mock mode without requiring gateway credentials', async () => {
     process.env.FABRIC_ENABLED = 'true';
     process.env.FABRIC_MODE = 'mock';
+    process.env.BLOCKCHAIN_ANCHOR_ADAPTER = 'mock';
 
     const service = new IntegrationStatusService({} as never);
 

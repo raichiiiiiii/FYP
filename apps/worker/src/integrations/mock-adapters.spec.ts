@@ -28,6 +28,7 @@ describe('MockIntegrationAdapters', () => {
   it('returns a mock anchor result when Fabric runs in explicit mock mode', () => {
     process.env.FABRIC_ENABLED = 'true';
     process.env.FABRIC_MODE = 'mock';
+    process.env.BLOCKCHAIN_ANCHOR_ADAPTER = 'mock';
 
     const adapters = new MockIntegrationAdapters();
     const result = adapters.dispatch('FABRIC_ANCHOR_REQUESTED', {

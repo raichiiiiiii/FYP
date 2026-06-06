@@ -55,6 +55,7 @@ describe('IntegrationAdapterRegistry', () => {
   it('routes Fabric events to mock Fabric adapter in mock mode', async () => {
     process.env.FABRIC_ENABLED = 'true';
     process.env.FABRIC_MODE = 'mock';
+    process.env.BLOCKCHAIN_ANCHOR_ADAPTER = 'mock';
 
     const mockAnchor = jest.fn().mockReturnValue({
       integrationType: 'FABRIC',

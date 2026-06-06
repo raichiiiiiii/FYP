@@ -10,6 +10,7 @@ describe('Integration: mock Fabric anchor adapter', () => {
   beforeAll(async () => {
     process.env.FABRIC_ENABLED = 'true';
     process.env.FABRIC_MODE = 'mock';
+    process.env.BLOCKCHAIN_ANCHOR_ADAPTER = 'mock';
     context = await createWorkerIntegrationContext();
   });
 
