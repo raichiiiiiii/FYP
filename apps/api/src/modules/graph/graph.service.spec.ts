@@ -192,6 +192,81 @@ describe('GraphService Fabric anchor overlay', () => {
   });
 });
 
+describe('GraphService saved views', () => {
+  it('creates a private saved view for an active organization actor', async () => {
+    const { service } = graphSavedViewService(['ORG_ADMIN']);
+
+    const view = await service.createSavedView({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      name: 'High risk anchors',
+      filters: {
+        riskLevel: 'high',
+        includeAnchors: true,
+      },
+    });
+
+    expect(view).toMatchObject({
+      organizationId: 'org-1',
+      ownerUserId: 'user-1',
+      name: 'High risk anchors',
+      visibility: 'private',
+      filters: {
+        riskLevel: 'high',
+        includeAnchors: true,
+      },
+    });
+  });
+
+  it('lists owned and organization-shared saved views', async () => {
+    const { service, graphSavedView } = graphSavedViewService([
+      'PROCUREMENT_OFFICER',
+    ]);
+
+    await service.listSavedViews({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+    });
+
+    expect(graphSavedView.findMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        OR: [{ ownerUserId: 'user-1' }, { visibility: 'organization' }],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+  });
+
+  it('rejects saved view mutation by non-owner non-admin users', async () => {
+    const { service, graphSavedView } = graphSavedViewService([
+      'PROCUREMENT_OFFICER',
+    ]);
+
+    await expect(
+      service.updateSavedView({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        viewId: 'view-1',
+        name: 'Updated view',
+      }),
+    ).rejects.toThrow('Graph saved view mutation denied');
+    expect(graphSavedView.update).not.toHaveBeenCalled();
+  });
+
+  it('requires saved view filters to be JSON objects', async () => {
+    const { service } = graphSavedViewService(['ORG_ADMIN']);
+
+    await expect(
+      service.createSavedView({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        name: 'Bad filters',
+        filters: [],
+      }),
+    ).rejects.toThrow('filters must be a JSON object');
+  });
+});
+
 function prismaForRoles(
   roleCodes: string[],
   overrides: {
@@ -367,5 +442,51 @@ function auditAnchor(overrides: {
     createdAt: now,
     id: overrides.id,
     rootHash: overrides.rootHash,
+  };
+}
+
+function graphSavedViewService(roleCodes: string[]) {
+  const graphSavedView = {
+    create: jest.fn().mockImplementation(({ data }: { data: object }) =>
+      Promise.resolve({
+        id: 'view-1',
+        createdAt: now,
+        updatedAt: now,
+        ...data,
+      }),
+    ),
+    findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn().mockResolvedValue({
+      id: 'view-1',
+      organizationId: 'org-1',
+      ownerUserId: 'another-user',
+      name: 'Shared risk view',
+      filters: {
+        nodeType: 'anchor',
+      },
+      layout: null,
+      visibility: 'private',
+      createdAt: now,
+      updatedAt: now,
+    }),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+  const prisma = {
+    membership: {
+      findMany: jest.fn().mockResolvedValue(
+        roleCodes.map((code) => ({
+          role: {
+            code,
+          },
+        })),
+      ),
+    },
+    graphSavedView,
+  } as never;
+
+  return {
+    service: new GraphService(prisma),
+    graphSavedView,
   };
 }

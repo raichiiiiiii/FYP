@@ -9,6 +9,7 @@ import type {
   HashRecord,
   IntegrationReconciliationRecord,
   OutboxEvent,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -65,6 +66,24 @@ type ProjectGraphFilterInput = {
   status?: string;
 };
 
+type SaveGraphViewInput = {
+  organizationId?: string;
+  actorUserId?: string;
+  name?: string;
+  filters?: unknown;
+  layout?: unknown;
+  visibility?: string;
+};
+
+type ListGraphViewsInput = {
+  organizationId?: string;
+  actorUserId?: string;
+};
+
+type MutateGraphViewInput = SaveGraphViewInput & {
+  viewId?: string;
+};
+
 type ActorRoleCode =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
@@ -84,9 +103,93 @@ const financeVisibleRoles = new Set<ActorRoleCode>([
   'AUDITOR',
 ]);
 
+const graphSavedViewVisibilities = new Set(['private', 'organization']);
+
 @Injectable()
 export class GraphService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async createSavedView(input: SaveGraphViewInput) {
+    const actor = await this.requireGraphActor(input);
+    const name = requireText(input.name, 'name');
+    const visibility = normalizeSavedViewVisibility(input.visibility);
+
+    return this.prisma.graphSavedView.create({
+      data: {
+        organizationId: actor.organizationId,
+        ownerUserId: actor.actorUserId,
+        name,
+        filters: requireJsonObject(input.filters, 'filters'),
+        layout: optionalJsonObject(input.layout, 'layout'),
+        visibility,
+      },
+    });
+  }
+
+  async listSavedViews(input: ListGraphViewsInput) {
+    const actor = await this.requireGraphActor(input);
+
+    return this.prisma.graphSavedView.findMany({
+      where: {
+        organizationId: actor.organizationId,
+        OR: [
+          { ownerUserId: actor.actorUserId },
+          { visibility: 'organization' },
+        ],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async updateSavedView(input: MutateGraphViewInput) {
+    const actor = await this.requireGraphActor(input);
+    const view = await this.requireSavedView(
+      actor.organizationId,
+      input.viewId,
+    );
+
+    this.assertCanMutateSavedView(actor, view.ownerUserId);
+
+    return this.prisma.graphSavedView.update({
+      where: {
+        id: view.id,
+      },
+      data: {
+        name:
+          input.name === undefined
+            ? undefined
+            : requireText(input.name, 'name'),
+        filters:
+          input.filters === undefined
+            ? undefined
+            : requireJsonObject(input.filters, 'filters'),
+        layout:
+          input.layout === undefined
+            ? undefined
+            : optionalJsonObject(input.layout, 'layout'),
+        visibility:
+          input.visibility === undefined
+            ? undefined
+            : normalizeSavedViewVisibility(input.visibility),
+      },
+    });
+  }
+
+  async deleteSavedView(input: MutateGraphViewInput) {
+    const actor = await this.requireGraphActor(input);
+    const view = await this.requireSavedView(
+      actor.organizationId,
+      input.viewId,
+    );
+
+    this.assertCanMutateSavedView(actor, view.ownerUserId);
+
+    return this.prisma.graphSavedView.delete({
+      where: {
+        id: view.id,
+      },
+    });
+  }
 
   async getProjectGraph(input: {
     organizationId?: string;
@@ -662,6 +765,40 @@ export class GraphService {
   }
 
   private async getActorRoleCodes(organizationId: string, actorUserId: string) {
+    const memberships = await this.getActiveMemberships(
+      organizationId,
+      actorUserId,
+    );
+
+    return memberships.map(
+      (membership) => membership.role.code as ActorRoleCode,
+    );
+  }
+
+  private async requireGraphActor(input: {
+    organizationId?: string;
+    actorUserId?: string;
+  }) {
+    const organizationId = requireText(input.organizationId, 'organizationId');
+    const actorUserId = requireText(input.actorUserId, 'actorUserId');
+    const memberships = await this.getActiveMemberships(
+      organizationId,
+      actorUserId,
+    );
+
+    return {
+      organizationId,
+      actorUserId,
+      roleCodes: memberships.map(
+        (membership) => membership.role.code as ActorRoleCode,
+      ),
+    };
+  }
+
+  private async getActiveMemberships(
+    organizationId: string,
+    actorUserId: string,
+  ) {
     const memberships = await this.prisma.membership.findMany({
       where: {
         organizationId,
@@ -677,9 +814,41 @@ export class GraphService {
       throw new ForbiddenException('Active organization membership required');
     }
 
-    return memberships.map(
-      (membership) => membership.role.code as ActorRoleCode,
-    );
+    return memberships;
+  }
+
+  private async requireSavedView(
+    organizationId: string,
+    viewId: string | undefined,
+  ) {
+    const id = requireText(viewId, 'viewId');
+    const view = await this.prisma.graphSavedView.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!view) {
+      throw new NotFoundException('Graph saved view not found');
+    }
+
+    return view;
+  }
+
+  private assertCanMutateSavedView(
+    actor: {
+      actorUserId: string;
+      roleCodes: ActorRoleCode[];
+    },
+    ownerUserId: string,
+  ) {
+    if (
+      actor.actorUserId !== ownerUserId &&
+      !actor.roleCodes.includes('ORG_ADMIN')
+    ) {
+      throw new ForbiddenException('Graph saved view mutation denied');
+    }
   }
 }
 
@@ -689,6 +858,42 @@ function requireText(value: string | undefined, field: string) {
   }
 
   return value.trim();
+}
+
+function requireJsonObject(
+  value: unknown,
+  field: string,
+): Prisma.InputJsonObject {
+  if (!isJsonObject(value)) {
+    throw new BadRequestException(`${field} must be a JSON object`);
+  }
+
+  return value as Prisma.InputJsonObject;
+}
+
+function optionalJsonObject(
+  value: unknown,
+  field: string,
+): Prisma.InputJsonObject | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  return requireJsonObject(value, field);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeSavedViewVisibility(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase() || 'private';
+
+  if (!graphSavedViewVisibilities.has(normalized)) {
+    throw new BadRequestException('visibility must be private or organization');
+  }
+
+  return normalized;
 }
 
 function nodeId(entityType: string, entityId: string) {

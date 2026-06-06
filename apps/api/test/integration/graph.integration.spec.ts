@@ -187,4 +187,101 @@ describe('Integration: graph read model', () => {
     expect(procurementGraphText).not.toContain('Finance evidence checklist');
     expect(procurementGraphText).not.toContain('Unresolved loss exception');
   });
+
+  it('supports saved graph view CRUD with ownership checks', async () => {
+    const fixture = await createProcurementFixture(context.app);
+    const savedView = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/graph/views')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          name: `High risk graph ${Date.now()}`,
+          filters: {
+            riskLevel: 'high',
+            includeAnchors: true,
+          },
+          layout: {
+            zoom: 1,
+          },
+          visibility: 'organization',
+        })
+        .expect(201)
+    ).body as { id: string; name: string; visibility: string };
+
+    expect(savedView.visibility).toBe('organization');
+
+    const listed = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/graph/views')
+        .query({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+        })
+        .expect(200)
+    ).body as Array<{ id: string }>;
+
+    expect(listed.some((view) => view.id === savedView.id)).toBe(true);
+
+    const procurementRole = await context.prisma.role.upsert({
+      where: { code: 'PROCUREMENT_OFFICER' },
+      create: { code: 'PROCUREMENT_OFFICER', name: 'Procurement Officer' },
+      update: {},
+    });
+    const procurementUser = await context.prisma.user.create({
+      data: {
+        email: `graph-view-procurement-${Date.now()}@example.test`,
+        displayName: 'Graph View Procurement Officer',
+      },
+    });
+    await context.prisma.membership.create({
+      data: {
+        organizationId: fixture.organizationId,
+        userId: procurementUser.id,
+        roleId: procurementRole.id,
+      },
+    });
+
+    await request(context.app.getHttpServer())
+      .patch(`/api/v1/graph/views/${savedView.id}`)
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: procurementUser.id,
+        name: 'Unauthorized update',
+      })
+      .expect(403);
+
+    const updated = (
+      await request(context.app.getHttpServer())
+        .patch(`/api/v1/graph/views/${savedView.id}`)
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          name: 'Updated high risk graph',
+          filters: {
+            nodeType: 'anchor',
+          },
+        })
+        .expect(200)
+    ).body as { name: string; filters: { nodeType?: string } };
+
+    expect(updated.name).toBe('Updated high risk graph');
+    expect(updated.filters.nodeType).toBe('anchor');
+
+    await request(context.app.getHttpServer())
+      .delete(`/api/v1/graph/views/${savedView.id}`)
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+      })
+      .expect(200);
+
+    const deleted = await context.prisma.graphSavedView.findUnique({
+      where: {
+        id: savedView.id,
+      },
+    });
+
+    expect(deleted).toBeNull();
+  });
 });
