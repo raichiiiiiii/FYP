@@ -109,6 +109,87 @@ describe('GraphService Fabric anchor overlay', () => {
     expect(serialized).not.toContain('Unresolved loss exception');
     expect(serialized).not.toContain('MudarabahApplication:app-1');
   });
+
+  it('filters graph nodes by query parameters after visibility filtering', async () => {
+    const service = new GraphService(prismaForRoles(['ORG_ADMIN']));
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+      filters: {
+        nodeType: 'application',
+        riskLevel: 'critical',
+        status: 'UNDER_REVIEW',
+      },
+    });
+
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.nodes[0]?.id).toBe('MudarabahApplication:app-1');
+    expect(graph.nodes[0]?.entityType).toBe('MudarabahApplication');
+    expect(graph.edges).toHaveLength(0);
+  });
+
+  it('does not let includeFinance query params bypass role-filtered finance visibility', async () => {
+    const service = new GraphService(prismaForRoles(['PROCUREMENT_OFFICER']));
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+      filters: {
+        includeFinance: 'true',
+      },
+    });
+
+    expect(graph.nodes.some((node) => node.category === 'finance')).toBe(false);
+    expect(JSON.stringify(graph)).not.toContain('MudarabahApplication:app-1');
+  });
+
+  it('can hide hash and anchor overlay nodes from filtered graph views', async () => {
+    const service = new GraphService(prismaForRoles(['ORG_ADMIN']));
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+      filters: {
+        includeAnchors: 'false',
+      },
+    });
+
+    expect(graph.nodes.some((node) => node.entityType === 'HashRecord')).toBe(
+      false,
+    );
+    expect(graph.nodes.some((node) => node.entityType === 'AuditAnchor')).toBe(
+      false,
+    );
+    expect(
+      graph.edges.every(
+        (edge) =>
+          graph.nodes.some((node) => node.id === edge.sourceNodeId) &&
+          graph.nodes.some((node) => node.id === edge.targetNodeId),
+      ),
+    ).toBe(true);
+  });
+
+  it('treats status=all as an unfiltered graph view', async () => {
+    const service = new GraphService(prismaForRoles(['ORG_ADMIN']));
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+      filters: {
+        status: 'all',
+      },
+    });
+
+    expect(graph.nodes.length).toBeGreaterThan(0);
+    expect(graph.nodes.some((node) => node.id === 'Project:project-1')).toBe(
+      true,
+    );
+  });
 });
 
 function prismaForRoles(

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { PageHeader } from '../../layouts/PageHeader'
 import { Button } from '../../shared/components/Button'
@@ -23,6 +23,7 @@ import type {
   NetworkRelationship,
   NetworkRiskLevel,
   ProjectGraphApi,
+  ProjectGraphFilters,
 } from './model/networkGraph.types'
 
 type Project = {
@@ -58,6 +59,20 @@ const riskOptions: Array<NetworkRiskLevel | 'all'> = [
   'medium',
   'high',
   'critical',
+]
+
+const statusOptions = [
+  'all',
+  'ACTIVE',
+  'ISSUED',
+  'ANCHORED',
+  'ANCHORED_MOCK',
+  'ANCHOR_PENDING',
+  'ANCHOR_FAILED',
+  'UNDER_REVIEW',
+  'DRAFT',
+  'SUBMITTED',
+  'FAILED',
 ]
 
 const nodeLegend: Array<{
@@ -163,12 +178,27 @@ export function GraphRoute({
 }) {
   const { listProjects } = useProjects(session)
   const { getProjectGraph } = useProjectGraph(session)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [projects, setProjects] = useState<Project[]>([])
-  const [projectId, setProjectId] = useState('')
+  const [projectId, setProjectId] = useState(
+    () => searchParams.get('projectId') ?? '',
+  )
   const [nodeTypeFilter, setNodeTypeFilter] =
-    useState<NetworkNodeType | 'all'>('all')
-  const [riskFilter, setRiskFilter] = useState<NetworkRiskLevel | 'all'>('all')
-  const [showFinance, setShowFinance] = useState(true)
+    useState<NetworkNodeType | 'all'>(() =>
+      readNodeTypeFilter(searchParams.get('nodeType')),
+    )
+  const [riskFilter, setRiskFilter] = useState<NetworkRiskLevel | 'all'>(() =>
+    readRiskFilter(searchParams.get('riskLevel')),
+  )
+  const [showFinance, setShowFinance] = useState(
+    () => searchParams.get('includeFinance') !== 'false',
+  )
+  const [showAnchors, setShowAnchors] = useState(
+    () => searchParams.get('includeAnchors') !== 'false',
+  )
+  const [statusFilter, setStatusFilter] = useState(() =>
+    readStatusFilter(searchParams.get('status')),
+  )
   const [zoom, setZoom] = useState(1)
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [graphState, setGraphState] = useState<LoadState<ProjectGraphApi>>({
@@ -176,6 +206,52 @@ export function GraphRoute({
   })
 
   const loadProjects = useCallback(() => listProjects<Project>(), [listProjects])
+  const graphFilters = useMemo<ProjectGraphFilters>(
+    () => ({
+      nodeType: nodeTypeFilter,
+      riskLevel: riskFilter,
+      includeFinance: showFinance,
+      includeAnchors: showAnchors,
+      status: statusFilter,
+    }),
+    [nodeTypeFilter, riskFilter, showAnchors, showFinance, statusFilter],
+  )
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+
+    setOptionalSearchParam(next, 'projectId', projectId)
+    setOptionalSearchParam(
+      next,
+      'nodeType',
+      nodeTypeFilter === 'all' ? '' : nodeTypeFilter,
+    )
+    setOptionalSearchParam(
+      next,
+      'riskLevel',
+      riskFilter === 'all' ? '' : riskFilter,
+    )
+    setOptionalSearchParam(next, 'includeFinance', showFinance ? '' : 'false')
+    setOptionalSearchParam(next, 'includeAnchors', showAnchors ? '' : 'false')
+    setOptionalSearchParam(
+      next,
+      'status',
+      statusFilter === 'all' ? '' : statusFilter,
+    )
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [
+    nodeTypeFilter,
+    projectId,
+    riskFilter,
+    searchParams,
+    setSearchParams,
+    showAnchors,
+    showFinance,
+    statusFilter,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -219,7 +295,7 @@ export function GraphRoute({
           setGraphState({ status: 'loading' })
         }
 
-        return getProjectGraph<ProjectGraphApi>(projectId)
+        return getProjectGraph<ProjectGraphApi>(projectId, graphFilters)
       })
       .then((graph) => {
         if (!cancelled) {
@@ -241,7 +317,7 @@ export function GraphRoute({
     return () => {
       cancelled = true
     }
-  }, [getProjectGraph, projectId])
+  }, [getProjectGraph, graphFilters, projectId])
 
   const authorizedGraph = useMemo(() => {
     if (graphState.status !== 'ready') {
@@ -261,9 +337,18 @@ export function GraphRoute({
     return filterNetworkGraphByView(authorizedGraph, {
       nodeType: nodeTypeFilter,
       riskLevel: riskFilter,
-      showFinance,
+      includeFinance: showFinance,
+      includeAnchors: showAnchors,
+      status: statusFilter,
     })
-  }, [authorizedGraph, nodeTypeFilter, riskFilter, showFinance])
+  }, [
+    authorizedGraph,
+    nodeTypeFilter,
+    riskFilter,
+    showAnchors,
+    showFinance,
+    statusFilter,
+  ])
   const summary = graph ? summarizeNetworkGraph(graph) : null
   const selectedNode =
     graph?.nodes.find((node) => node.id === selectedNodeId) ??
@@ -274,6 +359,8 @@ export function GraphRoute({
     setNodeTypeFilter('all')
     setRiskFilter('all')
     setShowFinance(true)
+    setShowAnchors(true)
+    setStatusFilter('all')
     setZoom(1)
     setSelectedNodeId('')
   }
@@ -345,6 +432,19 @@ export function GraphRoute({
           </select>
         </label>
         <label className="field">
+          <span>Status</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            {statusOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === 'all' ? 'All statuses' : labelFor(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
           <span>Zoom</span>
           <select
             value={zoom}
@@ -364,6 +464,14 @@ export function GraphRoute({
             onChange={(event) => setShowFinance(event.target.checked)}
           />
           <span>Show finance layer</span>
+        </label>
+        <label className="graph-toggle">
+          <input
+            type="checkbox"
+            checked={showAnchors}
+            onChange={(event) => setShowAnchors(event.target.checked)}
+          />
+          <span>Show hash/anchor layer</span>
         </label>
         <Button type="button" variant="secondary" onClick={resetView}>
           Reset view
@@ -606,6 +714,12 @@ export function GraphInspectorPanel({
                 <dt>Risk</dt>
                 <dd>{selectedNode.riskLevel ?? 'low'}</dd>
               </div>
+              {selectedNode.riskReasons?.length ? (
+                <div>
+                  <dt>Risk reason</dt>
+                  <dd>{selectedNode.riskReasons.join(' ')}</dd>
+                </div>
+              ) : null}
             </dl>
             <Link className="button button--secondary" to={selectedNode.sourcePath}>
               Open source record
@@ -726,4 +840,42 @@ function labelFor(value: string) {
 
 function relationshipLabel(edge: NetworkEdge) {
   return edge.relationship.replace('_', ' ')
+}
+
+function setOptionalSearchParam(
+  params: URLSearchParams,
+  key: string,
+  value: string,
+) {
+  if (value) {
+    params.set(key, value)
+  } else {
+    params.delete(key)
+  }
+}
+
+function readNodeTypeFilter(value: string | null): NetworkNodeType | 'all' {
+  return isNodeTypeOption(value) ? value : 'all'
+}
+
+function readRiskFilter(value: string | null): NetworkRiskLevel | 'all' {
+  return isRiskOption(value) ? value : 'all'
+}
+
+function readStatusFilter(value: string | null) {
+  if (!value) {
+    return 'all'
+  }
+
+  const normalized = value.trim().toUpperCase()
+
+  return normalized === 'ALL' ? 'all' : normalized
+}
+
+function isNodeTypeOption(value: string | null): value is NetworkNodeType | 'all' {
+  return Boolean(value && nodeTypeOptions.includes(value as NetworkNodeType | 'all'))
+}
+
+function isRiskOption(value: string | null): value is NetworkRiskLevel | 'all' {
+  return Boolean(value && riskOptions.includes(value as NetworkRiskLevel | 'all'))
 }

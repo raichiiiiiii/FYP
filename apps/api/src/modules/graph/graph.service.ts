@@ -57,6 +57,14 @@ type ProjectGraphEdge = {
   label: string;
 };
 
+type ProjectGraphFilterInput = {
+  nodeType?: string;
+  riskLevel?: string;
+  includeFinance?: string | boolean;
+  includeAnchors?: string | boolean;
+  status?: string;
+};
+
 type ActorRoleCode =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
@@ -84,6 +92,7 @@ export class GraphService {
     organizationId?: string;
     actorUserId?: string;
     projectId: string;
+    filters?: ProjectGraphFilterInput;
   }) {
     const organizationId = requireText(input.organizationId, 'organizationId');
     const actorUserId = requireText(input.actorUserId, 'actorUserId');
@@ -488,6 +497,11 @@ export class GraphService {
       nodes,
       edges,
     });
+    const filteredGraph = filterProjectGraphView(
+      [...nodes.values()],
+      [...edges.values()],
+      input.filters,
+    );
 
     return {
       project: {
@@ -499,8 +513,8 @@ export class GraphService {
         roleCodes,
         financeNodesIncluded: canSeeFinance,
       },
-      nodes: [...nodes.values()],
-      edges: [...edges.values()],
+      nodes: filteredGraph.nodes,
+      edges: filteredGraph.edges,
     };
   }
 
@@ -703,6 +717,153 @@ function addGraphEdge(
 
 function sourceRef(entityType: string, entityId: string) {
   return `${entityType}:${entityId}`;
+}
+
+function filterProjectGraphView(
+  nodes: ProjectGraphNode[],
+  edges: ProjectGraphEdge[],
+  filters: ProjectGraphFilterInput | undefined,
+) {
+  const normalizedFilters = normalizeGraphFilters(filters);
+  const visibleNodeIds = new Set<string>();
+  const filteredNodes = nodes.filter((node) => {
+    if (!normalizedFilters.includeFinance && node.category === 'finance') {
+      return false;
+    }
+
+    if (
+      !normalizedFilters.includeAnchors &&
+      (node.entityType === 'HashRecord' || node.entityType === 'AuditAnchor')
+    ) {
+      return false;
+    }
+
+    if (
+      normalizedFilters.nodeType &&
+      graphNodeTypeForFilter(node) !== normalizedFilters.nodeType
+    ) {
+      return false;
+    }
+
+    if (
+      normalizedFilters.riskLevel &&
+      (node.risk?.riskLevel ?? 'low') !== normalizedFilters.riskLevel
+    ) {
+      return false;
+    }
+
+    if (
+      normalizedFilters.statuses.length &&
+      !normalizedFilters.statuses.includes(normalizeStatus(node.status))
+    ) {
+      return false;
+    }
+
+    visibleNodeIds.add(node.id);
+    return true;
+  });
+  const filteredEdges = edges.filter(
+    (edge) =>
+      visibleNodeIds.has(edge.sourceNodeId) &&
+      visibleNodeIds.has(edge.targetNodeId),
+  );
+
+  return {
+    nodes: filteredNodes,
+    edges: filteredEdges,
+  };
+}
+
+function normalizeGraphFilters(filters: ProjectGraphFilterInput | undefined) {
+  return {
+    nodeType: normalizeFilterValue(filters?.nodeType),
+    riskLevel: normalizeRiskFilter(filters?.riskLevel),
+    includeFinance: parseBooleanFilter(filters?.includeFinance, true),
+    includeAnchors: parseBooleanFilter(filters?.includeAnchors, true),
+    statuses: normalizeStatusList(filters?.status),
+  };
+}
+
+function normalizeFilterValue(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+
+  return normalized && normalized !== 'all' ? normalized : undefined;
+}
+
+function normalizeRiskFilter(
+  value: string | undefined,
+): GraphRiskLevel | undefined {
+  const normalized = normalizeFilterValue(value);
+
+  return normalized && normalized in riskRank
+    ? (normalized as GraphRiskLevel)
+    : undefined;
+}
+
+function parseBooleanFilter(
+  value: string | boolean | undefined,
+  defaultValue: boolean,
+) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  if (['1', 'true', 'yes', 'y'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'n'].includes(normalized)) {
+    return false;
+  }
+
+  return defaultValue;
+}
+
+function normalizeStatusList(value: string | undefined) {
+  return (
+    value
+      ?.split(',')
+      .map((status) => normalizeStatus(status))
+      .filter((status) => status && status !== 'ALL') ?? []
+  );
+}
+
+function graphNodeTypeForFilter(node: ProjectGraphNode) {
+  if (node.entityType === 'Organization') {
+    return 'organization';
+  }
+
+  if (node.entityType === 'Supplier') {
+    return 'supplier';
+  }
+
+  if (node.entityType === 'BuyerCustomer') {
+    return 'buyer';
+  }
+
+  if (node.entityType === 'ProcurementOpportunity') {
+    return 'opportunity';
+  }
+
+  if (node.entityType === 'MudarabahApplication') {
+    return 'application';
+  }
+
+  if (node.entityType === 'HashRecord') {
+    return 'hash_record';
+  }
+
+  if (node.entityType === 'AuditAnchor') {
+    return 'anchor';
+  }
+
+  return 'document';
 }
 
 function latestBy<T>(items: T[], keyFor: (item: T) => string) {

@@ -13,6 +13,12 @@ export type NetworkNodeType =
 
 export type NetworkRiskLevel = 'low' | 'medium' | 'high' | 'critical'
 
+export type NetworkRiskVisibilityScope =
+  | 'procurement'
+  | 'finance'
+  | 'audit'
+  | 'operations'
+
 export type NetworkRelationship =
   | 'supplies'
   | 'buys_from'
@@ -29,6 +35,9 @@ export type NetworkNode = {
   subtitle?: string
   status?: string
   riskLevel?: NetworkRiskLevel
+  riskReasons?: string[]
+  riskSourceEntityIds?: string[]
+  riskVisibilityScope?: NetworkRiskVisibilityScope
   visibleToRoles: AppRoleCode[]
   sourcePath: string
   entityType: string
@@ -70,6 +79,12 @@ export type ProjectGraphApiNode = {
   subtitle?: string
   status?: string
   category: 'organization' | 'party' | 'procurement' | 'evidence' | 'finance'
+  risk?: {
+    riskLevel: NetworkRiskLevel
+    riskReasons: string[]
+    sourceEntityIds: string[]
+    visibilityScope: NetworkRiskVisibilityScope
+  }
   sourcePath: string
   position: {
     x: number
@@ -96,4 +111,12 @@ export type ProjectGraphApi = {
   }
   nodes: ProjectGraphApiNode[]
   edges: ProjectGraphApiEdge[]
+}
+
+export type ProjectGraphFilters = {
+  nodeType?: NetworkNodeType | 'all'
+  riskLevel?: NetworkRiskLevel | 'all'
+  includeFinance?: boolean
+  includeAnchors?: boolean
+  status?: string
 }

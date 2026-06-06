@@ -46,6 +46,19 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(2);
   await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
   await page
+    .locator('.graph-toolbar label')
+    .filter({ hasText: 'Node type' })
+    .locator('select')
+    .selectOption('anchor');
+  await expect(page).toHaveURL(/nodeType=anchor/);
+  await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
+  await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
+  await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Reset view' }).click();
+  await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(2);
+  await page
     .getByTestId('graph-node-anchor')
     .filter({ hasText: seededAnchors.procurementTx })
     .focus();
@@ -68,8 +81,9 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   );
 
   await setSession(page, procurementOfficer);
-  await page.goto('/graph/projects');
-  await selectGraphProject(page, String(fixture.project.id));
+  await page.goto(
+    `/graph/projects?projectId=${fixture.project.id}&includeFinance=true`,
+  );
   await expect(
     page.locator('.graph-summary article').filter({ hasText: 'Finance layer' }),
   ).toContainText('Hidden');

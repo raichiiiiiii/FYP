@@ -147,6 +147,13 @@ export const queryKeys = {
       organizationId?: string | null,
       actorUserId?: string | null,
       projectId?: string | null,
+      filters?: {
+        nodeType?: string | null
+        riskLevel?: string | null
+        includeFinance?: boolean | null
+        includeAnchors?: boolean | null
+        status?: string | null
+      },
     ) =>
       [
         'graph',
@@ -154,6 +161,11 @@ export const queryKeys = {
         organizationId ?? 'global',
         actorUserId ?? 'anonymous',
         projectId ?? 'none',
+        filters?.nodeType ?? 'all',
+        filters?.riskLevel ?? 'all',
+        filters?.includeFinance === false ? 'finance-hidden' : 'finance-visible',
+        filters?.includeAnchors === false ? 'anchors-hidden' : 'anchors-visible',
+        filters?.status ?? 'all-status',
       ] as const,
   },
   integrations: {

@@ -10,11 +10,23 @@ export class GraphController {
     @Param('projectId') projectId: string,
     @Query('organizationId') organizationId?: string,
     @Query('actorUserId') actorUserId?: string,
+    @Query('nodeType') nodeType?: string,
+    @Query('riskLevel') riskLevel?: string,
+    @Query('includeFinance') includeFinance?: string,
+    @Query('includeAnchors') includeAnchors?: string,
+    @Query('status') status?: string,
   ) {
     return this.graphService.getProjectGraph({
       organizationId,
       actorUserId,
       projectId,
+      filters: {
+        nodeType,
+        riskLevel,
+        includeFinance,
+        includeAnchors,
+        status,
+      },
     });
   }
 }

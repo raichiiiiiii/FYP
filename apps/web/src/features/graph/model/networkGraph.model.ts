@@ -6,6 +6,7 @@ import type {
   NetworkNodeType,
   NetworkRelationship,
   NetworkRiskLevel,
+  ProjectGraphFilters,
   ProjectGraphApi,
   ProjectGraphApiEdge,
   ProjectGraphApiNode,
@@ -102,18 +103,20 @@ export function filterNetworkGraphForRoles(
 
 export function filterNetworkGraphByView(
   graph: NetworkGraph,
-  options: {
-    nodeType?: NetworkNodeType | 'all'
-    riskLevel?: NetworkRiskLevel | 'all'
-    showFinance?: boolean
-  },
+  options: ProjectGraphFilters,
 ): NetworkGraph {
   const nodeType = options.nodeType ?? 'all'
   const riskLevel = options.riskLevel ?? 'all'
-  const showFinance = options.showFinance ?? true
+  const includeFinance = options.includeFinance ?? true
+  const includeAnchors = options.includeAnchors ?? true
+  const status = normalizeStatusFilter(options.status)
   const visibleNodeIds = new Set<string>()
   const nodes = graph.nodes.filter((node) => {
-    if (!showFinance && isFinanceNodeType(node.type)) {
+    if (!includeFinance && isFinanceNodeType(node.type)) {
+      return false
+    }
+
+    if (!includeAnchors && (node.type === 'hash_record' || node.type === 'anchor')) {
       return false
     }
 
@@ -122,6 +125,10 @@ export function filterNetworkGraphByView(
     }
 
     if (riskLevel !== 'all' && node.riskLevel !== riskLevel) {
+      return false
+    }
+
+    if (status && normalizeStatusFilter(node.status) !== status) {
       return false
     }
 
@@ -177,7 +184,10 @@ function mapApiNode(node: ProjectGraphApiNode): NetworkNode {
     label: node.label,
     subtitle: node.subtitle,
     status: node.status,
-    riskLevel: riskLevelFor(node.status),
+    riskLevel: node.risk?.riskLevel ?? riskLevelFor(node.status),
+    riskReasons: node.risk?.riskReasons ?? [],
+    riskSourceEntityIds: node.risk?.sourceEntityIds ?? [],
+    riskVisibilityScope: node.risk?.visibilityScope,
     visibleToRoles: visibleRolesFor(type),
     sourcePath: node.sourcePath,
     entityType: node.entityType,
@@ -352,6 +362,12 @@ function riskLevelFor(status?: string): NetworkRiskLevel {
   }
 
   return 'low'
+}
+
+function normalizeStatusFilter(status?: string) {
+  const normalized = status?.trim().toUpperCase() ?? ''
+
+  return normalized === 'ALL' ? '' : normalized
 }
 
 function isFinanceNodeType(type: NetworkNodeType) {

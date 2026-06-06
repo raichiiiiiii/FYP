@@ -120,6 +120,29 @@ describe('Integration: graph read model', () => {
       true,
     );
 
+    const applicationOnlyGraph = (
+      await request(context.app.getHttpServer())
+        .get(`/api/v1/graph/projects/${fixture.project.id}`)
+        .query({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          nodeType: 'application',
+          includeFinance: 'true',
+        })
+        .expect(200)
+    ).body as {
+      nodes: Array<{ entityType: string }>;
+      edges: Array<{ label: string }>;
+    };
+
+    expect(applicationOnlyGraph.nodes.length).toBeGreaterThan(0);
+    expect(
+      applicationOnlyGraph.nodes.every(
+        (node) => node.entityType === 'MudarabahApplication',
+      ),
+    ).toBe(true);
+    expect(applicationOnlyGraph.edges).toHaveLength(0);
+
     const procurementRole = await context.prisma.role.upsert({
       where: { code: 'PROCUREMENT_OFFICER' },
       create: { code: 'PROCUREMENT_OFFICER', name: 'Procurement Officer' },
@@ -145,6 +168,7 @@ describe('Integration: graph read model', () => {
         .query({
           organizationId: fixture.organizationId,
           actorUserId: procurementUser.id,
+          includeFinance: 'true',
         })
         .expect(200)
     ).body as {

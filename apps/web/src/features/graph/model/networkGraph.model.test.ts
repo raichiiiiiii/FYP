@@ -30,6 +30,12 @@ describe('network graph model', () => {
     expect(graph.nodes.find((node) => node.type === 'financier')?.label).toBe(
       'Financier review workspace',
     )
+    expect(
+      graph.nodes.find((node) => node.id === 'MudarabahApplication:app-fixture')
+        ?.riskReasons,
+    ).toContain(
+      'Finance evidence checklist still has missing or incomplete items.',
+    )
   })
 
   it('hides finance nodes and prunes finance edges for procurement users', () => {
@@ -67,12 +73,35 @@ describe('network graph model', () => {
     )
     const applicationOnly = filterNetworkGraphByView(graph, {
       nodeType: 'application',
-      riskLevel: 'medium',
+      riskLevel: 'high',
+      status: 'DUE_DILIGENCE_IN_REVIEW',
     })
 
     expect(applicationOnly.nodes).toHaveLength(1)
     expect(applicationOnly.nodes[0].type).toBe('application')
     expect(applicationOnly.edges).toHaveLength(0)
+  })
+
+  it('supports status and anchor visibility filters', () => {
+    const graph = filterNetworkGraphForRoles(
+      mapProjectGraphApiToNetworkGraph(projectGraphApiFixture),
+      ['ORG_ADMIN'],
+    )
+    const withoutAnchors = filterNetworkGraphByView(graph, {
+      includeAnchors: false,
+      status: 'all',
+    })
+
+    expect(withoutAnchors.nodes.some((node) => node.type === 'hash_record')).toBe(
+      false,
+    )
+    expect(withoutAnchors.nodes.some((node) => node.type === 'anchor')).toBe(false)
+    expect(
+      withoutAnchors.edges.every((edge) =>
+        withoutAnchors.nodes.some((node) => node.id === edge.source) &&
+        withoutAnchors.nodes.some((node) => node.id === edge.target),
+      ),
+    ).toBe(true)
   })
 
   it('summarizes risk and visibility for the canvas cockpit', () => {

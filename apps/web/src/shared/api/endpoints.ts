@@ -281,10 +281,28 @@ export const endpoints = {
       projectId: string,
       organizationId?: string | null,
       actorUserId?: string | null,
+      filters?: {
+        nodeType?: string | null
+        riskLevel?: string | null
+        includeFinance?: boolean | null
+        includeAnchors?: boolean | null
+        status?: string | null
+      },
     ) =>
       withQuery(`/graph/projects/${projectId}`, {
         organizationId,
         actorUserId,
+        nodeType: filters?.nodeType,
+        riskLevel: filters?.riskLevel,
+        includeFinance:
+          filters?.includeFinance === undefined || filters.includeFinance === null
+            ? undefined
+            : String(filters.includeFinance),
+        includeAnchors:
+          filters?.includeAnchors === undefined || filters.includeAnchors === null
+            ? undefined
+            : String(filters.includeAnchors),
+        status: filters?.status,
       }),
   },
   integrations: {
