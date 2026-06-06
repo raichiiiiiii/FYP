@@ -50,6 +50,7 @@ model Organization {
   lossExceptions           LossException[]
   closurePacks             ClosurePack[]
   procurementApprovalRules ProcurementApprovalRule[]
+  reportExportJobs         ReportExportJob[]
 }
 
 model User {
@@ -71,6 +72,7 @@ model User {
   mudarabahApplications MudarabahApplication[] @relation("MudarabahApplicant")
   dueDiligenceReports   DueDiligenceReport[] @relation("DueDiligenceReviewer")
   shariahReviews        ShariahReview[] @relation("ShariahReviewer")
+  reportExportJobs      ReportExportJob[] @relation("ReportExportRequestedBy")
 }
 
 model Role {
@@ -976,4 +978,31 @@ model ClosurePack {
   @@index([applicationId])
   @@index([evidencePackId])
   @@index([status])
+}
+
+model ReportExportJob {
+  id                String    @id @default(uuid())
+  organizationId    String
+  reportType        String
+  format            String
+  status            String    @default("queued")
+  requestedByUserId String?
+  filePath          String?
+  objectKey         String?
+  errorMessage      String?
+  metadata          Json?
+  expiresAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  requestedBy  User?        @relation("ReportExportRequestedBy", fields: [requestedByUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([requestedByUserId])
+  @@index([reportType])
+  @@index([format])
+  @@index([status])
+  @@index([createdAt])
 }

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { ReportsService } from '../../src/modules/reports/reports.service';
 import {
   createOrganizationFixture,
   createProcurementFixture,
@@ -77,6 +78,62 @@ describe('Integration: reports', () => {
       .expect(403);
   });
 
+  it('persists report export jobs with explicit lifecycle status', async () => {
+    const fixture = await createProcurementFixture(context.app);
+    const reports = context.app.get(ReportsService);
+
+    const exportJob = await reports.createExportJob({
+      organizationId: fixture.organizationId,
+      actorUserId: fixture.actorUserId,
+      reportType: 'procurement',
+      format: 'json',
+      metadata: {
+        requestedFrom: 'reports.integration.spec.ts',
+      },
+    });
+
+    expect(exportJob).toEqual(
+      expect.objectContaining({
+        organizationId: fixture.organizationId,
+        requestedByUserId: fixture.actorUserId,
+        reportType: 'procurement',
+        format: 'json',
+        status: 'queued',
+      }),
+    );
+
+    const processingJob = await reports.transitionExportJob({
+      organizationId: fixture.organizationId,
+      exportJobId: exportJob.id,
+      status: 'processing',
+    });
+
+    expect(processingJob.status).toBe('processing');
+
+    const completedJob = await reports.transitionExportJob({
+      organizationId: fixture.organizationId,
+      exportJobId: exportJob.id,
+      status: 'completed',
+      objectKey: 'reports/procurement/export.json',
+    });
+
+    expect(completedJob).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        objectKey: 'reports/procurement/export.json',
+      }),
+    );
+    expect(completedJob.completedAt).toBeInstanceOf(Date);
+
+    await expect(
+      reports.transitionExportJob({
+        organizationId: fixture.organizationId,
+        exportJobId: exportJob.id,
+        status: 'processing',
+      }),
+    ).rejects.toThrow(/cannot transition/);
+  });
+
   it('hides finance reports from procurement-only actors', async () => {
     const setup = await createOrganizationFixture(context.app);
     const role = await context.prisma.role.create({
@@ -124,5 +181,16 @@ describe('Integration: reports', () => {
         actorUserId: user.id,
       })
       .expect(403);
+
+    const reports = context.app.get(ReportsService);
+
+    await expect(
+      reports.createExportJob({
+        organizationId: setup.organization.id,
+        actorUserId: user.id,
+        reportType: 'finance',
+        format: 'json',
+      }),
+    ).rejects.toThrow('Finance report access denied');
   });
 });

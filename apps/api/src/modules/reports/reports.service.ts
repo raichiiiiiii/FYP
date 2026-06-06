@@ -2,12 +2,42 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  assertReportExportTransition,
+  normalizeReportExportFormat,
+  normalizeReportExportStatus,
+  normalizeReportType,
+  type ReportType,
+} from './report-export-lifecycle';
 
 type ReportInput = {
   organizationId?: string;
   actorUserId?: string;
+};
+
+type CreateReportExportJobInput = ReportInput & {
+  reportType?: string;
+  format?: string;
+  metadata?: Prisma.InputJsonValue;
+};
+
+type GetReportExportJobInput = ReportInput & {
+  exportJobId?: string;
+};
+
+type TransitionReportExportJobInput = {
+  organizationId?: string;
+  exportJobId?: string;
+  status?: string;
+  filePath?: string;
+  objectKey?: string;
+  errorMessage?: string;
+  completedAt?: Date;
+  expiresAt?: Date;
 };
 
 type ReportSection = {
@@ -150,6 +180,79 @@ export class ReportsService {
     };
   }
 
+  async createExportJob(input: CreateReportExportJobInput) {
+    const actor = await this.requireActor(input);
+    const reportType = normalizeReportType(input.reportType);
+    const format = normalizeReportExportFormat(input.format);
+
+    this.assertReportAccess(actor, reportType);
+
+    return this.prisma.reportExportJob.create({
+      data: {
+        organizationId: actor.organizationId,
+        requestedByUserId: actor.actorUserId,
+        reportType,
+        format,
+        status: 'queued',
+        metadata: input.metadata,
+      },
+    });
+  }
+
+  async getExportJob(input: GetReportExportJobInput) {
+    const actor = await this.requireActor(input);
+    const exportJobId = required(input.exportJobId, 'exportJobId');
+    const exportJob = await this.prisma.reportExportJob.findFirst({
+      where: {
+        id: exportJobId,
+        organizationId: actor.organizationId,
+      },
+    });
+
+    if (!exportJob) {
+      throw new NotFoundException('Report export job not found');
+    }
+
+    this.assertReportAccess(actor, normalizeReportType(exportJob.reportType));
+
+    return exportJob;
+  }
+
+  async transitionExportJob(input: TransitionReportExportJobInput) {
+    const organizationId = required(input.organizationId, 'organizationId');
+    const exportJobId = required(input.exportJobId, 'exportJobId');
+    const status = normalizeReportExportStatus(input.status);
+    const exportJob = await this.prisma.reportExportJob.findFirst({
+      where: {
+        id: exportJobId,
+        organizationId,
+      },
+    });
+
+    if (!exportJob) {
+      throw new NotFoundException('Report export job not found');
+    }
+
+    assertReportExportTransition(exportJob.status, status);
+
+    return this.prisma.reportExportJob.update({
+      where: {
+        id: exportJob.id,
+      },
+      data: {
+        status,
+        filePath: input.filePath,
+        objectKey: input.objectKey,
+        errorMessage: input.errorMessage,
+        completedAt:
+          status === 'completed'
+            ? input.completedAt || new Date()
+            : input.completedAt,
+        expiresAt: input.expiresAt,
+      },
+    });
+  }
+
   private async requireActor(input: ReportInput): Promise<ActorReportContext> {
     const organizationId = required(input.organizationId, 'organizationId');
     const actorUserId = required(input.actorUserId, 'actorUserId');
@@ -183,6 +286,19 @@ export class ReportsService {
     return actor.roleCodes.some((roleCode) =>
       procurementReportRoles.has(roleCode),
     );
+  }
+
+  private assertReportAccess(
+    actor: ActorReportContext,
+    reportType: ReportType,
+  ) {
+    if (reportType === 'finance' && !this.canViewFinance(actor)) {
+      throw new ForbiddenException('Finance report access denied');
+    }
+
+    if (reportType === 'procurement' && !this.canViewProcurement(actor)) {
+      throw new ForbiddenException('Procurement report access denied');
+    }
   }
 
   private async procurementCounts(organizationId: string) {
