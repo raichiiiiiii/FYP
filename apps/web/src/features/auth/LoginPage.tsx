@@ -128,7 +128,7 @@ export function LoginPage() {
   })
 
   return (
-    <main className="entry-page">
+    <div className="entry-page">
       <header className="entry-topbar">
         <div className="entry-brand">
           <span className="entry-logo" aria-hidden="true">
@@ -285,6 +285,6 @@ export function LoginPage() {
           </section>
         </div>
       </section>
-    </main>
+    </div>
   )
 }
