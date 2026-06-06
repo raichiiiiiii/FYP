@@ -1,11 +1,11 @@
-# Report DTO And JSON Export Evidence
+# Report DTO, JSON, And CSV Export Evidence
 
 ## Status
 
 Implemented for the current FYP review scope.
 
 The reports module now provides backend-owned aggregate DTOs and audited JSON
-exports for:
+and CSV exports for:
 
 - procurement
 - finance
@@ -23,8 +23,8 @@ implemented.
 | Export model | `apps/api/prisma/schema.prisma` -> `ReportExportJob` |
 | Migration | `apps/api/prisma/migrations/20260606003000_report_export_job/` |
 | Frontend UI | `apps/web/src/features/reports/` |
-| E2E proof | `tests/e2e/16-reports-export-flow.spec.ts` |
-| Screenshot | `../uat/reports-json-export-flow.png` |
+| E2E proof | `tests/e2e/16-reports-export-flow.spec.ts`, `tests/e2e/23-reports-csv-export-flow.spec.ts` |
+| Screenshots | `../uat/reports-json-export-flow.png`, `../uat/reports-csv-export-flow.png` |
 
 ## API Endpoints
 
@@ -35,9 +35,9 @@ implemented.
 | `GET /api/v1/reports/finance` | Finance aggregate counts and status breakdowns. Requires a finance-capable role. |
 | `GET /api/v1/reports/audit` | Audit event, hash record, and anchor counts. |
 | `GET /api/v1/reports/integrations` | Outbox, reconciliation, webhook, and worker heartbeat counts. |
-| `POST /api/v1/reports/exports` | Creates an export job, writes a JSON artifact, and audits request/completion/failure. |
+| `POST /api/v1/reports/exports` | Creates an export job, writes a JSON or CSV artifact, and audits request/completion/failure. |
 | `GET /api/v1/reports/exports/:id` | Reads export job status with organization and role checks. |
-| `GET /api/v1/reports/exports/:id/download` | Streams a completed JSON artifact and audits download. |
+| `GET /api/v1/reports/exports/:id/download` | Streams a completed JSON or CSV artifact and audits download. |
 
 ## Role And Safety Rules
 
@@ -47,9 +47,9 @@ implemented.
 - Procurement reports are restricted to procurement-capable roles, approvers,
   auditors, and organization admins.
 - Export jobs preserve the same report access checks as the DTO endpoints.
-- Exported JSON contains aggregate report DTO data, not PEM material, secrets,
+- Exported JSON and CSV contain aggregate report DTO data, not PEM material, secrets,
   credentials, or confidential Fabric payloads.
-- JSON export success is not treated as Fabric verification proof.
+- Report export success is not treated as Fabric verification proof.
 
 ## Sanitized Export Shape
 
@@ -78,6 +78,15 @@ implemented.
 }
 ```
 
+CSV exports use deterministic `section,metric,value` columns. Example:
+
+```csv
+section,metric,value
+report,type,procurement
+counts,invoices,1
+counts,purchaseOrders,1
+```
+
 ## Verification Commands
 
 ```powershell
@@ -86,6 +95,7 @@ corepack pnpm --dir apps/api test:unit -- reports
 corepack pnpm --dir apps/api test:integration -- reports
 corepack pnpm --dir apps/web test -- reports
 corepack pnpm test:e2e -- tests/e2e/16-reports-export-flow.spec.ts
+corepack pnpm test:e2e -- tests/e2e/23-reports-csv-export-flow.spec.ts
 corepack pnpm lint
 corepack pnpm typecheck
 corepack pnpm build
@@ -97,15 +107,18 @@ Latest targeted result:
 - API reports integration tests: passed.
 - Web reports model tests: passed.
 - Reports Playwright E2E: passed.
+- Reports CSV Playwright E2E: passed.
 - Lint/typecheck/build: passed.
 
 ## Screenshot
 
 ![Reports JSON export flow](../uat/reports-json-export-flow.png)
 
+![Reports CSV export flow](../uat/reports-csv-export-flow.png)
+
 ## Known Limitations
 
-- JSON is the only implemented export format.
+- JSON and CSV are the implemented export formats.
 - PDF, spreadsheet, scheduled, and regulatory formatted report packs remain
   post-demo hardening.
 - Exported reports are aggregate review artifacts; they are not automatically
