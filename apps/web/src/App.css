@@ -5724,6 +5724,148 @@ textarea {
   border-left-color: var(--danger);
 }
 
+.fabric-governance-hero {
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.7fr);
+  margin-bottom: 20px;
+  padding: 22px;
+}
+
+.fabric-governance-hero span,
+.fabric-governance-panel > p,
+.fabric-governance-limitations li,
+.fabric-governance-proposal p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fabric-governance-hero h2 {
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 6px 0 10px;
+}
+
+.fabric-governance-hero p,
+.fabric-governance-hero article p {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.fabric-governance-hero article {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.fabric-governance-hero article strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.fabric-governance-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  margin-bottom: 20px;
+}
+
+.fabric-governance-panel,
+.fabric-governance-detail {
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.fabric-governance-panel h2,
+.fabric-governance-limitations h3 {
+  color: #0f172a;
+  font-size: 18px;
+  margin: 0;
+}
+
+.fabric-channel-list,
+.fabric-governance-list {
+  display: grid;
+  gap: 10px;
+}
+
+.fabric-channel-card,
+.fabric-governance-list article,
+.fabric-governance-proposal {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  text-align: left;
+}
+
+.fabric-channel-card {
+  cursor: pointer;
+}
+
+.fabric-channel-card--active {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
+}
+
+.fabric-channel-card span,
+.fabric-governance-list article span,
+.fabric-governance-proposal span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fabric-channel-card strong,
+.fabric-governance-list article strong,
+.fabric-governance-proposal strong {
+  color: #0f172a;
+  font-size: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fabric-governance-limitations {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.fabric-governance-limitations ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.fabric-governance-subform,
+.fabric-governance-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.fabric-governance-actions {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -6076,7 +6218,9 @@ textarea {
   }
 
   .evidence-package-hero,
-  .evidence-package-grid {
+  .evidence-package-grid,
+  .fabric-governance-hero,
+  .fabric-governance-grid {
     grid-template-columns: 1fr;
   }
 

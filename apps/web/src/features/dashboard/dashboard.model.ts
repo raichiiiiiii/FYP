@@ -23,6 +23,8 @@ const appRoleToDashboardRole: Record<AppRoleCode, DashboardRole> = {
   SHARIAH_REVIEWER: 'shariah_reviewer',
   AUDITOR: 'auditor',
   DEVELOPER_INTEGRATOR: 'developer',
+  FABRIC_GOVERNANCE_ADMIN: 'sme_admin',
+  PLATFORM_OPERATOR: 'developer',
 }
 
 export function resolveDashboardRole(roleCodes: AppRoleCode[]): DashboardRole {

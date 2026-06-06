@@ -527,6 +527,20 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     ],
   },
   {
+    path: '/fabric-governance',
+    label: 'Fabric Governance',
+    module: 'Integrations',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: true,
+    requiredRoleCodes: [
+      'ORG_ADMIN',
+      'FABRIC_GOVERNANCE_ADMIN',
+      'PLATFORM_OPERATOR',
+      'AUDITOR',
+    ],
+  },
+  {
     path: '/operations',
     label: 'Operations Health',
     module: 'Operations',

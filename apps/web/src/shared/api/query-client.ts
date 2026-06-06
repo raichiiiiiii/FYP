@@ -203,4 +203,25 @@ export const queryKeys = {
     webhookSubscriptions: (organizationId?: string | null) =>
       scopedKey('integrations', 'webhook-subscriptions', organizationId),
   },
+  fabricGovernance: {
+    channels: (organizationId?: string | null, actorUserId?: string | null) =>
+      [
+        'fabric-governance',
+        'channels',
+        organizationId ?? 'global',
+        actorUserId ?? 'anonymous',
+      ] as const,
+    readiness: (
+      channelId?: string | null,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      [
+        'fabric-governance',
+        'readiness',
+        channelId ?? 'none',
+        organizationId ?? 'global',
+        actorUserId ?? 'anonymous',
+      ] as const,
+  },
 }

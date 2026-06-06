@@ -40,6 +40,8 @@ export type AppRoleCode =
   | 'SHARIAH_REVIEWER'
   | 'AUDITOR'
   | 'DEVELOPER_INTEGRATOR'
+  | 'FABRIC_GOVERNANCE_ADMIN'
+  | 'PLATFORM_OPERATOR'
 
 export type AppPermission =
   | 'users:create'
@@ -48,6 +50,8 @@ export type AppPermission =
   | 'finance:review'
   | 'shariah:review'
   | 'audit:read'
+  | 'fabric:governance'
+  | 'fabric:operate'
 
 export type DependencyStatus = 'ok' | 'error'
 

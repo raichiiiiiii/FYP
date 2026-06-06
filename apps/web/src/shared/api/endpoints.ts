@@ -355,4 +355,79 @@ export const endpoints = {
     createWebhookSubscription: '/integrations/webhooks/subscriptions',
     webhookDelivery: '/integrations/webhooks/deliveries',
   },
+  fabricGovernance: {
+    networks: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery('/fabric/networks', { organizationId, actorUserId }),
+    createNetwork: '/fabric/networks',
+    channels: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery('/fabric/channels', { organizationId, actorUserId }),
+    createChannel: '/fabric/channels',
+    channel: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery(`/fabric/channels/${id}`, { organizationId, actorUserId }),
+    readiness: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/fabric/channels/${id}/readiness`, {
+        organizationId,
+        actorUserId,
+      }),
+    invitations: (
+      channelId: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/fabric/channels/${channelId}/invitations`, {
+        organizationId,
+        actorUserId,
+      }),
+    createInvitation: (channelId: string) =>
+      `/fabric/channels/${channelId}/invitations`,
+    acceptInvitation: (id: string) => `/fabric/channel-invitations/${id}/accept`,
+    revokeInvitation: (id: string) => `/fabric/channel-invitations/${id}/revoke`,
+    memberships: (
+      channelId: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/fabric/channels/${channelId}/memberships`, {
+        organizationId,
+        actorUserId,
+      }),
+    createProposal: (channelId: string) =>
+      `/fabric/channels/${channelId}/proposals`,
+    proposal: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/fabric/channel-proposals/${id}`, {
+        organizationId,
+        actorUserId,
+      }),
+    approveProposal: (id: string) => `/fabric/channel-proposals/${id}/approve`,
+    rejectProposal: (id: string) => `/fabric/channel-proposals/${id}/reject`,
+    cancelProposal: (id: string) => `/fabric/channel-proposals/${id}/cancel`,
+    operatorExecution: (id: string) =>
+      `/fabric/channel-proposals/${id}/operator-execution`,
+    operatorFailure: (id: string) =>
+      `/fabric/channel-proposals/${id}/operator-failure`,
+    evidence: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/fabric/channel-proposals/${id}/evidence`, {
+        organizationId,
+        actorUserId,
+      }),
+  },
 } as const

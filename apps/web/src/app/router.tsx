@@ -20,6 +20,7 @@ import { Dashboard } from '../features/dashboard/Dashboard'
 import { EvidenceRoute } from '../features/evidence/EvidenceRoute'
 import { EvidencePackageRoute } from '../features/evidence-package/EvidencePackageRoute'
 import { FinanceRoute } from '../features/finance/FinanceRoute'
+import { FabricGovernanceRoute } from '../features/fabric-governance/FabricGovernanceRoute'
 import { GraphRoute } from '../features/graph/GraphRoute'
 import { InboxRoute } from '../features/inbox/InboxRoute'
 import { RolesAdmin } from '../features/identity/RolesAdmin'
@@ -79,6 +80,17 @@ function IntegrationsRouteAdapter() {
         authorization.roleCodes.includes('ORG_ADMIN') ||
         authorization.roleCodes.includes('DEVELOPER_INTEGRATOR')
       }
+    />
+  )
+}
+
+function FabricGovernanceRouteAdapter() {
+  const { authorization, session } = useAppSession()
+
+  return (
+    <FabricGovernanceRoute
+      session={session}
+      roleCodes={authorization.roleCodes}
     />
   )
 }
@@ -210,6 +222,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <IntegrationsRouteAdapter />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/fabric-governance"
+            element={
+              <RequireAuth>
+                <FabricGovernanceRouteAdapter />
               </RequireAuth>
             }
           />
