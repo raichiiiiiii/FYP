@@ -47,7 +47,7 @@ The round improved these production UI areas:
 - audit, evidence, hash verification, source-record links, and Fabric anchor state wording
 - read-only project network canvas with permission-filtered graph data
 - integrations and operations health views with mock/degraded/unavailable states
-- admin users/roles and reports surfaces with disabled export honesty
+- admin users/roles and reports surfaces; reports now support audited JSON exports
 - shared loading, empty, error, dialog, table, field, focus, and mobile/responsive behavior
 
 ## Figma Alignment Notes
@@ -78,7 +78,8 @@ Key compliance outcomes:
 - Mudarabah P/L UI continues to avoid guaranteed fixed returns.
 - Fabric verification UI distinguishes pending, submitted, verified, failed,
   unavailable, and mock states.
-- Report exports stay disabled where backend export endpoints are not present.
+- Report exports support audited JSON for the current FYP review scope; PDF,
+  spreadsheet, scheduled, and regulatory report packs remain future hardening.
 - Dev login and OIDC limitations are explicitly documented.
 - Mock adapters remain labelled and routed through integration/outbox surfaces.
 

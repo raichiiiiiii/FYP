@@ -35,4 +35,8 @@ test('SRS-REPORT-001 reports page loads backend DTOs and downloads JSON export',
   await expect(
     page.getByText('Procurement source-to-pay JSON export downloaded.'),
   ).toBeVisible();
+  await page.screenshot({
+    path: 'docs/evidence/uat/reports-json-export-flow.png',
+    fullPage: true,
+  });
 });
