@@ -219,6 +219,39 @@ export const endpoints = {
       scopedPath('/closures', organizationId),
     create: '/closures',
   },
+  reports: {
+    summary: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery('/reports/summary', { organizationId, actorUserId }),
+    procurement: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery('/reports/procurement', { organizationId, actorUserId }),
+    finance: (organizationId?: string | null, actorUserId?: string | null) =>
+      withQuery('/reports/finance', { organizationId, actorUserId }),
+    audit: (organizationId?: string | null, actorUserId?: string | null) =>
+      withQuery('/reports/audit', { organizationId, actorUserId }),
+    integrations: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery('/reports/integrations', { organizationId, actorUserId }),
+    exports: '/reports/exports',
+    exportJob: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) => withQuery(`/reports/exports/${id}`, { organizationId, actorUserId }),
+    exportDownload: (
+      id: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/reports/exports/${id}/download`, {
+        organizationId,
+        actorUserId,
+      }),
+  },
   graph: {
     project: (
       projectId: string,

@@ -1,39 +1,125 @@
-export type ReportCategory = 'procurement' | 'finance' | 'audit' | 'integration'
+export type ReportCategory =
+  | 'procurement'
+  | 'finance'
+  | 'audit'
+  | 'integrations'
 
-export type ReportStatus = 'api_backed' | 'partial' | 'blocked'
+export type ReportStatus = 'api_backed' | 'partial' | 'empty' | 'restricted'
 
-export type ReportRecord = Record<string, unknown>
+export type ReportSectionStatus = 'ready' | 'empty' | 'restricted'
 
-export type ReportsData = {
-  projects: ReportRecord[]
-  suppliers: ReportRecord[]
-  requisitions: ReportRecord[]
-  rfqs: ReportRecord[]
-  quotations: ReportRecord[]
-  purchaseOrders: ReportRecord[]
-  matchingRecords: ReportRecord[]
-  opportunities: ReportRecord[]
-  applications: ReportRecord[]
-  contracts: ReportRecord[]
-  ledgerEntries: ReportRecord[]
-  profitLossStatements: ReportRecord[]
-  closures: ReportRecord[]
-  auditEvents: ReportRecord[]
-  outboxEvents: ReportRecord[]
-  reconciliationRecords: ReportRecord[]
-  webhookSubscriptions: ReportRecord[]
+export type ReportSectionDto = {
+  id: ReportCategory
+  label: string
+  total: number
+  status: ReportSectionStatus
+}
+
+export type ReportsSummaryDto = {
+  organizationId: string
+  generatedAt: string
+  sections: ReportSectionDto[]
+  totals: {
+    procurement: number
+    finance: number
+    audit: number
+    integrations: number
+  }
+}
+
+export type ProcurementReportDto = {
+  organizationId: string
+  generatedAt: string
+  counts: {
+    projects: number
+    suppliers: number
+    requisitions: number
+    rfqs: number
+    quotations: number
+    purchaseOrders: number
+    receipts: number
+    invoices: number
+    total: number
+  }
+  requisitionsByStatus: Record<string, number>
+  purchaseOrdersByStatus: Record<string, number>
+  invoicesByStatus: Record<string, number>
+}
+
+export type FinanceReportDto = {
+  organizationId: string
+  generatedAt: string
+  counts: {
+    opportunities: number
+    applications: number
+    contracts: number
+    disbursements: number
+    ledgerEntries: number
+    profitLossStatements: number
+    closures: number
+    lossExceptions: number
+    total: number
+  }
+  opportunitiesByStatus: Record<string, number>
+  applicationsByStatus: Record<string, number>
+  contractsByStatus: Record<string, number>
+  disbursementsByStatus: Record<string, number>
+}
+
+export type AuditReportDto = {
+  organizationId: string
+  generatedAt: string
+  counts: {
+    events: number
+    hashRecords: number
+    anchors: number
+    failedAnchors: number
+    pendingAnchors: number
+    total: number
+  }
+  anchorsByStatus: Record<string, number>
+  hashRecordsByEntityType: Record<string, number>
+}
+
+export type IntegrationReportDto = {
+  organizationId: string
+  generatedAt: string
+  counts: {
+    outboxEvents: number
+    outboxPending: number
+    outboxFailed: number
+    reconciliationRecords: number
+    webhookSubscriptions: number
+    workerHeartbeats: number
+    total: number
+  }
+  outboxByStatus: Record<string, number>
+  reconciliationByStatus: Record<string, number>
+}
+
+export type ReportDtoByCategory = {
+  procurement?: ProcurementReportDto
+  finance?: FinanceReportDto
+  audit?: AuditReportDto
+  integrations?: IntegrationReportDto
+}
+
+export type ReportsViewData = {
+  summary: ReportsSummaryDto
+  reports: ReportDtoByCategory
 }
 
 export type ReportSummary = {
   procurementRecords: number
   financeRecords: number
-  auditEvents: number
+  auditRecords: number
   integrationRecords: number
-  blockedExports: number
+  jsonExportsAvailable: number
+  restrictedReports: number
 }
 
 export type ReportCard = {
-  id: string
+  id: ReportCategory
   category: ReportCategory
   title: string
   description: string
@@ -42,158 +128,31 @@ export type ReportCard = {
   secondaryMetric: string
   source: string
   route: string
-  exportStatus: 'not_available'
+  exportStatus: 'available' | 'restricted'
 }
 
-const emptyReportsData: ReportsData = {
-  projects: [],
-  suppliers: [],
-  requisitions: [],
-  rfqs: [],
-  quotations: [],
-  purchaseOrders: [],
-  matchingRecords: [],
-  opportunities: [],
-  applications: [],
-  contracts: [],
-  ledgerEntries: [],
-  profitLossStatements: [],
-  closures: [],
-  auditEvents: [],
-  outboxEvents: [],
-  reconciliationRecords: [],
-  webhookSubscriptions: [],
-}
-
-export function createEmptyReportsData(): ReportsData {
-  return { ...emptyReportsData }
-}
-
-export function summarizeReports(data: ReportsData): ReportSummary {
-  const procurementRecords =
-    data.projects.length +
-    data.suppliers.length +
-    data.requisitions.length +
-    data.rfqs.length +
-    data.quotations.length +
-    data.purchaseOrders.length +
-    data.matchingRecords.length
-  const financeRecords =
-    data.opportunities.length +
-    data.applications.length +
-    data.contracts.length +
-    data.ledgerEntries.length +
-    data.profitLossStatements.length +
-    data.closures.length
-  const integrationRecords =
-    data.outboxEvents.length +
-    data.reconciliationRecords.length +
-    data.webhookSubscriptions.length
+export function summarizeReports(data: ReportsViewData): ReportSummary {
+  const cards = buildReportCards(data)
 
   return {
-    procurementRecords,
-    financeRecords,
-    auditEvents: data.auditEvents.length,
-    integrationRecords,
-    blockedExports: buildReportCards(data).filter(
-      (card) => card.exportStatus === 'not_available',
+    procurementRecords: data.summary.totals.procurement,
+    financeRecords: data.summary.totals.finance,
+    auditRecords: data.summary.totals.audit,
+    integrationRecords: data.summary.totals.integrations,
+    jsonExportsAvailable: cards.filter(
+      (card) => card.exportStatus === 'available',
     ).length,
+    restrictedReports: cards.filter((card) => card.status === 'restricted')
+      .length,
   }
 }
 
-export function buildReportCards(data: ReportsData): ReportCard[] {
+export function buildReportCards(data: ReportsViewData): ReportCard[] {
   return [
-    {
-      id: 'procurement-source-to-pay',
-      category: 'procurement',
-      title: 'Procurement source-to-pay',
-      description:
-        'Projects, suppliers, requisitions, RFQs, quotations, purchase orders, and matching records visible to the current organization.',
-      status: statusFromCount(
-        data.requisitions.length + data.purchaseOrders.length,
-        data.matchingRecords.length,
-      ),
-      primaryMetric: `${data.requisitions.length} requisitions`,
-      secondaryMetric: `${data.purchaseOrders.length} purchase orders / ${data.matchingRecords.length} matching records`,
-      source: 'API-backed procurement list endpoints',
-      route: '/procurement/requisitions',
-      exportStatus: 'not_available',
-    },
-    {
-      id: 'procurement-sourcing',
-      category: 'procurement',
-      title: 'Sourcing and supplier coverage',
-      description:
-        'Supplier, RFQ, and quotation coverage for reviewers checking whether procurement evidence is ready for financing.',
-      status: statusFromCount(
-        data.suppliers.length + data.rfqs.length + data.quotations.length,
-      ),
-      primaryMetric: `${data.suppliers.length} suppliers`,
-      secondaryMetric: `${data.rfqs.length} RFQs / ${data.quotations.length} quotations`,
-      source: 'API-backed supplier and sourcing lists',
-      route: '/procurement/suppliers',
-      exportStatus: 'not_available',
-    },
-    {
-      id: 'finance-pipeline',
-      category: 'finance',
-      title: 'Mudarabah finance pipeline',
-      description:
-        'Opportunity, application, contract, ledger, profit/loss, and closure records for the current organization.',
-      status: statusFromCount(
-        data.opportunities.length + data.applications.length,
-        data.contracts.length + data.closures.length,
-      ),
-      primaryMetric: `${data.applications.length} applications`,
-      secondaryMetric: `${data.opportunities.length} opportunities / ${data.contracts.length} contracts`,
-      source: 'API-backed finance list endpoints',
-      route: '/finance/applications',
-      exportStatus: 'not_available',
-    },
-    {
-      id: 'finance-ledger-pl',
-      category: 'finance',
-      title: 'Ledger and profit/loss evidence',
-      description:
-        'Project ledger and P/L statement counts. This report does not calculate guaranteed fixed returns.',
-      status: statusFromCount(
-        data.ledgerEntries.length + data.profitLossStatements.length,
-      ),
-      primaryMetric: `${data.ledgerEntries.length} ledger entries`,
-      secondaryMetric: `${data.profitLossStatements.length} P/L statements / ${data.closures.length} closures`,
-      source: 'API-backed ledger and P/L lists',
-      route: '/finance/ledgers',
-      exportStatus: 'not_available',
-    },
-    {
-      id: 'audit-evidence',
-      category: 'audit',
-      title: 'Audit and evidence events',
-      description:
-        'Audit-event volume for reviewers. Hash, anchor, and closure verification must be checked in audit/evidence screens.',
-      status: statusFromCount(data.auditEvents.length),
-      primaryMetric: `${data.auditEvents.length} audit events`,
-      secondaryMetric: 'Hash and anchor verification remains source-screen based',
-      source: 'API-backed audit event list',
-      route: '/audit/search',
-      exportStatus: 'not_available',
-    },
-    {
-      id: 'integration-outbox',
-      category: 'integration',
-      title: 'Integration outbox and reconciliation',
-      description:
-        'Outbox, reconciliation, and webhook records for mock adapter review. Completed mock records are not real provider health.',
-      status: statusFromCount(
-        data.outboxEvents.length,
-        data.reconciliationRecords.length + data.webhookSubscriptions.length,
-      ),
-      primaryMetric: `${data.outboxEvents.length} outbox events`,
-      secondaryMetric: `${data.reconciliationRecords.length} reconciliation / ${data.webhookSubscriptions.length} webhooks`,
-      source: 'API-backed integration lists',
-      route: '/integrations',
-      exportStatus: 'not_available',
-    },
+    procurementCard(data),
+    financeCard(data),
+    auditCard(data),
+    integrationsCard(data),
   ]
 }
 
@@ -201,20 +160,122 @@ export function reportStatusLabel(status: ReportStatus) {
   const labels: Record<ReportStatus, string> = {
     api_backed: 'API-backed',
     partial: 'Partial',
-    blocked: 'Blocked',
+    empty: 'Empty',
+    restricted: 'Restricted',
   }
 
   return labels[status]
 }
 
-function statusFromCount(primaryCount: number, supportingCount = 0): ReportStatus {
-  if (primaryCount > 0 && supportingCount > 0) {
-    return 'api_backed'
+function procurementCard(data: ReportsViewData): ReportCard {
+  const report = data.reports.procurement
+
+  return {
+    id: 'procurement',
+    category: 'procurement',
+    title: 'Procurement source-to-pay',
+    description:
+      'Backend-owned procurement report covering projects, suppliers, requisitions, RFQs, quotations, purchase orders, receipts, and invoices.',
+    status: statusFor(data, 'procurement', report),
+    primaryMetric: `${report?.counts.requisitions ?? 0} requisitions`,
+    secondaryMetric: `${report?.counts.purchaseOrders ?? 0} purchase orders / ${
+      report?.counts.invoices ?? 0
+    } invoices`,
+    source: 'Reports API procurement DTO',
+    route: '/procurement/requisitions',
+    exportStatus: exportStatusFor(data, 'procurement'),
+  }
+}
+
+function financeCard(data: ReportsViewData): ReportCard {
+  const report = data.reports.finance
+
+  return {
+    id: 'finance',
+    category: 'finance',
+    title: 'Mudarabah finance pipeline',
+    description:
+      'Backend-owned finance report for opportunities, applications, contracts, ledger/P&L, closure, and loss exception counts. It does not calculate guaranteed fixed returns.',
+    status: statusFor(data, 'finance', report),
+    primaryMetric: `${report?.counts.applications ?? 0} applications`,
+    secondaryMetric: `${report?.counts.contracts ?? 0} contracts / ${
+      report?.counts.lossExceptions ?? 0
+    } loss exceptions`,
+    source: 'Reports API finance DTO',
+    route: '/finance/applications',
+    exportStatus: exportStatusFor(data, 'finance'),
+  }
+}
+
+function auditCard(data: ReportsViewData): ReportCard {
+  const report = data.reports.audit
+
+  return {
+    id: 'audit',
+    category: 'audit',
+    title: 'Audit and evidence integrity',
+    description:
+      'Backend-owned audit report covering audit events, hash records, and anchor status counts. Fabric verification remains source-record specific.',
+    status: statusFor(data, 'audit', report),
+    primaryMetric: `${report?.counts.events ?? 0} audit events`,
+    secondaryMetric: `${report?.counts.hashRecords ?? 0} hash records / ${
+      report?.counts.anchors ?? 0
+    } anchors`,
+    source: 'Reports API audit DTO',
+    route: '/audit/search',
+    exportStatus: exportStatusFor(data, 'audit'),
+  }
+}
+
+function integrationsCard(data: ReportsViewData): ReportCard {
+  const report = data.reports.integrations
+
+  return {
+    id: 'integrations',
+    category: 'integrations',
+    title: 'Integrations and operations',
+    description:
+      'Backend-owned integration report for outbox, reconciliation, webhook, and worker heartbeat records. Mock adapters remain labelled outside this report.',
+    status: statusFor(data, 'integrations', report),
+    primaryMetric: `${report?.counts.outboxEvents ?? 0} outbox events`,
+    secondaryMetric: `${report?.counts.reconciliationRecords ?? 0} reconciliation / ${
+      report?.counts.workerHeartbeats ?? 0
+    } worker heartbeats`,
+    source: 'Reports API integrations DTO',
+    route: '/integrations',
+    exportStatus: exportStatusFor(data, 'integrations'),
+  }
+}
+
+function statusFor(
+  data: ReportsViewData,
+  category: ReportCategory,
+  report:
+    | ProcurementReportDto
+    | FinanceReportDto
+    | AuditReportDto
+    | IntegrationReportDto
+    | undefined,
+): ReportStatus {
+  const section = data.summary.sections.find((item) => item.id === category)
+
+  if (section?.status === 'restricted') {
+    return 'restricted'
   }
 
-  if (primaryCount > 0) {
+  if (!report && section?.status === 'ready') {
     return 'partial'
   }
 
-  return 'blocked'
+  if ((section?.total ?? 0) > 0) {
+    return 'api_backed'
+  }
+
+  return 'empty'
+}
+
+function exportStatusFor(data: ReportsViewData, category: ReportCategory) {
+  const section = data.summary.sections.find((item) => item.id === category)
+
+  return section?.status === 'restricted' ? 'restricted' : 'available'
 }

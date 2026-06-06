@@ -5,6 +5,7 @@ import { PageHeader } from '../../layouts/PageHeader'
 import { apiRequest } from '../../shared/api/client'
 import { endpoints } from '../../shared/api/endpoints'
 import { getErrorMessage } from '../../shared/api/errors'
+import { httpClient } from '../../shared/api/http-client'
 import { Button } from '../../shared/components/Button'
 import { EmptyState } from '../../shared/components/EmptyState'
 import { ErrorState } from '../../shared/components/ErrorState'
@@ -14,25 +15,42 @@ import type { AppSession, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
 import {
   buildReportCards,
-  createEmptyReportsData,
   reportStatusLabel,
   summarizeReports,
+  type AuditReportDto,
+  type FinanceReportDto,
+  type IntegrationReportDto,
+  type ProcurementReportDto,
+  type ReportCard,
   type ReportCategory,
-  type ReportRecord,
-  type ReportsData,
+  type ReportsSummaryDto,
+  type ReportsViewData,
 } from './reports.model'
 
 type ReportsPayload = {
-  data: ReportsData
+  data: ReportsViewData
   warnings: string[]
   loadedAt: string
+}
+
+type ExportState =
+  | { status: 'idle' }
+  | { status: 'working'; reportType: ReportCategory }
+  | { status: 'success'; message: string }
+  | { status: 'error'; message: string }
+
+type ReportExportJob = {
+  id: string
+  reportType: ReportCategory
+  format: 'json'
+  status: string
 }
 
 const reportTabs: Array<{ id: ReportCategory; label: string }> = [
   { id: 'procurement', label: 'Procurement' },
   { id: 'finance', label: 'Finance' },
   { id: 'audit', label: 'Audit' },
-  { id: 'integration', label: 'Integrations' },
+  { id: 'integrations', label: 'Integrations' },
 ]
 
 export function ReportsRoute({ session }: { session: AppSession }) {
@@ -41,135 +59,71 @@ export function ReportsRoute({ session }: { session: AppSession }) {
   const [state, setState] = useState<LoadState<ReportsPayload>>({
     status: 'loading',
   })
+  const [exportState, setExportState] = useState<ExportState>({
+    status: 'idle',
+  })
 
   const loadReports = useCallback(async (): Promise<ReportsPayload> => {
-    if (!session.organizationId) {
-      return {
-        data: createEmptyReportsData(),
-        warnings: ['Active organization context is required for reports.'],
-        loadedAt: new Date().toISOString(),
-      }
+    if (!session.organizationId || !session.actorUserId) {
+      throw new Error('Active organization and user context are required')
     }
 
-    const requests: Array<{
-      key: keyof ReportsData
-      label: string
-      path: string
-    }> = [
-      {
-        key: 'projects',
-        label: 'projects',
-        path: endpoints.projects.list(session.organizationId),
-      },
-      {
-        key: 'suppliers',
-        label: 'suppliers',
-        path: endpoints.suppliers.list(session.organizationId),
-      },
-      {
-        key: 'requisitions',
-        label: 'requisitions',
-        path: endpoints.requisitions.list(session.organizationId),
-      },
-      {
-        key: 'rfqs',
-        label: 'RFQs',
-        path: endpoints.rfqs.list(session.organizationId),
-      },
-      {
-        key: 'quotations',
-        label: 'quotations',
-        path: endpoints.quotations.list(session.organizationId),
-      },
-      {
-        key: 'purchaseOrders',
-        label: 'purchase orders',
-        path: endpoints.purchaseOrders.list(session.organizationId),
-      },
-      {
-        key: 'matchingRecords',
-        label: 'matching records',
-        path: endpoints.procurementOperations.matching(session.organizationId),
-      },
-      {
-        key: 'opportunities',
-        label: 'opportunities',
-        path: endpoints.opportunities.list(session.organizationId),
-      },
-      {
-        key: 'applications',
-        label: 'applications',
-        path: endpoints.applications.list(session.organizationId),
-      },
-      {
-        key: 'contracts',
-        label: 'contracts',
-        path: endpoints.contracts.list(session.organizationId),
-      },
-      {
-        key: 'ledgerEntries',
-        label: 'ledger entries',
-        path: endpoints.ledgers.entries(session.organizationId),
-      },
-      {
-        key: 'profitLossStatements',
-        label: 'profit/loss statements',
-        path: endpoints.profitLoss.statements(session.organizationId),
-      },
-      {
-        key: 'closures',
-        label: 'closures',
-        path: endpoints.closures.list(session.organizationId),
-      },
-      {
-        key: 'auditEvents',
-        label: 'audit events',
-        path: endpoints.auditEvents.list(session.organizationId),
-      },
-      {
-        key: 'outboxEvents',
-        label: 'outbox events',
-        path: endpoints.integrations.outbox(session.organizationId),
-      },
-      {
-        key: 'reconciliationRecords',
-        label: 'reconciliation records',
-        path: endpoints.integrations.reconciliation(session.organizationId),
-      },
-      {
-        key: 'webhookSubscriptions',
-        label: 'webhook subscriptions',
-        path: endpoints.integrations.webhookSubscriptions(
-          session.organizationId,
-        ),
-      },
-    ]
-
-    const results = await Promise.allSettled(
-      requests.map((request) => apiRequest<ReportRecord[]>(request.path)),
+    const organizationId = session.organizationId
+    const actorUserId = session.actorUserId
+    const summary = await apiRequest<ReportsSummaryDto>(
+      endpoints.reports.summary(organizationId, actorUserId),
     )
-    const data = createEmptyReportsData()
+    const detailRequests = reportTabs.map((tab) => ({
+      category: tab.id,
+      path: reportEndpoint(tab.id, organizationId, actorUserId),
+    }))
+    const detailResults = await Promise.allSettled(
+      detailRequests.map((request) => apiRequest<unknown>(request.path)),
+    )
+    const reports: ReportsViewData['reports'] = {}
     const warnings: string[] = []
 
-    results.forEach((result, index) => {
-      const request = requests[index]
+    detailResults.forEach((result, index) => {
+      const request = detailRequests[index]
 
       if (result.status === 'fulfilled') {
-        data[request.key] = Array.isArray(result.value) ? result.value : []
+        assignReport(reports, request.category, result.value)
         return
       }
 
       warnings.push(
-        `${request.label}: ${getErrorMessage(result.reason, 'Unable to load report source')}`,
+        `${labelFor(request.category)}: ${getErrorMessage(
+          result.reason,
+          'Unable to load report DTO',
+        )}`,
       )
     })
 
     return {
-      data,
+      data: {
+        summary,
+        reports,
+      },
       warnings,
       loadedAt: new Date().toISOString(),
     }
-  }, [session.organizationId])
+  }, [session.actorUserId, session.organizationId])
+
+  const refreshReports = useCallback(() => {
+    setState({ status: 'loading' })
+    setExportState({ status: 'idle' })
+
+    loadReports()
+      .then((payload) => {
+        setState({ status: 'ready', data: payload })
+      })
+      .catch((error: unknown) => {
+        setState({
+          status: 'error',
+          message: getErrorMessage(error, 'Unable to load reports'),
+        })
+      })
+  }, [loadReports])
 
   useEffect(() => {
     let cancelled = false
@@ -207,42 +161,104 @@ export function ReportsRoute({ session }: { session: AppSession }) {
     (card) => card.category === activeCategory,
   )
 
+  async function exportReport(card: ReportCard) {
+    if (card.exportStatus !== 'available') {
+      setExportState({
+        status: 'error',
+        message: `${card.title} is restricted for this role.`,
+      })
+      return
+    }
+
+    if (!session.organizationId || !session.actorUserId) {
+      setExportState({
+        status: 'error',
+        message: 'Active organization and user context are required.',
+      })
+      return
+    }
+
+    setExportState({ status: 'working', reportType: card.id })
+
+    try {
+      const exportJob = await apiRequest<ReportExportJob>(
+        endpoints.reports.exports,
+        {
+          method: 'POST',
+          body: {
+            organizationId: session.organizationId,
+            actorUserId: session.actorUserId,
+            reportType: card.id,
+            format: 'json',
+          },
+        },
+      )
+      const result = await httpClient.blob(
+        endpoints.reports.exportDownload(
+          exportJob.id,
+          session.organizationId,
+          session.actorUserId,
+        ),
+      )
+
+      downloadBlob(result.blob, reportExportFileName(result.fileName, exportJob))
+      setExportState({
+        status: 'success',
+        message: `${card.title} JSON export downloaded.`,
+      })
+    } catch (error: unknown) {
+      setExportState({
+        status: 'error',
+        message: getErrorMessage(error, 'Unable to export report'),
+      })
+    }
+  }
+
   return (
     <>
       <PageHeader
         eyebrow="Reports"
         title="Reports and review packs"
         action={
-          <Button type="button" disabled title="Report export endpoint not implemented">
-            Export unavailable
+          <Button type="button" variant="secondary" onClick={refreshReports}>
+            Refresh reports
           </Button>
         }
       />
 
       <section className="reports-hero" aria-label="Reports implementation status">
         <div>
-          <span>Read-only report catalogue</span>
-          <h2>Review current records without implying finished exports.</h2>
+          <span>Backend-owned report catalogue</span>
+          <h2>Review aggregate DTOs and export audited JSON artifacts.</h2>
           <p>
-            This page aggregates existing API list endpoints for demo review.
-            Dedicated report DTOs, scheduled exports, and downloadable report
-            files are still blocked backend work.
+            This page uses the Reports API as the source of truth for summary,
+            procurement, finance, audit, and integration counts. JSON exports
+            are generated by the backend and downloaded from object storage.
           </p>
         </div>
         <div className="reports-hero-status">
-          <strong>Exports are not implemented</strong>
+          <strong>JSON export supported</strong>
           <p>
-            Export buttons are disabled until report-generation endpoints exist.
-            Evidence packs remain the current downloadable review artifact.
+            PDF and spreadsheet exports are not implemented yet. Role-restricted
+            reports stay unavailable to unauthorized users.
           </p>
         </div>
       </section>
 
       {state.status === 'loading' ? (
-        <LoadingState message="Loading report source data..." />
+        <LoadingState message="Loading report DTOs..." />
       ) : null}
       {state.status === 'error' ? (
         <ErrorState title="Unable to load reports" message={state.message} />
+      ) : null}
+
+      {exportState.status === 'success' ? (
+        <section className="reports-hero-status" role="status">
+          <strong>{exportState.message}</strong>
+        </section>
+      ) : null}
+      {exportState.status === 'error' ? (
+        <ErrorState title="Report export failed" message={exportState.message} />
       ) : null}
 
       {payload && summary ? (
@@ -257,16 +273,20 @@ export function ReportsRoute({ session }: { session: AppSession }) {
               <strong>{summary.financeRecords}</strong>
             </article>
             <article>
-              <span>Audit events</span>
-              <strong>{summary.auditEvents}</strong>
+              <span>Audit records</span>
+              <strong>{summary.auditRecords}</strong>
             </article>
             <article>
               <span>Integration records</span>
               <strong>{summary.integrationRecords}</strong>
             </article>
             <article>
-              <span>Blocked exports</span>
-              <strong>{summary.blockedExports}</strong>
+              <span>JSON exports</span>
+              <strong>{summary.jsonExportsAvailable}</strong>
+            </article>
+            <article>
+              <span>Restricted reports</span>
+              <strong>{summary.restrictedReports}</strong>
             </article>
             <article>
               <span>Loaded</span>
@@ -308,39 +328,56 @@ export function ReportsRoute({ session }: { session: AppSession }) {
 
           {visibleCards.length ? (
             <section className="report-card-grid">
-              {visibleCards.map((card) => (
-                <article key={card.id} className="report-card">
-                  <div className="report-card-header">
-                    <div>
-                      <span>{card.source}</span>
-                      <h2>{card.title}</h2>
+              {visibleCards.map((card) => {
+                const isExporting =
+                  exportState.status === 'working' &&
+                  exportState.reportType === card.id
+                const exportDisabled =
+                  isExporting || card.exportStatus !== 'available'
+
+                return (
+                  <article key={card.id} className="report-card">
+                    <div className="report-card-header">
+                      <div>
+                        <span>{card.source}</span>
+                        <h2>{card.title}</h2>
+                      </div>
+                      <StatusBadge status={reportStatusLabel(card.status)} />
                     </div>
-                    <StatusBadge status={reportStatusLabel(card.status)} />
-                  </div>
-                  <p>{card.description}</p>
-                  <div className="details-grid report-metric-grid">
-                    <article>
-                      <span>Primary metric</span>
-                      <strong>{card.primaryMetric}</strong>
-                    </article>
-                    <article>
-                      <span>Secondary metric</span>
-                      <strong>{card.secondaryMetric}</strong>
-                    </article>
-                  </div>
-                  <div className="report-card-footer">
-                    <Link to={card.route}>Open source screen</Link>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled
-                      title="Dedicated report export endpoint is not implemented"
-                    >
-                      Export not available
-                    </Button>
-                  </div>
-                </article>
-              ))}
+                    <p>{card.description}</p>
+                    <div className="details-grid report-metric-grid">
+                      <article>
+                        <span>Primary metric</span>
+                        <strong>{card.primaryMetric}</strong>
+                      </article>
+                      <article>
+                        <span>Secondary metric</span>
+                        <strong>{card.secondaryMetric}</strong>
+                      </article>
+                    </div>
+                    <div className="report-card-footer">
+                      <Link to={card.route}>Open source screen</Link>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={exportDisabled}
+                        title={
+                          card.exportStatus === 'available'
+                            ? 'Generate and download JSON export'
+                            : 'Report restricted for this role'
+                        }
+                        onClick={() => void exportReport(card)}
+                      >
+                        {isExporting
+                          ? 'Preparing...'
+                          : card.exportStatus === 'available'
+                            ? 'Download JSON'
+                            : 'Restricted'}
+                      </Button>
+                    </div>
+                  </article>
+                )
+              })}
             </section>
           ) : (
             <EmptyState title="No reports in this section">
@@ -351,4 +388,61 @@ export function ReportsRoute({ session }: { session: AppSession }) {
       ) : null}
     </>
   )
+}
+
+function reportEndpoint(
+  category: ReportCategory,
+  organizationId: string,
+  actorUserId: string,
+) {
+  switch (category) {
+    case 'procurement':
+      return endpoints.reports.procurement(organizationId, actorUserId)
+    case 'finance':
+      return endpoints.reports.finance(organizationId, actorUserId)
+    case 'audit':
+      return endpoints.reports.audit(organizationId, actorUserId)
+    case 'integrations':
+      return endpoints.reports.integrations(organizationId, actorUserId)
+  }
+}
+
+function assignReport(
+  reports: ReportsViewData['reports'],
+  category: ReportCategory,
+  value: unknown,
+) {
+  switch (category) {
+    case 'procurement':
+      reports.procurement = value as ProcurementReportDto
+      break
+    case 'finance':
+      reports.finance = value as FinanceReportDto
+      break
+    case 'audit':
+      reports.audit = value as AuditReportDto
+      break
+    case 'integrations':
+      reports.integrations = value as IntegrationReportDto
+      break
+  }
+}
+
+function labelFor(category: ReportCategory) {
+  return reportTabs.find((tab) => tab.id === category)?.label ?? category
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+function reportExportFileName(fileName: string, exportJob: ReportExportJob) {
+  return fileName === 'download'
+    ? `${exportJob.reportType}-report-${exportJob.id}.json`
+    : fileName
 }
