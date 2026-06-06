@@ -87,7 +87,7 @@ state. The classifications are intentionally conservative:
 | Fabric API verification | API-side Fabric `ReadAnchor` verification endpoint for hash records. | `apps/api/src/modules/evidence/hash-records/` |
 | Real Fabric Gateway UAT proof | VM-local Fabric runtime proof with worker-submitted transaction, API-side `ReadAnchor` verification, transaction metadata, and reviewer-facing screenshots. | `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md`, `docs/evidence/uat/fabric-gateway-hash-record-verification.png`, `docs/evidence/uat/fabric-gateway-proof-panel.png` |
 | Fabric chaincode/local network | Audit anchor chaincode, local Fabric test network scripts, Gateway env export helper. | `chaincode/audit-anchor-go/`, `infra/fabric/` |
-| Graph/canvas | Read-only project graph with role-filtered procurement, finance, hash-record, and anchor overlay nodes. | `apps/api/src/modules/graph/`, `apps/web/src/features/graph/` |
+| Graph/canvas | Read-only project graph with role-filtered procurement, finance, hash-record, anchor overlay, backend risk metadata, URL filters, saved views, and no-leak E2E evidence. | `apps/api/src/modules/graph/`, `apps/web/src/features/graph/`, `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` |
 | Integrations | Integration status cards, Fabric runtime mode display, outbox visibility, retry/degraded/unavailable states. | `apps/api/src/modules/integrations/`, `apps/web/src/features/integrations/` |
 | Operations | Worker heartbeat model/API/UI for queue and worker liveness visibility. | `apps/api/prisma/schema.prisma`, `apps/api/src/modules/integrations/`, `apps/web/src/features/operations/` |
 | Admin and identity | Organization setup, role/user membership management, admin demo surfaces. | `apps/api/src/organizations/`, `apps/api/src/users/`, `apps/web/src/features/identity/` |
@@ -116,17 +116,20 @@ state. The classifications are intentionally conservative:
 
 ## Soon-To-Be Implemented Features
 
-These are the next practical implementation slices.
+Most original soon-to-be features are now implemented for the FYP review scope.
+The remaining items below are either production-auth completion or
+post-demo/product-hardening slices.
 
 | Priority | Feature | Implementation notes | Acceptance evidence |
 |---|---|---|---|
-| P1 | Production OIDC/invitation flow | Disable dev login by default in production, add OIDC callback and invite validation. | Auth E2E, audit events, UAT login screenshots. |
-| P1 | Report aggregate DTOs and exports | Add procurement, finance, audit, and integration report DTOs plus export jobs. | API tests, downloadable report artifacts, audit events. |
-| P1 | Loss exception workflow | Add reviewer classification endpoints and UI for genuine loss vs breach/negligence/fraud. | Workflow tests and UAT scenario. |
-| P2 | Accessibility automation | Add Playwright axe or equivalent checks for demo-critical routes. | CI accessibility report. |
-| P2 | Backup/restore proof | Add database/object-storage backup and restore scripts. | Restore run log and smoke-test evidence. |
-| P2 | Richer dashboard/procurement/finance summaries | Add backend-owned summary DTOs for queues, blockers, exceptions, and review readiness. | API tests and UI rendering tests. |
-| P3 | Graph saved views and risk scoring | Add backend-owned risk metadata, query-param filters, and optional saved views. | Graph API tests and E2E role-filtering tests. |
+| P1 | Production OIDC/invitation completion | Real provider token exchange/configuration, invitation UAT evidence, provider-specific callback deployment checks, and final auth docs. Dev login remains demo-only and disabled by default in production-like config. | Real-provider or agreed test-provider UAT evidence, auth E2E, audit events, invite acceptance screenshots. |
+| P1 | Report export hardening | JSON exports are implemented. Add PDF/spreadsheet formats, scheduled report packs, evidence-item registration, retention rules, and reviewer-ready layouts. | Downloadable sample PDF/spreadsheet artifacts, API/E2E tests, audit events, report evidence docs. |
+| P1 | Loss exception policy hardening | FYP workflow is implemented. Add exact legal/Shariah evidence thresholds, appeal/reopen governance, escalation SLAs, and exception analytics. | Policy-approved tests, reviewer UAT, updated domain docs. |
+| P2 | Accessibility hardening | Critical-route automation exists. Add CI separation, manual screen-reader review, mobile-specific accessibility checks, and documented exceptions. | CI/a11y logs, manual review notes, mobile screenshots. |
+| P2 | Backup/restore hardening | PostgreSQL proof exists. Add MinIO/object backup automation, scheduled backups, retention, restore drills, and off-VM storage. | Restore artifacts, smoke logs, backup retention evidence. |
+| P2 | Analytics and summary hardening | Backend dashboard/procurement/finance summaries exist. Add trends, SLA ageing, supplier scoring, sourcing analytics, and maverick-spend analysis. | API tests, UI evidence, analytics fixtures/seed data. |
+| P3 | Graph advanced hardening | Risk, filters, saved views, and no-leak tests exist. Add persisted node positions, annotations, team-curated defaults, and time-based risk ageing if approved. | Graph API/UI/E2E tests, no-leak assertions, evidence screenshots. |
+| P3 | External integration hardening | Mock/outbox boundary and Fabric Gateway demo proof exist. Add real ERP, e-signature, payment/finance provider, monitoring, and provider-specific reconciliation. | Adapter tests, sanitized integration evidence, operations/readiness screenshots. |
 
 ## Phased Implementation Plan For Soon-To-Be Features
 
@@ -291,7 +294,7 @@ Status values:
 | 9 | 9.4 Saved views API | Complete | `feat(graph): add saved graph views` | `corepack pnpm --dir apps/api exec prisma generate --schema prisma/schema.prisma`; `corepack pnpm --dir apps/api test:unit -- graph`; `corepack pnpm --dir apps/api test:integration -- graph`; `corepack pnpm lint`; `corepack pnpm typecheck`; `corepack pnpm build` | `GraphSavedView` persists private or organization-shared graph filter/layout views. API supports create/list/update/delete with active membership, owner/admin mutation checks, JSON validation, and integration coverage. | Frontend saved-view controls remain Slice 9.5. |
 | 9 | 9.5 Graph UI saved views/risk | Complete | `feat(graph): add risk overlay and saved view ui` | `corepack pnpm --dir apps/web test -- graph`; `corepack pnpm --dir apps/web typecheck`; `corepack pnpm test:e2e -- tests/e2e/12-read-only-project-graph.spec.ts`; `corepack pnpm lint`; `corepack pnpm typecheck`; `corepack pnpm build` | Graph UI renders backend risk reasons, URL-backed filters, saved-view create/apply/delete controls, and E2E proves saved anchor-only views restore without exposing finance context to procurement users. Screenshots refreshed under `docs/evidence/uat/graph-anchor-overlay-*.png`. | Evidence package update remains Slice 9.6. |
 | 9 | 9.6 Graph evidence/docs | Complete | `docs(graph): document risk scoring saved view evidence` | `corepack pnpm test:e2e -- tests/e2e/12-read-only-project-graph.spec.ts`; `corepack pnpm lint`; `corepack pnpm typecheck` | `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md`, `docs/roadmap/graph-risk-scoring-contract.md`, and UAT screenshots document graph risk, filters, saved views, and role no-leak behavior. | Persisted node positions and annotations remain post-demo hardening. |
-| 10 | 10.1 Final roadmap reconciliation | Planned | Pending | Pending | Pending final roadmap update. | Depends on prior phase outcomes. |
+| 10 | 10.1 Final roadmap reconciliation | Complete | `docs(roadmap): reconcile completed soon-to-be features` | `corepack pnpm lint`; `corepack pnpm typecheck` | Implemented/partial/soon-to-be sections now separate FYP-complete features from remaining production hardening, and graph risk/saved views are documented as implemented for review scope. | Evidence index remains Slice 10.2. |
 | 10 | 10.2 Final evidence index | Planned | Pending | Pending | Pending `docs/evidence/EVIDENCE_INDEX.md`. | Depends on evidence generated or blockers recorded. |
 | 10 | 10.3 Final test matrix | Planned | Pending | Pending | Pending `docs/testing/final-validation-matrix.md`. | Depends on available commands/results. |
 | 10 | 10.4 Full regression pass | Planned | Pending | Pending | Pending final validation results. | Block if non-environment validation fails. |
@@ -332,8 +335,8 @@ Future production auth should follow this path:
 
 1. Keep dev login behind `DEV_AUTH_ENABLED=true` or equivalent.
 2. Disable dev login by default in production.
-3. Add OIDC login with provider configuration and callback handling.
-4. Add invitation-token validation for organization onboarding.
+3. Finalize real-provider OIDC token exchange and deployment configuration.
+4. Complete invitation-token UAT evidence for organization onboarding.
 5. Audit membership creation, role assignment, invitation acceptance, and login-relevant admin changes.
 
 ## Implementation Rules For Future Agents
