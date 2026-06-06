@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase 7.2 PostgreSQL backup script is implemented. Restore and restore-smoke
+Phase 7.3 PostgreSQL backup and restore scripts are implemented. Restore-smoke
 scripts are added in later Phase 7 slices.
 
 ## Runtime Data Inventory
@@ -66,6 +66,40 @@ Minimum restore proof:
 5. Confirm dashboard, procurement, finance, audit/hash, and report/export smoke
    paths can read restored data.
 
+## PostgreSQL Restore
+
+Restore into a disposable database first:
+
+```bash
+scripts/backup/restore-postgres.sh \
+  --backup-file backups/mepn-postgres-YYYYMMDDTHHMMSSZ.sql.gz \
+  --compose-file docker-compose.prod.yml \
+  --env-file .env.production \
+  --database mepn_restore \
+  --yes
+```
+
+Dry-run validation:
+
+```bash
+scripts/backup/restore-postgres.sh \
+  --backup-file backups/mepn-postgres-YYYYMMDDTHHMMSSZ.sql.gz \
+  --dry-run
+```
+
+Restoring into the active app database is destructive and requires an explicit
+target database plus `--yes`:
+
+```bash
+scripts/backup/restore-postgres.sh \
+  --backup-file backups/mepn-postgres-YYYYMMDDTHHMMSSZ.sql.gz \
+  --database mepn \
+  --yes
+```
+
+Use the active-database command only after stopping app processes that may hold
+database connections, and only after confirming the target environment.
+
 ## Exclusions And Safety Rules
 
 - Do not print, commit, or archive PEM files, private keys, tokens, or VM SSH
@@ -79,7 +113,6 @@ Minimum restore proof:
 
 ## Known Gaps Before Later Phase 7 Slices
 
-- `scripts/backup/restore-postgres.sh` is not yet implemented.
 - `scripts/backup/smoke-restore.sh` is not yet implemented.
 - MinIO/object-storage backup automation remains a later enhancement; the first
   executable slice focuses on PostgreSQL proof.
