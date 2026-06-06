@@ -1,12 +1,24 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { createOrganizationViaApi, resetDatabase, setSession } from './helpers';
+import {
+  createApprovedFinanceApplicationViaApi,
+  createOrganizationViaApi,
+  resetDatabase,
+  setSession,
+} from './helpers';
 
 type RouteHealthCase = {
   route: string;
   label: string;
   screenshot: string;
+};
+
+type RouteCheck = {
+  path: string;
+  heading: string;
+  marker: string;
+  interact?: (page: Page) => Promise<void>;
 };
 
 type Diagnostic = {
@@ -17,12 +29,7 @@ type Diagnostic = {
   url?: string;
 };
 
-const screenshotDir = path.join(
-  'docs',
-  'evidence',
-  'ux',
-  'screenshots',
-);
+const screenshotDir = path.join('docs', 'evidence', 'ux', 'screenshots');
 
 const routeHealthCases: RouteHealthCase[] = [
   {
@@ -54,6 +61,53 @@ const routeHealthCases: RouteHealthCase[] = [
     route: '/operations',
     label: 'Operations',
     screenshot: 'before-operations-error.png',
+  },
+];
+
+const assignedRouteChecks: RouteCheck[] = [
+  {
+    path: '/dashboard',
+    heading: 'System health dashboard',
+    marker: 'What should happen next',
+    interact: async (page) => {
+      await page.getByRole('button', { name: 'Refresh health' }).click();
+      await expect(page.getByText('MEPN API')).toBeVisible();
+    },
+  },
+  {
+    path: '/finance/opportunities',
+    heading: 'Finance opportunities',
+    marker: 'Opportunity records',
+    interact: async (page) => {
+      await page.getByRole('button', { name: 'View applications' }).click();
+      await expect(page).toHaveURL(/\/finance\/applications$/);
+      await page.goto('/finance/opportunities');
+      await expect(
+        page.getByRole('heading', { name: 'Finance opportunities' }),
+      ).toBeVisible();
+    },
+  },
+  {
+    path: '/finance/applications',
+    heading: 'Application pipeline',
+    marker: 'Gate visibility, not list-based approval',
+    interact: async (page) => {
+      await page.getByRole('button', { name: 'Refresh' }).click();
+      await expect(
+        page.getByRole('button', { name: 'Open workspace' }),
+      ).toBeVisible();
+    },
+  },
+  {
+    path: '/finance/contracts',
+    heading: 'Contracts',
+    marker: 'Contract records',
+    interact: async (page) => {
+      await page.getByLabel('Signer email').fill('reviewer@example.test');
+      await expect(page.getByLabel('Signer email')).toHaveValue(
+        'reviewer@example.test',
+      );
+    },
   },
 ];
 
@@ -197,6 +251,45 @@ for (const routeCase of routeHealthCases) {
   });
 }
 
+test('UI-ROUTE-HEALTH finance assigned routes support primary interactions', async ({
+  page,
+  request,
+}) => {
+  const consoleIssues: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      consoleIssues.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    consoleIssues.push(error.message);
+  });
+
+  const fixture = await createApprovedFinanceApplicationViaApi(request);
+  await setSession(page, fixture);
+
+  for (const route of assignedRouteChecks) {
+    await verifyAssignedRoute(page, route);
+  }
+
+  expect(consoleIssues).toEqual([]);
+});
+
+async function verifyAssignedRoute(page: Page, route: RouteCheck) {
+  await page.goto(route.path);
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route.path)}$`));
+  await expect(page.getByRole('heading', { name: route.heading })).toBeVisible();
+  await expect(page.getByText(route.marker)).toBeVisible();
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+  await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(0);
+  await expect(page.getByText('Internal server error')).toHaveCount(0);
+  await expect(page.getByText('Application error')).toHaveCount(0);
+
+  if (route.interact) {
+    await route.interact(page);
+  }
+}
+
 function describeDiagnostic(diagnostic: Diagnostic) {
   const status = diagnostic.status ? ` ${diagnostic.status}` : '';
   const level = diagnostic.level ? ` ${diagnostic.level}` : '';
@@ -241,4 +334,8 @@ function sanitizeDiagnostic(value: string) {
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>')
     .replace(/sk-[A-Za-z0-9_-]+/gi, 'sk-<redacted>')
     .slice(0, 1_000);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

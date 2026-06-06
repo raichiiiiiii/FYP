@@ -1411,7 +1411,9 @@ a:focus-visible,
 .applications-table .application-pipeline-card {
   align-items: stretch;
   border-radius: 14px;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(120px, 0.55fr) minmax(150px, 0.65fr) minmax(210px, 0.95fr) minmax(180px, 0.85fr) auto;
+  grid-template-columns:
+    minmax(220px, 1.2fr) minmax(120px, 0.55fr) minmax(150px, 0.65fr)
+    minmax(132px, auto);
   padding: 16px;
 }
 
@@ -1477,6 +1479,19 @@ a:focus-visible,
   display: grid;
   gap: 8px;
   min-width: 132px;
+}
+
+.applications-table .application-pipeline-card .application-gate-list {
+  grid-column: 1 / span 2;
+}
+
+.applications-table .application-pipeline-card .application-review-meta {
+  grid-column: 3;
+}
+
+.applications-table .application-pipeline-card .application-pipeline-actions {
+  grid-column: 4;
+  grid-row: 1 / span 2;
 }
 
 .application-blocked-note {
@@ -5143,6 +5158,13 @@ textarea {
 
   .applications-table article {
     grid-template-columns: 1fr;
+  }
+
+  .applications-table .application-pipeline-card .application-gate-list,
+  .applications-table .application-pipeline-card .application-review-meta,
+  .applications-table .application-pipeline-card .application-pipeline-actions {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .inline-actions {
