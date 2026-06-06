@@ -10,8 +10,10 @@ import {
   toggleDemoGuideReviewedStep,
   writeDemoGuideProgress,
   type DemoGuideProgressState,
+  markDemoGuideVisitedStep,
 } from './demoGuideProgress'
 import { getActiveDemoGuideStep } from './demoGuideRoute'
+import { getDemoGuideStepStatus } from './demoGuideStatus'
 
 export function DemoGuideOverlay() {
   const location = useLocation()
@@ -27,7 +29,10 @@ export function DemoGuideOverlay() {
     () => getActiveDemoGuideStep(location.pathname)?.id ?? null,
     [location.pathname],
   )
-  const reviewedStepIds = new Set(progress.reviewedStepIds)
+  const displayProgress =
+    activeStepId && !progress.visitedStepIds.includes(activeStepId)
+      ? markDemoGuideVisitedStep(progress, activeStepId)
+      : progress
   const reviewedCount = progress.reviewedStepIds.length
   const expanded = !progress.collapsed
 
@@ -47,7 +52,10 @@ export function DemoGuideOverlay() {
       {expanded ? (
         <DemoGuidePanel
           activeStepId={activeStepId}
-          reviewedStepIds={reviewedStepIds}
+          progress={displayProgress}
+          onVisitStep={(stepId) =>
+            setProgress((current) => markDemoGuideVisitedStep(current, stepId))
+          }
           onToggleReviewed={(stepId) =>
             setProgress((current) =>
               toggleDemoGuideReviewedStep(current, stepId),
@@ -65,14 +73,16 @@ export function DemoGuideOverlay() {
 
 type DemoGuidePanelProps = {
   activeStepId: string | null
-  reviewedStepIds: ReadonlySet<string>
+  progress: DemoGuideProgressState
+  onVisitStep: (stepId: string) => void
   onToggleReviewed: (stepId: string) => void
   onReset: () => void
 }
 
 export function DemoGuidePanel({
   activeStepId,
-  reviewedStepIds,
+  progress,
+  onVisitStep,
   onToggleReviewed,
   onReset,
 }: DemoGuidePanelProps) {
@@ -101,8 +111,9 @@ export function DemoGuidePanel({
           <DemoGuideStepItem
             key={step.id}
             active={activeStepId === step.id}
-            reviewed={reviewedStepIds.has(step.id)}
+            progress={progress}
             step={step}
+            onVisitStep={onVisitStep}
             onToggleReviewed={onToggleReviewed}
           />
         ))}
@@ -113,18 +124,22 @@ export function DemoGuidePanel({
 
 type DemoGuideStepItemProps = {
   active: boolean
-  reviewed: boolean
+  progress: DemoGuideProgressState
   step: DemoGuideStep
+  onVisitStep: (stepId: string) => void
   onToggleReviewed: (stepId: string) => void
 }
 
 function DemoGuideStepItem({
   active,
-  reviewed,
+  progress,
   step,
+  onVisitStep,
   onToggleReviewed,
 }: DemoGuideStepItemProps) {
   const checkboxId = `demo-guide-reviewed-${step.id}`
+  const reviewed = progress.reviewedStepIds.includes(step.id)
+  const status = getDemoGuideStepStatus(step, progress)
 
   return (
     <li
@@ -139,6 +154,7 @@ function DemoGuideStepItem({
         <span className={`demo-guide-step__risk demo-guide-step__risk--${step.riskLevel}`}>
           {formatDemoGuideRisk(step.riskLevel)}
         </span>
+        <span className="demo-guide-step__status">{status}</span>
       </div>
 
       <div className="demo-guide-step__title-row">
@@ -158,7 +174,9 @@ function DemoGuideStepItem({
       <p className="demo-guide-step__notes">{step.reviewerNotes}</p>
 
       <div className="demo-guide-step__actions">
-        <Link to={step.route}>Open route</Link>
+        <Link to={step.route} onClick={() => onVisitStep(step.id)}>
+          Open route
+        </Link>
         {step.evidenceLinks.slice(0, 2).map((link) => (
           <a key={link} href={`/${link}`} target="_blank" rel="noreferrer">
             Evidence

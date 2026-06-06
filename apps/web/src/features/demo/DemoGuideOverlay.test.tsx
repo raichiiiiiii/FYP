@@ -28,8 +28,13 @@ describe('DemoGuideOverlay UI pieces', () => {
       <MemoryRouter>
         <DemoGuidePanel
           activeStepId="dashboard-overview"
-          reviewedStepIds={new Set(['dashboard-overview'])}
+          progress={{
+            collapsed: false,
+            reviewedStepIds: ['dashboard-overview'],
+            visitedStepIds: ['reports-json-export'],
+          }}
           onReset={vi.fn()}
+          onVisitStep={vi.fn()}
           onToggleReviewed={vi.fn()}
         />
       </MemoryRouter>,
@@ -39,6 +44,9 @@ describe('DemoGuideOverlay UI pieces', () => {
     expect(html).toContain('Follow the review route')
     expect(html).toContain('type="checkbox"')
     expect(html).toContain('Current route')
+    expect(html).toContain('Reviewed')
+    expect(html).toContain('Evidence-backed')
+    expect(html).toContain('Environment-gated')
     expect(html).toContain('href="/dashboard"')
     expect(html).toContain('docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md')
     expect(html).not.toContain('Create demo record')
