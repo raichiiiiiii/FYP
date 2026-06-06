@@ -24,6 +24,7 @@ import { RolesAdmin } from '../features/identity/RolesAdmin'
 import { IntegrationsRoute } from '../features/integrations/IntegrationsRoute'
 import { OperationsRoute } from '../features/operations/OperationsRoute'
 import { UsersAdmin } from '../features/identity/UsersAdmin'
+import { OrganizationProfileRoute } from '../features/organization/OrganizationProfileRoute'
 import { OrgSetup } from '../features/organization/OrgSetup'
 import { ProcurementRoute } from '../features/procurement/ProcurementRoute'
 import { ReportsRoute } from '../features/reports/ReportsRoute'
@@ -127,6 +128,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <OrgSetup />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/organization/profile"
+            element={
+              <RequireAuth>
+                <OrganizationProfileRoute />
               </RequireAuth>
             }
           />

@@ -61,7 +61,8 @@ Useful URLs:
 
 ```text
 Dashboard:              /dashboard
-Organization setup:     /org/setup
+Organization profile:   /organization/profile
+Organization setup:     /org/setup (first-run/bootstrap only)
 Procurement:            /procurement/requisitions
 Finance opportunities:  /finance/opportunities
 Applications:           /finance/applications
@@ -116,7 +117,28 @@ Talking point:
 MEPN starts from a role-specific operational cockpit instead of a generic home
 page.
 
-### 2. Procurement
+### 2. Organization Profile
+
+Show:
+
+- current organization legal/profile fields
+- company logo and banner preview
+- PNG/JPG upload controls
+- Example SME Sdn Bhd mock images for reviewer-safe branding
+- backend-audited save action available only to organization admins
+
+Status:
+
+- The sidebar Organization module opens `/organization/profile` after sign-in.
+- `/org/setup` remains the first-run/bootstrap route and is not the current
+  organization maintenance page.
+
+Talking point:
+
+MEPN separates first-run organization setup from ongoing organization profile
+maintenance, including visual identity assets used by reviewers during demos.
+
+### 3. Procurement
 
 Show:
 
@@ -136,7 +158,7 @@ Talking point:
 Mudarabah finance should be grounded in procurement evidence, not free-text
 financing requests.
 
-### 3. Opportunity
+### 4. Opportunity
 
 Show:
 
@@ -158,7 +180,7 @@ Talking point:
 The system should only turn revenue-linked procurement opportunities into
 mudarabah financing candidates.
 
-### 4. Mudarabah Application
+### 5. Mudarabah Application
 
 Show:
 
@@ -182,7 +204,7 @@ Financier and Shariah review are separate gates. The UI should not imply a
 contract, disbursement, or approval exists before the required review state
 exists.
 
-### 5. Ledger And Profit/Loss
+### 6. Ledger And Profit/Loss
 
 Show:
 
@@ -212,7 +234,7 @@ system must not calculate guaranteed fixed returns. Genuine commercial loss is
 handled as a reviewer-classified exception, while breach, negligence,
 misconduct, fraud, and insufficient evidence remain distinct classifications.
 
-### 6. Audit And Fabric Verification
+### 7. Audit And Fabric Verification
 
 Show:
 
@@ -233,7 +255,7 @@ Talking point:
 
 MEPN should never imply evidence is anchored or verified unless the proof exists.
 
-### 7. Network Canvas
+### 8. Network Canvas
 
 Show:
 
@@ -253,7 +275,7 @@ Talking point:
 
 The graph is a visualization layer over real records, not the source of truth.
 
-### 8. Integrations And Operations
+### 9. Integrations And Operations
 
 Show:
 

@@ -68,7 +68,11 @@ export type Organization = {
   id: string
   legalName: string
   registrationNumber?: string | null
+  taxIdentifier?: string | null
+  shariahProfile?: string | null
   deploymentMode: string
+  logoImageUrl?: string | null
+  bannerImageUrl?: string | null
   memberships?: Membership[]
   workspaces?: Workspace[]
 }

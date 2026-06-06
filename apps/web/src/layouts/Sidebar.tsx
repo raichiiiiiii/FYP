@@ -285,6 +285,7 @@ const sidebarModuleIcons: Partial<Record<AppModule, LucideIcon>> = {
 const sidebarRouteIcons: Record<string, LucideIcon> = {
   '/dashboard': LayoutDashboard,
   '/org/setup': Building2,
+  '/organization/profile': Building2,
   '/admin/users': Users,
   '/admin/roles': UserCog,
   '/procurement/projects': PackageCheck,

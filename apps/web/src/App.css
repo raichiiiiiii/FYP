@@ -3089,6 +3089,126 @@ textarea {
   color: #765414;
 }
 
+.organization-profile-hero {
+  margin-bottom: 24px;
+}
+
+.organization-profile-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.organization-profile-preview__banner {
+  aspect-ratio: 16 / 4;
+  background: #0f172a;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.organization-profile-preview__body {
+  align-items: end;
+  display: flex;
+  gap: 18px;
+  margin-top: -42px;
+  padding: 0 24px 24px;
+  position: relative;
+}
+
+.organization-profile-preview__logo {
+  aspect-ratio: 1;
+  background: #ffffff;
+  border: 4px solid #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+  object-fit: cover;
+  width: 104px;
+}
+
+.organization-profile-preview__body span,
+.organization-profile-media .eyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.organization-profile-preview__body h2 {
+  color: var(--text-strong);
+  margin: 4px 0;
+}
+
+.organization-profile-preview__body p,
+.organization-profile-media p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.organization-profile-layout {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.65fr);
+}
+
+.organization-profile-media {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.organization-profile-media h2 {
+  color: var(--text-strong);
+  margin: 4px 0 0;
+}
+
+.organization-profile-upload {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.organization-profile-upload__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.organization-profile-upload__header label {
+  color: var(--text-strong);
+  font-weight: 800;
+}
+
+.organization-profile-upload__preview {
+  aspect-ratio: 1;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  object-fit: cover;
+  width: min(144px, 100%);
+}
+
+.organization-profile-upload__preview--banner {
+  aspect-ratio: 16 / 5;
+  width: 100%;
+}
+
+.organization-profile-upload input[type="file"] {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 100%;
+}
+
 .form-support-copy {
   color: var(--muted);
   font-size: 13px;
@@ -5400,6 +5520,7 @@ textarea {
   .admin-hero,
   .admin-overview-grid,
   .admin-readiness-grid,
+  .organization-profile-layout,
   .reports-hero,
   .reports-summary-grid,
   .report-card-grid,

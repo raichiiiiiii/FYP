@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,18 +20,29 @@ const validDeploymentModes = new Set([
   'hosted_financier_portal',
 ]);
 
+const supportedProfileImageExtensions = /\.(png|jpe?g)(\?.*)?$/i;
+const supportedProfileImageDataUrl =
+  /^data:image\/(?:png|jpeg);base64,[a-z0-9+/=\s]+$/i;
+
 export type CreateOrganizationInput = {
   legalName: string;
   registrationNumber?: string;
   taxIdentifier?: string;
   shariahProfile?: string;
   deploymentMode?: string;
+  logoImageUrl?: string;
+  bannerImageUrl?: string;
   adminUser?: AdminUserInput;
 };
 
-export type UpdateOrganizationInput = Partial<
-  Omit<CreateOrganizationInput, 'adminUser'>
-> & {
+export type UpdateOrganizationInput = {
+  legalName?: string;
+  registrationNumber?: string | null;
+  taxIdentifier?: string | null;
+  shariahProfile?: string | null;
+  deploymentMode?: string;
+  logoImageUrl?: string | null;
+  bannerImageUrl?: string | null;
   actorUserId?: string;
 };
 
@@ -60,6 +72,8 @@ export class OrganizationsService {
           taxIdentifier: this.optionalText(input.taxIdentifier),
           shariahProfile: this.optionalText(input.shariahProfile),
           deploymentMode,
+          logoImageUrl: this.optionalImageReference(input.logoImageUrl),
+          bannerImageUrl: this.optionalImageReference(input.bannerImageUrl),
         },
       });
 
@@ -93,6 +107,8 @@ export class OrganizationsService {
           taxIdentifier: this.optionalText(input.taxIdentifier),
           shariahProfile: this.optionalText(input.shariahProfile),
           deploymentMode,
+          logoImageUrl: this.optionalImageReference(input.logoImageUrl),
+          bannerImageUrl: this.optionalImageReference(input.bannerImageUrl),
         },
       });
 
@@ -248,10 +264,14 @@ export class OrganizationsService {
   }
 
   async update(id: string, input: UpdateOrganizationInput) {
+    await this.assertOrganizationAdmin(id, input.actorUserId);
+
     const deploymentMode = input.deploymentMode
       ? this.normalizeDeploymentMode(input.deploymentMode)
       : undefined;
-    const registrationNumber = this.optionalText(input.registrationNumber);
+    const registrationNumber = this.optionalTextForUpdate(
+      input.registrationNumber,
+    );
 
     if (input.legalName !== undefined && !input.legalName.trim()) {
       throw new BadRequestException('legalName is required');
@@ -262,11 +282,16 @@ export class OrganizationsService {
     const organization = await this.prisma.organization.update({
       where: { id },
       data: {
-        legalName: this.optionalText(input.legalName),
+        legalName:
+          input.legalName === undefined ? undefined : input.legalName.trim(),
         registrationNumber,
-        taxIdentifier: this.optionalText(input.taxIdentifier),
-        shariahProfile: this.optionalText(input.shariahProfile),
+        taxIdentifier: this.optionalTextForUpdate(input.taxIdentifier),
+        shariahProfile: this.optionalTextForUpdate(input.shariahProfile),
         deploymentMode,
+        logoImageUrl: this.optionalImageReferenceForUpdate(input.logoImageUrl),
+        bannerImageUrl: this.optionalImageReferenceForUpdate(
+          input.bannerImageUrl,
+        ),
       },
     });
 
@@ -279,6 +304,8 @@ export class OrganizationsService {
       metadata: {
         legalName: organization.legalName,
         deploymentMode: organization.deploymentMode,
+        hasLogoImage: Boolean(organization.logoImageUrl),
+        hasBannerImage: Boolean(organization.bannerImageUrl),
       },
     });
 
@@ -300,8 +327,77 @@ export class OrganizationsService {
     return text || undefined;
   }
 
+  private optionalTextForUpdate(value: string | null | undefined) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const text = value?.trim();
+    return text || null;
+  }
+
+  private optionalImageReference(value: string | undefined) {
+    const text = this.optionalText(value);
+
+    if (!text) {
+      return undefined;
+    }
+
+    this.assertSupportedProfileImageReference(text);
+    return text;
+  }
+
+  private optionalImageReferenceForUpdate(value: string | null | undefined) {
+    const text = this.optionalTextForUpdate(value);
+
+    if (!text) {
+      return text;
+    }
+
+    this.assertSupportedProfileImageReference(text);
+    return text;
+  }
+
+  private assertSupportedProfileImageReference(value: string) {
+    if (
+      supportedProfileImageDataUrl.test(value) ||
+      supportedProfileImageExtensions.test(value)
+    ) {
+      return;
+    }
+
+    throw new BadRequestException('profile images must be PNG or JPG');
+  }
+
+  private async assertOrganizationAdmin(
+    organizationId: string,
+    actorUserId: string | undefined,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('actorUserId is required');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        organizationId,
+        userId: actorUserId,
+        status: 'active',
+        role: {
+          code: 'ORG_ADMIN',
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Organization admin role is required');
+    }
+  }
+
   private async assertRegistrationNumberAvailable(
-    registrationNumber: string | undefined,
+    registrationNumber: string | null | undefined,
     currentOrganizationId?: string,
   ) {
     if (!registrationNumber) {

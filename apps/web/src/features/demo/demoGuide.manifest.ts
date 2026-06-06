@@ -1,5 +1,6 @@
 export type DemoGuideFeatureArea =
   | 'dashboard'
+  | 'organization'
   | 'procurement'
   | 'finance'
   | 'evidence'
@@ -48,6 +49,20 @@ export const demoGuideSteps: readonly DemoGuideStep[] = [
     ],
     reviewerNotes:
       'This step is read-only and uses backend summary DTOs. It should not be treated as proof of external integrations.',
+    completionMode: 'route-visited',
+  },
+  {
+    id: 'organization-profile',
+    title: 'Organization profile',
+    shortDescription:
+      'Review the current organization profile, logo/banner media, and admin-only save action.',
+    route: '/organization/profile',
+    expectedVisibleText: 'Organization profile',
+    featureArea: 'organization',
+    riskLevel: 'low',
+    evidenceLinks: ['docs/demo-script.md'],
+    reviewerNotes:
+      'This page edits the active organization record. Logo and banner images are PNG/JPG profile references, not business evidence.',
     completionMode: 'route-visited',
   },
   {
