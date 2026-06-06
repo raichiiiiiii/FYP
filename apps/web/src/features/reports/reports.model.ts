@@ -115,6 +115,7 @@ export type ReportSummary = {
   auditRecords: number
   integrationRecords: number
   jsonExportsAvailable: number
+  csvExportsAvailable: number
   restrictedReports: number
 }
 
@@ -140,6 +141,9 @@ export function summarizeReports(data: ReportsViewData): ReportSummary {
     auditRecords: data.summary.totals.audit,
     integrationRecords: data.summary.totals.integrations,
     jsonExportsAvailable: cards.filter(
+      (card) => card.exportStatus === 'available',
+    ).length,
+    csvExportsAvailable: cards.filter(
       (card) => card.exportStatus === 'available',
     ).length,
     restrictedReports: cards.filter((card) => card.status === 'restricted')

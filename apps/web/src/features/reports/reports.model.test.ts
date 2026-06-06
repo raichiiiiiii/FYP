@@ -7,7 +7,7 @@ import {
 } from './reports.model'
 
 describe('reports model', () => {
-  it('summarizes backend report DTOs and enables JSON exports', () => {
+  it('summarizes backend report DTOs and enables JSON and CSV exports', () => {
     const data = createReportsViewData()
 
     const summary = summarizeReports(data)
@@ -19,6 +19,7 @@ describe('reports model', () => {
       auditRecords: 4,
       integrationRecords: 3,
       jsonExportsAvailable: 4,
+      csvExportsAvailable: 4,
       restrictedReports: 0,
     })
     expect(cards.every((card) => card.exportStatus === 'available')).toBe(true)
