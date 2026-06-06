@@ -73,6 +73,15 @@ Operations:             /operations
 Reports:                /reports
 ```
 
+Guided reviewer aid:
+
+- After sign-in, open **Demo guide** from the floating in-app control.
+- Use it as a route checklist for the reviewer path.
+- Treat its checkboxes as local reviewer progress only; they do not mutate
+  procurement, finance, Fabric, audit, or ledger state.
+- The Fabric proof step is environment-gated and must be assessed from the
+  committed Fabric UAT evidence or a live Gateway run.
+
 Data-source rule:
 
 - API-backed demo data comes from `pnpm seed:uat`.
