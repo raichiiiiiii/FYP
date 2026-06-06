@@ -37,8 +37,31 @@ export type FabricRuntimeStatusSummary = {
   enabled: boolean
   mode: 'mock' | 'gateway'
   gatewayConfigured: boolean
+  gatewayMaterialReady: boolean
   realGatewayAdapterImplemented: boolean
   missingGatewayConfig: string[]
+  secretMaterial: {
+    required: boolean
+    allPresent: boolean
+    files: {
+      identityCert: 'present' | 'missing' | 'not_required'
+      privateKey: 'present' | 'missing' | 'not_required'
+      tlsCert: 'present' | 'missing' | 'not_required'
+    }
+    missing: string[]
+  }
+  latestRealAnchor: {
+    present: boolean
+    status: string
+    hasTransactionId: boolean
+    hasBlockNumber: boolean
+    channelRecorded: boolean
+    chaincodeRecorded: boolean
+    commitStatus?: string | null
+    endorsementStatus?: string | null
+    anchoredAt?: string | null
+    verifiedAt?: string | null
+  }
   configuredChannel: 'configured' | 'not_configured'
   configuredChaincode: 'configured' | 'not_configured'
   configuredMspId: 'configured' | 'not_configured'
@@ -150,7 +173,7 @@ export function buildIntegrationStatusCards({
       reconciliation,
       match: (value) => value.includes('FABRIC') || value.includes('ANCHOR'),
       fallbackMessage:
-        'Fabric Gateway health is not configured; local workflows continue.',
+        'No Fabric anchor outbox or reconciliation evidence is available yet. Check Fabric runtime mode below for Gateway configuration and secret material readiness.',
     }),
     buildAdapterStatus({
       id: 'webhook',
@@ -228,13 +251,41 @@ export function buildFabricRuntimeStatusCard(
     }
   }
 
+  if (!fabricStatus.gatewayMaterialReady) {
+    return {
+      id: 'fabric-runtime',
+      name: 'Fabric Gateway mode',
+      type: 'fabric',
+      status: 'degraded',
+      message:
+        fabricStatus.secretMaterial.missing.length > 0
+          ? `Gateway environment is present, but mounted Fabric material is missing: ${fabricStatus.secretMaterial.missing.join(', ')}.`
+          : fabricStatus.message,
+      evidence: 'configuration',
+      mode: 'real_gateway_required',
+    }
+  }
+
+  if (!fabricStatus.latestRealAnchor.present) {
+    return {
+      id: 'fabric-runtime',
+      name: 'Fabric Gateway mode',
+      type: 'fabric',
+      status: 'pending',
+      message:
+        'Gateway material is present. Waiting for the worker to record a real Fabric anchor transaction.',
+      evidence: 'configuration',
+      mode: 'real_gateway_required',
+    }
+  }
+
   return {
     id: 'fabric-runtime',
     name: 'Fabric Gateway mode',
     type: 'fabric',
-    status: fabricStatus.realGatewayAdapterImplemented ? 'pending' : 'degraded',
+    status: fabricStatus.realGatewayAdapterImplemented ? 'healthy' : 'degraded',
     message: fabricStatus.realGatewayAdapterImplemented
-      ? 'Gateway configuration is present. Live anchor health still depends on worker and chaincode verification.'
+      ? 'Gateway material is present and real Fabric anchor evidence exists. Use hash-record verification for full on-chain proof.'
       : fabricStatus.message,
     evidence: 'configuration',
     mode: 'real_gateway_required',

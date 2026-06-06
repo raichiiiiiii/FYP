@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { existsSync, statSync } from 'node:fs';
 import type {
   AuditAnchor,
   IntegrationReconciliationRecord,
@@ -43,6 +44,33 @@ type ListTimelineInput = {
 };
 
 const staleHeartbeatAfterMs = 120_000;
+const fabricSecretFileLabels = {
+  identityCert: 'identity certificate',
+  privateKey: 'private key',
+  tlsCert: 'TLS CA certificate',
+} as const;
+
+type LatestRealFabricAnchorSummary =
+  | {
+      present: false;
+      status: 'none';
+      hasTransactionId: false;
+      hasBlockNumber: false;
+      channelRecorded: false;
+      chaincodeRecorded: false;
+    }
+  | {
+      present: true;
+      status: string;
+      hasTransactionId: true;
+      hasBlockNumber: boolean;
+      channelRecorded: boolean;
+      chaincodeRecorded: boolean;
+      commitStatus: string | null;
+      endorsementStatus: string | null;
+      anchoredAt: string | null;
+      verifiedAt: string | null;
+    };
 
 @Injectable()
 export class IntegrationStatusService {
@@ -205,33 +233,42 @@ export class IntegrationStatusService {
       .slice(0, limit);
   }
 
-  getFabricStatus() {
+  async getFabricStatus() {
     const fabricEnv = readFabricEnv();
     const missingGatewayConfig =
       fabricEnv.mode === 'gateway' ? missingFabricGatewayConfig() : [];
     const gatewayConfigured =
       fabricEnv.mode === 'gateway' && missingGatewayConfig.length === 0;
+    const secretMaterial = summarizeFabricSecretMaterial(fabricEnv);
+    const latestRealAnchor = await this.getLatestRealFabricAnchorSummary();
+    const gatewayMaterialReady = gatewayConfigured && secretMaterial.allPresent;
 
     return {
       enabled: fabricEnv.enabled,
       mode: fabricEnv.mode,
       gatewayConfigured,
+      gatewayMaterialReady,
       realGatewayAdapterImplemented: true,
       anchorResultSource:
         fabricEnv.mode === 'gateway'
           ? 'worker-gateway-adapter'
           : 'mock-adapter',
       missingGatewayConfig,
+      secretMaterial,
+      latestRealAnchor,
       configuredChannel: redactConfiguredValue(fabricEnv.channel),
       configuredChaincode: redactConfiguredValue(fabricEnv.chaincode),
       configuredMspId: redactConfiguredValue(fabricEnv.mspId),
       submitTimeoutMs: fabricEnv.submitTimeoutMs,
       commitTimeoutMs: fabricEnv.commitTimeoutMs,
       securityBoundary: 'document hashes and minimal metadata only',
-      message:
-        fabricEnv.mode === 'gateway'
-          ? 'Gateway mode is configured for the worker Fabric Gateway adapter. Real anchoring still requires deployed network material and successful worker processing.'
-          : 'Fabric anchoring is running in explicit mock mode for prototype and local testing.',
+      message: fabricRuntimeMessage({
+        mode: fabricEnv.mode,
+        enabled: fabricEnv.enabled,
+        missingGatewayConfig,
+        secretMaterial,
+        latestRealAnchor,
+      }),
     };
   }
 
@@ -253,6 +290,62 @@ export class IntegrationStatusService {
     if (!membership) {
       throw new ForbiddenException('Active organization membership required');
     }
+  }
+
+  private async getLatestRealFabricAnchorSummary(): Promise<LatestRealFabricAnchorSummary> {
+    const anchor = await this.prisma.auditAnchor?.findFirst?.({
+      where: {
+        anchorType: 'FABRIC',
+        fabricTransactionId: {
+          not: null,
+        },
+      },
+      orderBy: [
+        {
+          fabricVerifiedAt: 'desc',
+        },
+        {
+          anchoredAt: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
+      select: {
+        status: true,
+        anchoredAt: true,
+        fabricVerifiedAt: true,
+        fabricBlockNumber: true,
+        fabricChannel: true,
+        fabricChaincode: true,
+        fabricCommitStatus: true,
+        fabricEndorsementStatus: true,
+      },
+    });
+
+    if (!anchor) {
+      return {
+        present: false,
+        status: 'none',
+        hasTransactionId: false,
+        hasBlockNumber: false,
+        channelRecorded: false,
+        chaincodeRecorded: false,
+      };
+    }
+
+    return {
+      present: true,
+      status: anchor.status,
+      hasTransactionId: true,
+      hasBlockNumber: anchor.fabricBlockNumber !== null,
+      channelRecorded: Boolean(anchor.fabricChannel),
+      chaincodeRecorded: Boolean(anchor.fabricChaincode),
+      commitStatus: anchor.fabricCommitStatus ?? null,
+      endorsementStatus: anchor.fabricEndorsementStatus ?? null,
+      anchoredAt: anchor.anchoredAt?.toISOString() ?? null,
+      verifiedAt: anchor.fabricVerifiedAt?.toISOString() ?? null,
+    };
   }
 }
 
@@ -336,6 +429,93 @@ function displayStatus(event: OutboxEvent) {
 
 function redactConfiguredValue(value: string) {
   return value ? 'configured' : 'not_configured';
+}
+
+function summarizeFabricSecretMaterial(fabricEnv: {
+  mode: 'mock' | 'gateway';
+  identityCertPath: string;
+  privateKeyPath: string;
+  tlsCertPath: string;
+}) {
+  if (fabricEnv.mode !== 'gateway') {
+    return {
+      required: false,
+      allPresent: false,
+      files: {
+        identityCert: 'not_required',
+        privateKey: 'not_required',
+        tlsCert: 'not_required',
+      },
+      missing: [],
+    };
+  }
+
+  const files = {
+    identityCert: secretFileStatus(fabricEnv.identityCertPath),
+    privateKey: secretFileStatus(fabricEnv.privateKeyPath),
+    tlsCert: secretFileStatus(fabricEnv.tlsCertPath),
+  };
+  const missing = Object.entries(files)
+    .filter(([, status]) => status !== 'present')
+    .map(
+      ([key]) =>
+        fabricSecretFileLabels[key as keyof typeof fabricSecretFileLabels],
+    );
+
+  return {
+    required: true,
+    allPresent: missing.length === 0,
+    files,
+    missing,
+  };
+}
+
+function secretFileStatus(path: string): 'present' | 'missing' {
+  if (!path || !existsSync(path)) {
+    return 'missing';
+  }
+
+  try {
+    return statSync(path).isFile() && statSync(path).size > 0
+      ? 'present'
+      : 'missing';
+  } catch {
+    return 'missing';
+  }
+}
+
+function fabricRuntimeMessage({
+  mode,
+  enabled,
+  missingGatewayConfig,
+  secretMaterial,
+  latestRealAnchor,
+}: {
+  mode: 'mock' | 'gateway';
+  enabled: boolean;
+  missingGatewayConfig: string[];
+  secretMaterial: ReturnType<typeof summarizeFabricSecretMaterial>;
+  latestRealAnchor: LatestRealFabricAnchorSummary;
+}) {
+  if (mode === 'mock') {
+    return enabled
+      ? 'Fabric anchoring is explicitly running in mock mode. Local workflows can continue, but mock anchors are not on-chain proof.'
+      : 'Fabric Gateway mode is not configured for this runtime. Local workflows can continue, but real Fabric proof requires Gateway env, mounted cert/key/TLS material, and worker processing.';
+  }
+
+  if (missingGatewayConfig.length) {
+    return `Gateway mode is selected, but ${missingGatewayConfig.length} required environment value(s) are missing.`;
+  }
+
+  if (!secretMaterial.allPresent) {
+    return `Gateway environment values are present, but mounted Fabric secret material is incomplete: ${secretMaterial.missing.join(', ')}.`;
+  }
+
+  if (!latestRealAnchor.present) {
+    return 'Gateway material is present. No real Fabric anchor transaction has been recorded by the worker yet.';
+  }
+
+  return 'Gateway material is present and a real Fabric anchor transaction has been recorded. Use hash-record Fabric verification for on-chain proof.';
 }
 
 function workerHeartbeatTimelineItem(

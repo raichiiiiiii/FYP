@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { IntegrationStatusService } from './integration-status.service';
 
 const gatewayEnv = {
@@ -25,25 +29,30 @@ describe('IntegrationStatusService Fabric status', () => {
     process.env = originalEnv;
   });
 
-  it('reports explicit mock mode without requiring gateway credentials', () => {
+  it('reports explicit mock mode without requiring gateway credentials', async () => {
     process.env.FABRIC_ENABLED = 'true';
     process.env.FABRIC_MODE = 'mock';
 
     const service = new IntegrationStatusService({} as never);
 
-    expect(service.getFabricStatus()).toMatchObject({
+    await expect(service.getFabricStatus()).resolves.toMatchObject({
       enabled: true,
       mode: 'mock',
       gatewayConfigured: false,
+      gatewayMaterialReady: false,
       realGatewayAdapterImplemented: true,
       anchorResultSource: 'mock-adapter',
       missingGatewayConfig: [],
+      secretMaterial: {
+        required: false,
+        allPresent: false,
+      },
       message:
-        'Fabric anchoring is running in explicit mock mode for prototype and local testing.',
+        'Fabric anchoring is explicitly running in mock mode. Local workflows can continue, but mock anchors are not on-chain proof.',
     });
   });
 
-  it('reports configured gateway mode without exposing secret paths or endpoint values', () => {
+  it('reports configured gateway mode without exposing secret paths or endpoint values', async () => {
     process.env = {
       ...process.env,
       ...gatewayEnv,
@@ -51,20 +60,85 @@ describe('IntegrationStatusService Fabric status', () => {
 
     const service = new IntegrationStatusService({} as never);
 
-    expect(service.getFabricStatus()).toMatchObject({
+    await expect(service.getFabricStatus()).resolves.toMatchObject({
       enabled: true,
       mode: 'gateway',
       gatewayConfigured: true,
+      gatewayMaterialReady: false,
       realGatewayAdapterImplemented: true,
       anchorResultSource: 'worker-gateway-adapter',
       missingGatewayConfig: [],
+      secretMaterial: {
+        required: true,
+        allPresent: false,
+      },
       configuredChannel: 'configured',
       configuredChaincode: 'configured',
       configuredMspId: 'configured',
     });
-    expect(JSON.stringify(service.getFabricStatus())).not.toContain(
+    await expect(service.getFabricStatus()).resolves.toMatchObject({
+      latestRealAnchor: {
+        present: false,
+        status: 'none',
+      },
+    });
+    expect(JSON.stringify(await service.getFabricStatus())).not.toContain(
       gatewayEnv.FABRIC_GATEWAY_URL,
     );
+  });
+
+  it('reports mounted gateway material and latest real anchor evidence safely', async () => {
+    const secretRoot = mkFabricSecretRoot();
+    process.env = {
+      ...process.env,
+      ...gatewayEnv,
+      FABRIC_IDENTITY_CERT_PATH: join(secretRoot, 'identity', 'cert.pem'),
+      FABRIC_PRIVATE_KEY_PATH: join(secretRoot, 'identity', 'key.pem'),
+      FABRIC_TLS_CERT_PATH: join(secretRoot, 'tls', 'ca.crt'),
+    };
+
+    const service = new IntegrationStatusService({
+      auditAnchor: {
+        findFirst: jest.fn().mockResolvedValue(
+          auditAnchor({
+            status: 'VERIFIED',
+            fabricTransactionId: 'tx-real',
+            fabricBlockNumber: '12',
+            fabricChannel: 'mepn-audit',
+            fabricChaincode: 'audit-anchor',
+            fabricCommitStatus: 'VALID',
+            fabricEndorsementStatus: 'ENDORSED',
+            anchoredAt: new Date('2026-06-06T00:00:00.000Z'),
+            fabricVerifiedAt: new Date('2026-06-06T00:01:00.000Z'),
+          }),
+        ),
+      },
+    } as never);
+
+    const status = await service.getFabricStatus();
+
+    expect(status).toMatchObject({
+      mode: 'gateway',
+      gatewayConfigured: true,
+      gatewayMaterialReady: true,
+      secretMaterial: {
+        required: true,
+        allPresent: true,
+        missing: [],
+      },
+      latestRealAnchor: {
+        present: true,
+        status: 'VERIFIED',
+        hasTransactionId: true,
+        hasBlockNumber: true,
+        channelRecorded: true,
+        chaincodeRecorded: true,
+      },
+    });
+    expect(JSON.stringify(status)).not.toContain('tx-real');
+    expect(JSON.stringify(status)).not.toContain(secretRoot);
+
+    rmSync(secretRoot, { recursive: true, force: true });
   });
 
   it('formats fresh worker heartbeat as healthy', async () => {
@@ -319,4 +393,19 @@ function reportExportJob(overrides: Record<string, unknown> = {}) {
     updatedAt: new Date(),
     ...overrides,
   };
+}
+
+function mkFabricSecretRoot() {
+  const root = mkdtempSafe();
+  mkdirSync(join(root, 'identity'), { recursive: true });
+  mkdirSync(join(root, 'tls'), { recursive: true });
+  writeFileSync(join(root, 'identity', 'cert.pem'), 'CERT_PLACEHOLDER');
+  writeFileSync(join(root, 'identity', 'key.pem'), 'KEY_PLACEHOLDER');
+  writeFileSync(join(root, 'tls', 'ca.crt'), 'TLS_PLACEHOLDER');
+
+  return root;
+}
+
+function mkdtempSafe() {
+  return mkdtempSync(join(tmpdir(), 'mepn-fabric-'));
 }

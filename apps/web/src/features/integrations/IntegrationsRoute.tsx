@@ -343,16 +343,17 @@ export function IntegrationsRoute({
           <h2>External effects are queued, retried, and reconciled.</h2>
           <p>
             Fabric, ERP, e-signature, finance API, and webhook requests are
-            routed through the durable outbox. Current providers are mock
-            adapters unless a backend health probe or reconciliation record
-            explicitly says otherwise.
+            routed through the durable outbox. Adapter cards separate runtime
+            configuration, mounted credential material, worker evidence, and
+            historical reconciliation so reviewers can see what is actually
+            connected.
           </p>
         </div>
         <div className="integration-hero-warning">
-          <strong>Mock-first integration mode</strong>
+          <strong>Evidence boundary</strong>
           <p>
             Do not treat completed mock reconciliation as proof that a real
-            external provider is configured or healthy.
+            external provider is configured, healthy, or on-chain verified.
           </p>
         </div>
       </section>
@@ -439,12 +440,24 @@ export function IntegrationsRoute({
             <h2>Queue external side effects</h2>
             <p>
               These controls create outbox events and audit-backed requests.
-              They do not call real Fabric, ERP, e-signature, or finance
-              providers in the current MVP.
+              Fabric anchor requests are resolved by the configured worker
+              adapter; other provider requests remain mock/local unless their
+              status card explicitly reports real provider evidence.
             </p>
           </section>
         <section className="integration-action-grid">
-          <IntegrationActionPanel title="Mock Fabric anchor">
+          <IntegrationActionPanel
+            title={
+              data.fabricStatus?.mode === 'gateway'
+                ? 'Fabric anchor request'
+                : 'Mock Fabric anchor'
+            }
+            note={
+              data.fabricStatus?.mode === 'gateway'
+                ? 'This queues an outbox event for the worker Fabric adapter. Real proof still requires a successful worker transaction and hash-record verification.'
+                : 'This queues an outbox event for the mock Fabric adapter boundary.'
+            }
+          >
             <Field
               label="Entity type"
               name="fabricEntityType"
@@ -722,17 +735,17 @@ export function IntegrationsRoute({
 
 function IntegrationActionPanel({
   title,
+  note = 'This queues an outbox event for the mock adapter boundary.',
   children,
 }: {
   title: string
+  note?: string
   children: ReactNode
 }) {
   return (
     <section className="form-grid integration-action-panel">
       <h2>{title}</h2>
-      <p className="integration-action-note">
-        This queues an outbox event for the mock adapter boundary.
-      </p>
+      <p className="integration-action-note">{note}</p>
       {children}
     </section>
   )
@@ -760,6 +773,16 @@ function FabricRuntimeSummary({
         <span>Gateway configuration</span>
         <strong>
           {fabricStatus.gatewayConfigured ? 'Present' : 'Incomplete'}
+        </strong>
+      </article>
+      <article>
+        <span>Secret material</span>
+        <strong>
+          {fabricStatus.secretMaterial.required
+            ? fabricStatus.gatewayMaterialReady
+              ? 'Present'
+              : 'Incomplete'
+            : 'Not required in mock mode'}
         </strong>
       </article>
       <article>
@@ -799,6 +822,28 @@ function FabricRuntimeSummary({
           {fabricStatus.missingGatewayConfig.length
             ? fabricStatus.missingGatewayConfig.join(', ')
             : 'None reported'}
+        </strong>
+      </article>
+      <article className="wide">
+        <span>Missing Fabric material</span>
+        <strong>
+          {fabricStatus.secretMaterial.missing.length
+            ? fabricStatus.secretMaterial.missing.join(', ')
+            : fabricStatus.secretMaterial.required
+              ? 'None reported'
+              : 'Not required in mock mode'}
+        </strong>
+      </article>
+      <article className="wide">
+        <span>Latest real Fabric anchor</span>
+        <strong>
+          {fabricStatus.latestRealAnchor.present
+            ? `${fabricStatus.latestRealAnchor.status} / transaction metadata recorded / ${
+                fabricStatus.latestRealAnchor.hasBlockNumber
+                  ? 'block number recorded'
+                  : 'block number not recorded'
+              }`
+            : 'No real Fabric transaction recorded yet'}
         </strong>
       </article>
       <article className="wide">

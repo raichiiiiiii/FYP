@@ -211,8 +211,27 @@ describe('integration and operations status model', () => {
       enabled: false,
       mode: 'mock',
       gatewayConfigured: false,
+      gatewayMaterialReady: false,
       realGatewayAdapterImplemented: false,
       missingGatewayConfig: [],
+      secretMaterial: {
+        required: false,
+        allPresent: false,
+        files: {
+          identityCert: 'not_required',
+          privateKey: 'not_required',
+          tlsCert: 'not_required',
+        },
+        missing: [],
+      },
+      latestRealAnchor: {
+        present: false,
+        status: 'none',
+        hasTransactionId: false,
+        hasBlockNumber: false,
+        channelRecorded: false,
+        chaincodeRecorded: false,
+      },
       configuredChannel: 'not_configured',
       configuredChaincode: 'not_configured',
       configuredMspId: 'not_configured',
@@ -233,8 +252,27 @@ describe('integration and operations status model', () => {
       enabled: true,
       mode: 'gateway',
       gatewayConfigured: true,
+      gatewayMaterialReady: true,
       realGatewayAdapterImplemented: true,
       missingGatewayConfig: [],
+      secretMaterial: {
+        required: true,
+        allPresent: true,
+        files: {
+          identityCert: 'present',
+          privateKey: 'present',
+          tlsCert: 'present',
+        },
+        missing: [],
+      },
+      latestRealAnchor: {
+        present: false,
+        status: 'none',
+        hasTransactionId: false,
+        hasBlockNumber: false,
+        channelRecorded: false,
+        chaincodeRecorded: false,
+      },
       configuredChannel: 'configured',
       configuredChaincode: 'configured',
       configuredMspId: 'configured',
@@ -247,7 +285,7 @@ describe('integration and operations status model', () => {
 
     expect(status.status).toBe('pending')
     expect(status.mode).toBe('real_gateway_required')
-    expect(status.message).toContain('Live anchor health')
+    expect(status.message).toContain('Waiting for the worker')
   })
 
   it('maps missing Fabric status as unavailable', () => {

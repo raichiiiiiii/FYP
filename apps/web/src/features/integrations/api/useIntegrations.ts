@@ -62,9 +62,32 @@ export type FabricRuntimeStatus = {
   enabled: boolean
   mode: 'mock' | 'gateway'
   gatewayConfigured: boolean
+  gatewayMaterialReady: boolean
   realGatewayAdapterImplemented: boolean
   anchorResultSource: string
   missingGatewayConfig: string[]
+  secretMaterial: {
+    required: boolean
+    allPresent: boolean
+    files: {
+      identityCert: 'present' | 'missing' | 'not_required'
+      privateKey: 'present' | 'missing' | 'not_required'
+      tlsCert: 'present' | 'missing' | 'not_required'
+    }
+    missing: string[]
+  }
+  latestRealAnchor: {
+    present: boolean
+    status: string
+    hasTransactionId: boolean
+    hasBlockNumber: boolean
+    channelRecorded: boolean
+    chaincodeRecorded: boolean
+    commitStatus?: string | null
+    endorsementStatus?: string | null
+    anchoredAt?: string | null
+    verifiedAt?: string | null
+  }
   configuredChannel: 'configured' | 'not_configured'
   configuredChaincode: 'configured' | 'not_configured'
   configuredMspId: 'configured' | 'not_configured'
