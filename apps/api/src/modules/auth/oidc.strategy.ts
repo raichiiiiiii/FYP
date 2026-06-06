@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { getAuthRuntimeConfig } from './auth.config';
 
 @Injectable()
 export class OidcStrategy {
-  readonly enabled = process.env.OIDC_ENABLED === 'true';
+  readonly enabled = getAuthRuntimeConfig().oidcEnabled;
 }

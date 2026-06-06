@@ -13,6 +13,7 @@ export type AuthSession = {
   workspaceScopes: string[]
   expiresAt: string
   authMode: 'dev'
+  devAuthEnabled: boolean
   oidcEnabled: boolean
 }
 

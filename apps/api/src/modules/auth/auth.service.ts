@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { Permission } from '../identity/rbac.service';
+import { getAuthRuntimeConfig } from './auth.config';
 
 export type DevLoginInput = {
   email?: string;
@@ -27,6 +29,7 @@ export type AuthSession = {
   workspaceScopes: string[];
   expiresAt: string;
   authMode: 'dev';
+  devAuthEnabled: boolean;
   oidcEnabled: boolean;
 };
 
@@ -71,6 +74,8 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
   async devLogin(input: DevLoginInput) {
+    this.assertDevAuthEnabled();
+
     if (!input.email?.trim() && !input.userId?.trim()) {
       throw new BadRequestException('email or userId is required');
     }
@@ -121,6 +126,8 @@ export class AuthService {
   }
 
   async getSession(input: SessionLookupInput) {
+    this.assertDevAuthEnabled();
+
     if (!input.userId?.trim() || !input.organizationId?.trim()) {
       throw new BadRequestException('userId and organizationId are required');
     }
@@ -176,6 +183,8 @@ export class AuthService {
       }
     }
 
+    const authConfig = getAuthRuntimeConfig();
+
     return {
       userId: user.id,
       email: user.email,
@@ -186,8 +195,17 @@ export class AuthService {
       workspaceScopes: [...workspaceScopes],
       expiresAt: new Date(Date.now() + sessionDurationMs).toISOString(),
       authMode: 'dev',
-      oidcEnabled: process.env.OIDC_ENABLED === 'true',
+      devAuthEnabled: authConfig.devAuthEnabled,
+      oidcEnabled: authConfig.oidcEnabled,
     };
+  }
+
+  private assertDevAuthEnabled() {
+    if (!getAuthRuntimeConfig().devAuthEnabled) {
+      throw new ForbiddenException(
+        'Development login is disabled for this environment',
+      );
+    }
   }
 
   private findUserWithMemberships(

@@ -35,7 +35,7 @@ It is not yet suitable for regulated production financial use.
 
 Important constraints:
 
-- Dev login is available for demo/UAT; production OIDC/invitation auth is not complete.
+- Dev login is available for demo/UAT only when explicitly enabled; production OIDC/invitation auth is not complete.
 - Mock integration paths remain available for deterministic tests.
 - Real Fabric verification requires Gateway mode plus a successful chaincode `ReadAnchor`.
 - `verified=true` must never be shown from stored metadata alone.
@@ -104,7 +104,7 @@ state. The classifications are intentionally conservative:
 |---|---|---|
 | Formal UAT execution | UAT checklist/templates exist. | Reviewer-led execution and signed evidence package remain pending. |
 | Reports | Demo reports exist. | Backend aggregate DTOs, audited export jobs, generated files, and download routes remain incomplete. |
-| Production authentication | Dev login works. | Real OIDC, invite-token validation, expiry/revocation, MFA/password policy decisions remain incomplete. |
+| Production authentication | Dev login works for local/UAT and is guarded by `DEV_AUTH_ENABLED`; production defaults disable dev login. | Real OIDC, invite-token validation, expiry/revocation, MFA/password policy decisions remain incomplete. |
 | Loss exception workflow | Loss exception status can be displayed. | Full genuine loss vs breach/negligence/fraud classification workflow remains incomplete. |
 | Accessibility | Manual/shared UI improvements exist. | Automated axe/contrast/focus regression tests remain incomplete. |
 | Backup/restore | Deployment docs note limitations. | Repeatable backup/restore scripts and restore proof are not complete. |
@@ -252,7 +252,7 @@ Status values:
 | 2 | 2.3 Gated screenshot flow | Complete | `test(uat): capture vm local fabric gateway proof screenshots` | `corepack pnpm exec playwright test tests/e2e/15-fabric-gateway-uat-proof.spec.ts` | `docs/evidence/uat/fabric-gateway-hash-record-verification.png`; `docs/evidence/uat/fabric-gateway-proof-panel.png` | None. |
 | 2 | 2.4 Fabric Gateway UAT evidence package | Complete | `docs(evidence): resolve fabric gateway runtime blocker` | `corepack pnpm lint`; `corepack pnpm typecheck`; validation commands listed in evidence doc | `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md` | None. |
 | 2 | 2.5 Proof screenshot roadmap update | Complete | `docs(evidence): resolve fabric gateway runtime blocker` | `corepack pnpm lint`; `corepack pnpm typecheck` | This roadmap update. | None. |
-| 3 | 3.1 Auth config and production dev-login guard | Planned | Pending | Pending | Pending auth tests. | None yet. |
+| 3 | 3.1 Auth config and production dev-login guard | Complete | `feat(auth): guard dev login behind environment config` | `corepack pnpm --dir apps/api test:unit -- auth.config`; `corepack pnpm --dir apps/api test:integration -- auth`; `corepack pnpm test:e2e -- tests/e2e/09-auth-flow.spec.ts` | `DEV_AUTH_ENABLED` config, production default guard, and auth test coverage. | None. |
 | 3 | 3.2 Invitation schema hardening | Planned | Pending | Pending | Pending migration/test evidence. | Possible schema migration conflict. |
 | 3 | 3.3 Invitation API | Planned | Pending | Pending | Pending API integration evidence. | Requires invite policy and role mapping to remain stable. |
 | 3 | 3.4 OIDC adapter/callback | Planned | Pending | Pending | Pending mocked OIDC integration evidence. | Real provider config may remain deployment-time. |
@@ -316,14 +316,16 @@ demo, and product polish.
 
 ## Login/Auth Status
 
-Current login is development/demo login:
+Current login is development/demo login when `DEV_AUTH_ENABLED=true` or when
+the runtime is not production:
 
 - User enters email.
 - User enters organization ID.
 - No password is required.
 
-This is intentional for local testing, seeded UAT, and FYP demo speed, but it is
-not production authentication.
+This is intentional for local testing, seeded UAT, and FYP demo speed. It is
+now disabled by default in production-like configuration and is not production
+authentication.
 
 Future production auth should follow this path:
 
