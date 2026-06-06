@@ -17,6 +17,7 @@
 | Typecheck | `corepack pnpm typecheck` | Pass | Frontend TypeScript project build passed. |
 | Format | `corepack pnpm format:check` | Not configured | Root package does not currently define `format:check`. |
 | Build | `corepack pnpm build` | Pass | Web, API, and worker builds passed. |
+| Accessibility smoke | `corepack pnpm test:a11y` | Pass | Login page axe smoke passed. |
 
 ## Unit And Component Tests
 
@@ -43,6 +44,7 @@
 | Audit verification flow | Pass | Evidence pack export, hash verification, mock Fabric anchor visibility, entity timeline, and audit search passed. |
 | Closure/profit-loss flow | Pass | Contract, mock e-signature request, ledger entry, P/L statement, and closure export passed with application status reaching `CLOSED`. |
 | Loss exception workflow | Pass | `tests/e2e/17-loss-exception-workflow.spec.ts` passed, covering negative P/L, reviewer evidence review, genuine commercial loss rationale, closure blocking, and closure-gate clearance without guaranteed fixed return logic. |
+| Accessibility critical routes | Pass | `tests/e2e/19-critical-route-accessibility.spec.ts` passed for dashboard, procurement, finance workspace, audit/evidence, graph, reports, and admin users. |
 | Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
 | Phase 12 demo/UAT alignment | Pass | UAT seed syntax check passed with `node --check tests/uat/seed-uat-demo.mjs`; docs now distinguish API-backed seed data, frontend fixtures, mock adapters, and unavailable features. |
 | Phase 13 closeout | Pass | Final local verification passed and close-alignment blockers were classified for demo, UAT, backend/API work, product decisions, hardening, and external integrations. |

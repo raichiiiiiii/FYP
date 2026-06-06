@@ -88,6 +88,13 @@ Core flows:
 
 ## 6. Accessibility tests
 
+Commands:
+
+```bash
+pnpm test:a11y
+pnpm test:e2e -- tests/e2e/19-critical-route-accessibility.spec.ts
+```
+
 Scope:
 
 - keyboard navigation
@@ -97,6 +104,21 @@ Scope:
 - tab order
 - error messaging
 - modal/dialog behavior
+
+Current coverage:
+
+- login smoke route
+- dashboard
+- procurement hub
+- finance application workspace
+- audit/evidence routes
+- network canvas
+- reports
+- admin users
+
+Evidence:
+
+- `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md`
 
 ## 7. Deployment smoke tests
 
