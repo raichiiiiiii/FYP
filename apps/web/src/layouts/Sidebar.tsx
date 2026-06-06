@@ -18,6 +18,8 @@ import {
   Landmark,
   Network,
   PackageCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plug,
   ReceiptText,
   Scale,
@@ -47,7 +49,15 @@ import {
   groupSidebarRoutesByModule,
 } from './sidebarNavigation'
 
-export function Sidebar() {
+type SidebarProps = {
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
+}
+
+export function Sidebar({
+  collapsed: sidebarCollapsed = false,
+  onToggleCollapsed,
+}: SidebarProps) {
   const location = useLocation()
   const { authorization, session } = useAppSession()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -90,7 +100,15 @@ export function Sidebar() {
   }
 
   return (
-    <aside className={mobileOpen ? 'sidebar sidebar--mobile-open' : 'sidebar'}>
+    <aside
+      className={[
+        'sidebar',
+        mobileOpen ? 'sidebar--mobile-open' : '',
+        sidebarCollapsed ? 'sidebar--collapsed' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div className="sidebar-brand">
         <div className="sidebar-logo" aria-hidden="true">
           M
@@ -99,6 +117,20 @@ export function Sidebar() {
           <strong>MEPN</strong>
           <span>Mudarabah E-Procurement</span>
         </div>
+        <button
+          type="button"
+          className="sidebar-collapse-toggle"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-pressed={sidebarCollapsed}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={onToggleCollapsed}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen aria-hidden="true" />
+          ) : (
+            <PanelLeftClose aria-hidden="true" />
+          )}
+        </button>
       </div>
 
       <div className="sidebar-session" aria-label="Current session">
@@ -135,7 +167,10 @@ export function Sidebar() {
         aria-label="Main navigation"
       >
         {groupedModules.map(({ module, routes }) => {
-          const collapsed = collapsedModules.has(module) && activeModule !== module
+          const collapsed =
+            !sidebarCollapsed &&
+            collapsedModules.has(module) &&
+            activeModule !== module
           const sectionId = `sidebar-section-${getSidebarModuleId(module)}`
           const ModuleIcon = sidebarModuleIcons[module] ?? Settings
 
@@ -153,6 +188,7 @@ export function Sidebar() {
                 className="sidebar-module"
                 aria-controls={sectionId}
                 aria-expanded={!collapsed}
+                title={module}
                 onClick={() => toggleModule(module)}
               >
                 <ModuleIcon className="sidebar-module__icon" aria-hidden="true" />
@@ -171,6 +207,7 @@ export function Sidebar() {
                   <SidebarNavItem
                     key={item.path}
                     item={item}
+                    compact={sidebarCollapsed}
                     onNavigate={() => setMobileOpen(false)}
                   />
                 ))}
@@ -193,7 +230,8 @@ export function Sidebar() {
           screens.
         </p>
         <NavLink to={statusTarget} onClick={() => setMobileOpen(false)}>
-          Open status
+          <ServerCog aria-hidden="true" />
+          <span>Open status</span>
         </NavLink>
       </div>
     </aside>
@@ -202,16 +240,19 @@ export function Sidebar() {
 
 type SidebarNavItemProps = {
   item: AppRouteMetadata
+  compact: boolean
   onNavigate: () => void
 }
 
-function SidebarNavItem({ item, onNavigate }: SidebarNavItemProps) {
+function SidebarNavItem({ item, compact, onNavigate }: SidebarNavItemProps) {
   const Icon =
     sidebarRouteIcons[item.path] ?? sidebarModuleIcons[item.module] ?? FileText
 
   return (
     <NavLink
       to={item.path}
+      aria-label={compact ? item.label : undefined}
+      title={compact ? item.label : undefined}
       onClick={onNavigate}
       className={({ isActive }) =>
         isActive

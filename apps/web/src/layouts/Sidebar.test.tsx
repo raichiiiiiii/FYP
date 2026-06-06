@@ -70,6 +70,20 @@ describe('Sidebar', () => {
     expect(html).toContain('Roles')
   })
 
+  it('renders an icon-only rail state with accessible compact links', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Sidebar collapsed onToggleCollapsed={() => undefined} />
+      </MemoryRouter>,
+    )
+
+    expect(html).toContain('sidebar--collapsed')
+    expect(html).toContain('aria-label="Expand sidebar"')
+    expect(html).toContain('aria-pressed="true"')
+    expect(html).toContain('title="Dashboard"')
+    expect(html).toContain('nav-item__icon')
+  })
+
   it('groups visible routes by module without changing route visibility', () => {
     const visibleAdminRoutes = routeMetadata.filter(
       (route) => route.showInSidebar && route.module === 'Identity & Access',
