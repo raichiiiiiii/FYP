@@ -1,8 +1,45 @@
 import { useMemo, useState } from 'react'
+import {
+  Activity,
+  Archive,
+  BarChart3,
+  BookOpenCheck,
+  Building2,
+  CheckSquare,
+  ClipboardCheck,
+  ClipboardList,
+  FileCheck2,
+  FileClock,
+  FileSearch,
+  FileText,
+  GitGraph,
+  Hash,
+  LayoutDashboard,
+  Landmark,
+  Network,
+  PackageCheck,
+  Plug,
+  ReceiptText,
+  Scale,
+  Send,
+  ServerCog,
+  Settings,
+  ShieldCheck,
+  ShoppingCart,
+  Truck,
+  UserCog,
+  Users,
+  WalletCards,
+  type LucideIcon,
+} from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 import { getVisibleSidebarRoutes } from '../app/authorization'
-import { routeMetadata, type AppModule } from '../app/navigation'
+import {
+  routeMetadata,
+  type AppModule,
+  type AppRouteMetadata,
+} from '../app/navigation'
 import { useAppSession } from '../app/session'
 import {
   getActiveSidebarModule,
@@ -100,6 +137,7 @@ export function Sidebar() {
         {groupedModules.map(({ module, routes }) => {
           const collapsed = collapsedModules.has(module) && activeModule !== module
           const sectionId = `sidebar-section-${getSidebarModuleId(module)}`
+          const ModuleIcon = sidebarModuleIcons[module] ?? Settings
 
           return (
             <section
@@ -117,6 +155,7 @@ export function Sidebar() {
                 aria-expanded={!collapsed}
                 onClick={() => toggleModule(module)}
               >
+                <ModuleIcon className="sidebar-module__icon" aria-hidden="true" />
                 <span className="sidebar-module__label">{module}</span>
                 <small>{routes.length}</small>
                 <span className="sidebar-module__chevron" aria-hidden="true">
@@ -129,16 +168,11 @@ export function Sidebar() {
                 hidden={collapsed}
               >
                 {routes.map((item) => (
-                  <NavLink
+                  <SidebarNavItem
                     key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileOpen(false)}
-                    className={({ isActive }) =>
-                      isActive ? 'nav-item active' : 'nav-item'
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
+                    item={item}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
                 ))}
               </div>
             </section>
@@ -164,6 +198,77 @@ export function Sidebar() {
       </div>
     </aside>
   )
+}
+
+type SidebarNavItemProps = {
+  item: AppRouteMetadata
+  onNavigate: () => void
+}
+
+function SidebarNavItem({ item, onNavigate }: SidebarNavItemProps) {
+  const Icon =
+    sidebarRouteIcons[item.path] ?? sidebarModuleIcons[item.module] ?? FileText
+
+  return (
+    <NavLink
+      to={item.path}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        isActive
+          ? 'nav-item nav-item--with-icon active'
+          : 'nav-item nav-item--with-icon'
+      }
+    >
+      <Icon className="nav-item__icon" aria-hidden="true" />
+      <span>{item.label}</span>
+    </NavLink>
+  )
+}
+
+const sidebarModuleIcons: Partial<Record<AppModule, LucideIcon>> = {
+  Dashboard: LayoutDashboard,
+  Organization: Building2,
+  'Identity & Access': ShieldCheck,
+  Procurement: ShoppingCart,
+  Evidence: FileCheck2,
+  Audit: FileSearch,
+  Finance: Landmark,
+  'Graph/Canvas': Network,
+  Integrations: Plug,
+  Operations: Activity,
+  Administration: Settings,
+  Reports: BarChart3,
+  'Review Package': Archive,
+}
+
+const sidebarRouteIcons: Record<string, LucideIcon> = {
+  '/dashboard': LayoutDashboard,
+  '/org/setup': Building2,
+  '/admin/users': Users,
+  '/admin/roles': UserCog,
+  '/procurement/projects': PackageCheck,
+  '/procurement/suppliers': Truck,
+  '/procurement/requisitions': ClipboardList,
+  '/procurement/rfqs': Send,
+  '/procurement/quotations': FileText,
+  '/procurement/purchase-orders': ClipboardCheck,
+  '/procurement/receipts': CheckSquare,
+  '/procurement/invoices': ReceiptText,
+  '/evidence': FileCheck2,
+  '/evidence/hash-records': Hash,
+  '/audit/search': FileSearch,
+  '/audit/review': BookOpenCheck,
+  '/finance/opportunities': WalletCards,
+  '/finance/applications': FileClock,
+  '/finance/contracts': Scale,
+  '/finance/ledgers': Landmark,
+  '/finance/profit-loss': BarChart3,
+  '/finance/closures': PackageCheck,
+  '/graph/projects': GitGraph,
+  '/integrations': Plug,
+  '/operations': ServerCog,
+  '/reports': BarChart3,
+  '/evidence-package': Archive,
 }
 
 function formatRoleLabel(roleCode: string) {

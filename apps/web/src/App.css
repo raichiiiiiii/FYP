@@ -147,10 +147,19 @@
 }
 
 .sidebar-module__label {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sidebar-module__icon {
+  color: #94a3b8;
+  flex: 0 0 auto;
+  height: 14px;
+  margin-right: 8px;
+  width: 14px;
 }
 
 .sidebar-module__chevron {
@@ -697,6 +706,21 @@ button {
   position: relative;
   text-align: left;
   text-decoration: none;
+}
+
+.nav-item--with-icon {
+  gap: 10px;
+}
+
+.nav-item__icon {
+  color: #94a3b8;
+  flex: 0 0 auto;
+  height: 16px;
+  width: 16px;
+}
+
+.nav-item.active .nav-item__icon {
+  color: #10b981;
 }
 
 .nav-item.active {
