@@ -13,6 +13,7 @@ export type AppModule =
   | 'Operations'
   | 'Administration'
   | 'Reports'
+  | 'Review Package'
 
 export type AppRouteMetadata = {
   path: string
@@ -529,6 +530,21 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
       'ORG_ADMIN',
       'FINANCE_ACCOUNTANT',
       'FINANCIER_USER',
+      'AUDITOR',
+      'DEVELOPER_INTEGRATOR',
+    ],
+  },
+  {
+    path: '/evidence-package',
+    label: 'Evidence Package',
+    module: 'Review Package',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: true,
+    requiredRoleCodes: [
+      'ORG_ADMIN',
+      'FINANCIER_USER',
+      'SHARIAH_REVIEWER',
       'AUDITOR',
       'DEVELOPER_INTEGRATOR',
     ],

@@ -17,6 +17,7 @@ import { InviteAcceptancePage } from '../features/auth/InviteAcceptancePage'
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { Dashboard } from '../features/dashboard/Dashboard'
 import { EvidenceRoute } from '../features/evidence/EvidenceRoute'
+import { EvidencePackageRoute } from '../features/evidence-package/EvidencePackageRoute'
 import { FinanceRoute } from '../features/finance/FinanceRoute'
 import { GraphRoute } from '../features/graph/GraphRoute'
 import { RolesAdmin } from '../features/identity/RolesAdmin'
@@ -206,6 +207,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <ReportsRouteAdapter />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/evidence-package"
+            element={
+              <RequireAuth>
+                <EvidencePackageRoute />
               </RequireAuth>
             }
           />
