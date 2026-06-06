@@ -267,6 +267,111 @@ describe('GraphService saved views', () => {
   });
 });
 
+describe('GraphService annotations', () => {
+  it('creates an annotation for a visible procurement node', async () => {
+    const { service, graphAnnotation } = graphAnnotationService([
+      'PROCUREMENT_OFFICER',
+    ]);
+
+    const annotation = await service.createAnnotation({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      nodeEntityType: 'PurchaseOrder',
+      nodeEntityId: 'po-1',
+      body: 'Reviewer note',
+      visibility: 'organization',
+    });
+
+    expect(graphAnnotation.create).toHaveBeenCalledTimes(1);
+    expect(annotation).toMatchObject({
+      organizationId: 'org-1',
+      nodeEntityType: 'PurchaseOrder',
+      nodeEntityId: 'po-1',
+      body: 'Reviewer note',
+      visibility: 'organization',
+      createdByUserId: 'user-1',
+      canEdit: true,
+    });
+  });
+
+  it('does not allow procurement users to annotate hidden finance nodes', async () => {
+    const { service, graphAnnotation } = graphAnnotationService([
+      'PROCUREMENT_OFFICER',
+    ]);
+
+    await expect(
+      service.createAnnotation({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        nodeEntityType: 'ProcurementOpportunity',
+        nodeEntityId: 'opp-1',
+        body: 'Hidden finance note',
+      }),
+    ).rejects.toThrow('Graph annotation target is not visible');
+    expect(graphAnnotation.create).not.toHaveBeenCalled();
+  });
+
+  it('lists owned private and organization annotations for a visible target', async () => {
+    const { service, graphAnnotation } = graphAnnotationService(['ORG_ADMIN']);
+
+    await service.listAnnotations({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      nodeEntityType: 'PurchaseOrder',
+      nodeEntityId: 'po-1',
+    });
+
+    expect(graphAnnotation.findMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        nodeEntityType: 'PurchaseOrder',
+        nodeEntityId: 'po-1',
+        OR: [{ createdByUserId: 'user-1' }, { visibility: 'organization' }],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+  });
+
+  it('rejects annotation mutation by non-owner non-admin users', async () => {
+    const { service, graphAnnotation } = graphAnnotationService([
+      'PROCUREMENT_OFFICER',
+    ]);
+
+    await expect(
+      service.updateAnnotation({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        annotationId: 'annotation-1',
+        body: 'Updated note',
+      }),
+    ).rejects.toThrow('Graph annotation mutation denied');
+    expect(graphAnnotation.update).not.toHaveBeenCalled();
+  });
+
+  it('allows an organization admin to update another user annotation', async () => {
+    const { service, graphAnnotation } = graphAnnotationService(['ORG_ADMIN']);
+
+    const updated = await service.updateAnnotation({
+      organizationId: 'org-1',
+      actorUserId: 'admin-1',
+      annotationId: 'annotation-1',
+      body: 'Admin follow-up',
+    });
+
+    expect(graphAnnotation.update).toHaveBeenCalledWith({
+      where: {
+        id: 'annotation-1',
+      },
+      data: {
+        body: 'Admin follow-up',
+        visibility: 'organization',
+        updatedByUserId: 'admin-1',
+      },
+    });
+    expect(updated.canEdit).toBe(true);
+  });
+});
+
 function prismaForRoles(
   roleCodes: string[],
   overrides: {
@@ -321,6 +426,100 @@ function prismaForRoles(
       findMany: jest.fn().mockResolvedValue(overrides.outboxEvents ?? []),
     },
   } as never;
+}
+
+function graphAnnotationService(roleCodes: string[]) {
+  const graphAnnotation = {
+    create: jest
+      .fn()
+      .mockImplementation(({ data }: { data: object }) =>
+        Promise.resolve(graphAnnotationRecord(data)),
+      ),
+    findMany: jest.fn().mockResolvedValue([
+      graphAnnotationRecord({
+        createdByUserId: 'user-1',
+        visibility: 'private',
+      }),
+      graphAnnotationRecord({
+        id: 'annotation-2',
+        createdByUserId: 'other-user',
+        visibility: 'organization',
+      }),
+    ]),
+    findFirst: jest.fn().mockResolvedValue(
+      graphAnnotationRecord({
+        createdByUserId: 'other-user',
+        visibility: 'organization',
+      }),
+    ),
+    update: jest.fn().mockImplementation(({ data }: { data: object }) =>
+      Promise.resolve(
+        graphAnnotationRecord({
+          createdByUserId: 'other-user',
+          ...data,
+        }),
+      ),
+    ),
+    delete: jest.fn().mockResolvedValue(
+      graphAnnotationRecord({
+        createdByUserId: 'other-user',
+      }),
+    ),
+  };
+  const prisma = {
+    membership: {
+      findMany: jest.fn().mockResolvedValue(
+        roleCodes.map((code) => ({
+          role: {
+            code,
+          },
+        })),
+      ),
+    },
+    purchaseOrder: {
+      count: jest.fn().mockResolvedValue(1),
+    },
+    procurementOpportunity: {
+      count: jest.fn().mockResolvedValue(1),
+    },
+    graphSavedView: {
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'view-1',
+        organizationId: 'org-1',
+        ownerUserId: 'user-1',
+        visibility: 'organization',
+      }),
+    },
+    hashRecord: {
+      findFirst: jest.fn(),
+    },
+    auditAnchor: {
+      findFirst: jest.fn(),
+    },
+    graphAnnotation,
+  } as never;
+
+  return {
+    service: new GraphService(prisma),
+    graphAnnotation,
+  };
+}
+
+function graphAnnotationRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'annotation-1',
+    organizationId: 'org-1',
+    viewId: null,
+    nodeEntityType: 'PurchaseOrder',
+    nodeEntityId: 'po-1',
+    body: 'Reviewer note',
+    visibility: 'organization',
+    createdByUserId: 'user-1',
+    updatedByUserId: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
 }
 
 function projectFixture() {

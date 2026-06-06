@@ -6,12 +6,17 @@ import {
 } from '@nestjs/common';
 import type {
   AuditAnchor,
+  GraphAnnotation,
   HashRecord,
   IntegrationReconciliationRecord,
   OutboxEvent,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  validateGraphAnnotationInput,
+  type GraphAnnotationInput,
+} from './graph-annotations.contract';
 
 type GraphNodeCategory =
   | 'organization'
@@ -84,6 +89,23 @@ type MutateGraphViewInput = SaveGraphViewInput & {
   viewId?: string;
 };
 
+type CreateGraphAnnotationInput = GraphAnnotationInput & {
+  organizationId?: string;
+  actorUserId?: string;
+};
+
+type ListGraphAnnotationsInput = {
+  organizationId?: string;
+  actorUserId?: string;
+  viewId?: string;
+  nodeEntityType?: string;
+  nodeEntityId?: string;
+};
+
+type MutateGraphAnnotationInput = CreateGraphAnnotationInput & {
+  annotationId?: string;
+};
+
 type ActorRoleCode =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
@@ -101,6 +123,18 @@ const financeVisibleRoles = new Set<ActorRoleCode>([
   'FINANCIER_USER',
   'SHARIAH_REVIEWER',
   'AUDITOR',
+]);
+
+const financeEntityTypes = new Set([
+  'ProcurementOpportunity',
+  'MudarabahApplication',
+  'MudarabahContract',
+  'Disbursement',
+  'ProjectLedgerEntry',
+  'ProfitLossStatement',
+  'ProfitDistribution',
+  'ClosurePack',
+  'LossException',
 ]);
 
 const graphSavedViewVisibilities = new Set(['private', 'organization']);
@@ -189,6 +223,127 @@ export class GraphService {
         id: view.id,
       },
     });
+  }
+
+  async createAnnotation(input: CreateGraphAnnotationInput) {
+    const actor = await this.requireGraphActor(input);
+    const annotation = validateGraphAnnotationInput(input);
+
+    await this.assertAnnotationTargetVisible(actor, annotation);
+
+    return this.toAnnotationDto(
+      await this.prisma.graphAnnotation.create({
+        data: {
+          organizationId: actor.organizationId,
+          viewId: 'viewId' in annotation ? annotation.viewId : undefined,
+          nodeEntityType:
+            'nodeEntityType' in annotation
+              ? annotation.nodeEntityType
+              : undefined,
+          nodeEntityId:
+            'nodeEntityId' in annotation ? annotation.nodeEntityId : undefined,
+          body: annotation.body,
+          visibility: annotation.visibility,
+          createdByUserId: actor.actorUserId,
+        },
+      }),
+      actor,
+    );
+  }
+
+  async listAnnotations(input: ListGraphAnnotationsInput) {
+    const actor = await this.requireGraphActor(input);
+    const target = validateGraphAnnotationInput({
+      viewId: input.viewId,
+      nodeEntityType: input.nodeEntityType,
+      nodeEntityId: input.nodeEntityId,
+      body: 'target-check',
+    });
+
+    await this.assertAnnotationTargetVisible(actor, target);
+
+    const targetWhere =
+      'viewId' in target
+        ? { viewId: target.viewId }
+        : {
+            nodeEntityType: target.nodeEntityType,
+            nodeEntityId: target.nodeEntityId,
+          };
+
+    const annotations = await this.prisma.graphAnnotation.findMany({
+      where: {
+        organizationId: actor.organizationId,
+        ...targetWhere,
+        OR: [
+          { createdByUserId: actor.actorUserId },
+          { visibility: 'organization' },
+        ],
+      },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    return annotations.map((annotation) =>
+      this.toAnnotationDto(annotation, actor),
+    );
+  }
+
+  async updateAnnotation(input: MutateGraphAnnotationInput) {
+    const actor = await this.requireGraphActor(input);
+    const annotation = await this.requireAnnotation(
+      actor.organizationId,
+      input.annotationId,
+    );
+
+    this.assertCanMutateAnnotation(actor, annotation);
+    await this.assertAnnotationTargetVisible(
+      actor,
+      annotationTarget(annotation),
+    );
+
+    const validated = validateGraphAnnotationInput({
+      viewId: annotation.viewId,
+      nodeEntityType: annotation.nodeEntityType,
+      nodeEntityId: annotation.nodeEntityId,
+      body: input.body ?? annotation.body,
+      visibility: input.visibility ?? annotation.visibility,
+    });
+
+    return this.toAnnotationDto(
+      await this.prisma.graphAnnotation.update({
+        where: {
+          id: annotation.id,
+        },
+        data: {
+          body: validated.body,
+          visibility: validated.visibility,
+          updatedByUserId: actor.actorUserId,
+        },
+      }),
+      actor,
+    );
+  }
+
+  async deleteAnnotation(input: MutateGraphAnnotationInput) {
+    const actor = await this.requireGraphActor(input);
+    const annotation = await this.requireAnnotation(
+      actor.organizationId,
+      input.annotationId,
+    );
+
+    this.assertCanMutateAnnotation(actor, annotation);
+    await this.assertAnnotationTargetVisible(
+      actor,
+      annotationTarget(annotation),
+    );
+
+    return this.toAnnotationDto(
+      await this.prisma.graphAnnotation.delete({
+        where: {
+          id: annotation.id,
+        },
+      }),
+      actor,
+    );
   }
 
   async getProjectGraph(input: {
@@ -850,6 +1005,283 @@ export class GraphService {
       throw new ForbiddenException('Graph saved view mutation denied');
     }
   }
+
+  private async assertAnnotationTargetVisible(
+    actor: {
+      organizationId: string;
+      actorUserId: string;
+      roleCodes: ActorRoleCode[];
+    },
+    target: {
+      viewId?: string;
+      nodeEntityType?: string;
+      nodeEntityId?: string;
+    },
+  ) {
+    if (target.viewId) {
+      await this.requireVisibleSavedView(actor, target.viewId);
+      return;
+    }
+
+    await this.assertNodeEntityVisible(
+      actor,
+      requireText(target.nodeEntityType, 'nodeEntityType'),
+      requireText(target.nodeEntityId, 'nodeEntityId'),
+    );
+  }
+
+  private async requireVisibleSavedView(
+    actor: {
+      organizationId: string;
+      actorUserId: string;
+    },
+    viewId: string,
+  ) {
+    const view = await this.prisma.graphSavedView.findFirst({
+      where: {
+        id: viewId,
+        organizationId: actor.organizationId,
+        OR: [
+          { ownerUserId: actor.actorUserId },
+          { visibility: 'organization' },
+        ],
+      },
+    });
+
+    if (!view) {
+      throw new ForbiddenException('Graph saved view is not visible');
+    }
+
+    return view;
+  }
+
+  private async assertNodeEntityVisible(
+    actor: {
+      organizationId: string;
+      roleCodes: ActorRoleCode[];
+    },
+    entityType: string,
+    entityId: string,
+  ) {
+    if (financeEntityTypes.has(entityType) && !this.canSeeFinance(actor)) {
+      throw new ForbiddenException('Graph annotation target is not visible');
+    }
+
+    if (entityType === 'HashRecord') {
+      const hashRecord = await this.prisma.hashRecord.findFirst({
+        where: {
+          id: entityId,
+          organizationId: actor.organizationId,
+        },
+        select: {
+          entityType: true,
+          entityId: true,
+        },
+      });
+
+      if (!hashRecord) {
+        throw new NotFoundException('Graph annotation target not found');
+      }
+
+      await this.assertNodeEntityVisible(
+        actor,
+        hashRecord.entityType,
+        hashRecord.entityId,
+      );
+      return;
+    }
+
+    if (entityType === 'AuditAnchor') {
+      const anchor = await this.prisma.auditAnchor.findFirst({
+        where: {
+          id: entityId,
+          organizationId: actor.organizationId,
+        },
+        select: {
+          rootHash: true,
+        },
+      });
+
+      if (!anchor) {
+        throw new NotFoundException('Graph annotation target not found');
+      }
+
+      const visibleHashRecord = await this.prisma.hashRecord.findFirst({
+        where: {
+          organizationId: actor.organizationId,
+          canonicalHash: anchor.rootHash,
+          entityType: this.canSeeFinance(actor)
+            ? undefined
+            : { notIn: [...financeEntityTypes] },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!visibleHashRecord) {
+        throw new ForbiddenException('Graph annotation target is not visible');
+      }
+
+      return;
+    }
+
+    await this.assertKnownEntityExists(
+      actor.organizationId,
+      entityType,
+      entityId,
+    );
+  }
+
+  private async assertKnownEntityExists(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+  ) {
+    const exists = await this.knownEntityExists(
+      organizationId,
+      entityType,
+      entityId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('Graph annotation target not found');
+    }
+  }
+
+  private knownEntityExists(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+  ) {
+    switch (entityType) {
+      case 'Organization':
+      case 'BuyerCustomer':
+        if (entityId !== organizationId) {
+          return Promise.resolve(false);
+        }
+
+        return this.prisma.organization
+          .count({
+            where: {
+              id: entityId,
+            },
+          })
+          .then(Boolean);
+      case 'Project':
+        return this.prisma.project
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'Supplier':
+        return this.prisma.supplier
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'Requisition':
+        return this.prisma.requisition
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'RFQ':
+        return this.prisma.rFQ
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'Quotation':
+        return this.prisma.quotation
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'PurchaseOrder':
+        return this.prisma.purchaseOrder
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'Invoice':
+        return this.prisma.invoice
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'EvidencePack':
+        return this.prisma.evidencePack
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'ProcurementOpportunity':
+        return this.prisma.procurementOpportunity
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'MudarabahApplication':
+        return this.prisma.mudarabahApplication
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'MudarabahContract':
+        return this.prisma.mudarabahContract
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      case 'ClosurePack':
+        return this.prisma.closurePack
+          .count({ where: { id: entityId, organizationId } })
+          .then(Boolean);
+      default:
+        throw new BadRequestException('Unsupported graph annotation target');
+    }
+  }
+
+  private async requireAnnotation(
+    organizationId: string,
+    annotationId: string | undefined,
+  ) {
+    const id = requireText(annotationId, 'annotationId');
+    const annotation = await this.prisma.graphAnnotation.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!annotation) {
+      throw new NotFoundException('Graph annotation not found');
+    }
+
+    return annotation;
+  }
+
+  private assertCanMutateAnnotation(
+    actor: {
+      actorUserId: string;
+      roleCodes: ActorRoleCode[];
+    },
+    annotation: Pick<GraphAnnotation, 'createdByUserId'>,
+  ) {
+    if (
+      actor.actorUserId !== annotation.createdByUserId &&
+      !actor.roleCodes.includes('ORG_ADMIN')
+    ) {
+      throw new ForbiddenException('Graph annotation mutation denied');
+    }
+  }
+
+  private canSeeFinance(actor: { roleCodes: ActorRoleCode[] }) {
+    return actor.roleCodes.some((roleCode) =>
+      financeVisibleRoles.has(roleCode),
+    );
+  }
+
+  private toAnnotationDto(
+    annotation: GraphAnnotation,
+    actor: { actorUserId: string; roleCodes: ActorRoleCode[] },
+  ) {
+    return {
+      id: annotation.id,
+      organizationId: annotation.organizationId,
+      viewId: annotation.viewId,
+      nodeEntityType: annotation.nodeEntityType,
+      nodeEntityId: annotation.nodeEntityId,
+      body: annotation.body,
+      visibility: annotation.visibility,
+      createdByUserId: annotation.createdByUserId,
+      updatedByUserId: annotation.updatedByUserId,
+      createdAt: annotation.createdAt,
+      updatedAt: annotation.updatedAt,
+      canEdit:
+        annotation.createdByUserId === actor.actorUserId ||
+        actor.roleCodes.includes('ORG_ADMIN'),
+    };
+  }
 }
 
 function requireText(value: string | undefined, field: string) {
@@ -894,6 +1326,19 @@ function normalizeSavedViewVisibility(value: string | undefined) {
   }
 
   return normalized;
+}
+
+function annotationTarget(annotation: GraphAnnotation) {
+  if (annotation.viewId) {
+    return {
+      viewId: annotation.viewId,
+    };
+  }
+
+  return {
+    nodeEntityType: annotation.nodeEntityType ?? undefined,
+    nodeEntityId: annotation.nodeEntityId ?? undefined,
+  };
 }
 
 function nodeId(entityType: string, entityId: string) {

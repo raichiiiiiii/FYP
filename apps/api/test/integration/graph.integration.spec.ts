@@ -284,4 +284,170 @@ describe('Integration: graph read model', () => {
 
     expect(deleted).toBeNull();
   });
+
+  it('supports graph annotation CRUD with role no-leak checks', async () => {
+    const fixture = await createProcurementFixture(context.app);
+    const procurementRole = await context.prisma.role.upsert({
+      where: { code: 'PROCUREMENT_OFFICER' },
+      create: { code: 'PROCUREMENT_OFFICER', name: 'Procurement Officer' },
+      update: {},
+    });
+    const procurementUser = await context.prisma.user.create({
+      data: {
+        email: `graph-annotation-procurement-${Date.now()}@example.test`,
+        displayName: 'Graph Annotation Procurement Officer',
+      },
+    });
+
+    await context.prisma.membership.create({
+      data: {
+        organizationId: fixture.organizationId,
+        userId: procurementUser.id,
+        roleId: procurementRole.id,
+      },
+    });
+
+    const nodeAnnotation = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/graph/annotations')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          nodeEntityType: 'PurchaseOrder',
+          nodeEntityId: fixture.purchaseOrder.id,
+          body: 'Reviewer note for visible procurement node',
+          visibility: 'organization',
+        })
+        .expect(201)
+    ).body as { id: string; body: string; canEdit: boolean };
+
+    expect(nodeAnnotation).toEqual(
+      expect.objectContaining({
+        body: 'Reviewer note for visible procurement node',
+        canEdit: true,
+      }),
+    );
+
+    const procurementVisibleAnnotations = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/graph/annotations')
+        .query({
+          organizationId: fixture.organizationId,
+          actorUserId: procurementUser.id,
+          nodeEntityType: 'PurchaseOrder',
+          nodeEntityId: fixture.purchaseOrder.id,
+        })
+        .expect(200)
+    ).body as Array<{ id: string; canEdit: boolean; body: string }>;
+
+    expect(procurementVisibleAnnotations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: nodeAnnotation.id,
+          canEdit: false,
+          body: 'Reviewer note for visible procurement node',
+        }),
+      ]),
+    );
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/graph/annotations')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: procurementUser.id,
+        nodeEntityType: 'ProcurementOpportunity',
+        nodeEntityId: 'hidden-finance-node',
+        body: 'Hidden finance annotation attempt',
+      })
+      .expect(403);
+
+    await request(context.app.getHttpServer())
+      .patch(`/api/v1/graph/annotations/${nodeAnnotation.id}`)
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: procurementUser.id,
+        body: 'Unauthorized update',
+      })
+      .expect(403);
+
+    const updated = (
+      await request(context.app.getHttpServer())
+        .patch(`/api/v1/graph/annotations/${nodeAnnotation.id}`)
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          body: 'Admin reviewer follow-up',
+        })
+        .expect(200)
+    ).body as { body: string; canEdit: boolean };
+
+    expect(updated).toEqual(
+      expect.objectContaining({
+        body: 'Admin reviewer follow-up',
+        canEdit: true,
+      }),
+    );
+
+    const savedView = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/graph/views')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          name: `Annotation view ${Date.now()}`,
+          filters: {
+            includeAnchors: true,
+          },
+          visibility: 'organization',
+        })
+        .expect(201)
+    ).body as { id: string };
+    const viewAnnotation = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/graph/annotations')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          viewId: savedView.id,
+          body: 'Saved view reviewer note',
+          visibility: 'organization',
+        })
+        .expect(201)
+    ).body as { id: string };
+    const listedViewAnnotations = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/graph/annotations')
+        .query({
+          organizationId: fixture.organizationId,
+          actorUserId: procurementUser.id,
+          viewId: savedView.id,
+        })
+        .expect(200)
+    ).body as Array<{ id: string; body: string }>;
+
+    expect(listedViewAnnotations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: viewAnnotation.id,
+          body: 'Saved view reviewer note',
+        }),
+      ]),
+    );
+
+    await request(context.app.getHttpServer())
+      .delete(`/api/v1/graph/annotations/${nodeAnnotation.id}`)
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+      })
+      .expect(200);
+
+    await expect(
+      context.prisma.graphAnnotation.findUnique({
+        where: {
+          id: nodeAnnotation.id,
+        },
+      }),
+    ).resolves.toBeNull();
+  });
 });

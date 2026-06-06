@@ -19,6 +19,16 @@ type SaveGraphViewBody = {
   visibility?: string;
 };
 
+type GraphAnnotationBody = {
+  organizationId?: string;
+  actorUserId?: string;
+  viewId?: string;
+  nodeEntityType?: string;
+  nodeEntityId?: string;
+  body?: string;
+  visibility?: string;
+};
+
 @Controller('graph')
 export class GraphController {
   constructor(private readonly graphService: GraphService) {}
@@ -50,6 +60,50 @@ export class GraphController {
     @Body() body: Pick<SaveGraphViewBody, 'organizationId' | 'actorUserId'>,
   ) {
     return this.graphService.deleteSavedView({ ...body, viewId });
+  }
+
+  @Post('annotations')
+  createAnnotation(@Body() body: GraphAnnotationBody) {
+    return this.graphService.createAnnotation(body);
+  }
+
+  @Get('annotations')
+  listAnnotations(
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+    @Query('viewId') viewId?: string,
+    @Query('nodeEntityType') nodeEntityType?: string,
+    @Query('nodeEntityId') nodeEntityId?: string,
+  ) {
+    return this.graphService.listAnnotations({
+      organizationId,
+      actorUserId,
+      viewId,
+      nodeEntityType,
+      nodeEntityId,
+    });
+  }
+
+  @Patch('annotations/:annotationId')
+  updateAnnotation(
+    @Param('annotationId') annotationId: string,
+    @Body() body: GraphAnnotationBody,
+  ) {
+    return this.graphService.updateAnnotation({
+      ...body,
+      annotationId,
+    });
+  }
+
+  @Delete('annotations/:annotationId')
+  deleteAnnotation(
+    @Param('annotationId') annotationId: string,
+    @Body() body: Pick<GraphAnnotationBody, 'organizationId' | 'actorUserId'>,
+  ) {
+    return this.graphService.deleteAnnotation({
+      ...body,
+      annotationId,
+    });
   }
 
   @Get('projects/:projectId')
