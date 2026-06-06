@@ -7,6 +7,14 @@ known-limitation evidence. It links only to sanitized evidence; secret values,
 PEM blocks, private keys, tokens, generated env files, and VM credentials must
 not be stored in this directory.
 
+## Roadmap And Validation
+
+| Evidence | Purpose | Status |
+|---|---|---|
+| `docs/roadmap/soon-to-be-feature-implementation-report.md` | Final implementation report for the soon-to-be feature round, including phase results, commits, validation, and remaining hardening work. | Complete. |
+| `docs/roadmap/feature-status-and-future-implementation.md` | Current feature status roadmap and phase/slice tracker. | Complete for latest reconciliation. |
+| `docs/testing/final-validation-matrix.md` | Final validation command matrix and latest full regression result summary. | Complete for latest local regression pass. |
+
 ## Deployment Evidence
 
 | Evidence | Purpose | Status |
