@@ -108,7 +108,14 @@ run_network_sh() {
   require_test_network
   (
     cd "$FABRIC_TEST_NETWORK_DIR"
-    ./network.sh "$@"
+    set +e
+    ./network.sh "$@" 2>&1 |
+      sed -E \
+        -e 's#https://([^:/@[:space:]]+):[^@[:space:]]+@#https://\1:<redacted>@#g' \
+        -e 's/(Password: )[[:graph:]]+/\1<redacted>/g' \
+        -e 's/(--id.secret )[[:graph:]]+/\1<redacted>/g'
+    local status="${PIPESTATUS[0]}"
+    exit "$status"
   )
 }
 
