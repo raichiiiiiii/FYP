@@ -1,0 +1,70 @@
+{
+  "status": "measured",
+  "note": "Playwright instrumentation output only. Do not treat as participant HCI scoring.",
+  "measurements": [
+    {
+      "id": "CW-01",
+      "route": "/dashboard",
+      "status": "measured",
+      "elapsedMs": 1031,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-01-dashboard.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-02",
+      "route": "/procurement",
+      "status": "measured",
+      "elapsedMs": 828,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-02-procurement-hub.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-03",
+      "route": "/finance/opportunities",
+      "status": "measured",
+      "elapsedMs": 801,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-03-finance-opportunities.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-04",
+      "route": "/evidence/packs",
+      "status": "measured",
+      "elapsedMs": 718,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-04-evidence-packs.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-05",
+      "route": "/audit",
+      "status": "measured",
+      "elapsedMs": 912,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-05-audit.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-06",
+      "route": "/evidence/hashes",
+      "status": "measured",
+      "elapsedMs": 690,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-06-hash-verification.png",
+      "blocker": null
+    },
+    {
+      "id": "CW-07",
+      "route": "/graph/projects",
+      "status": "measured",
+      "elapsedMs": 837,
+      "errorsObserved": 0,
+      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-07-graph-projects.png",
+      "blocker": null
+    }
+  ],
+  "observedErrors": []
+}
