@@ -81,6 +81,16 @@
 | Restore smoke script | Pass | `scripts/backup/smoke-restore.sh --require-demo-data` verified required tables and non-zero sanitized counts. |
 | Evidence doc | Recorded | `docs/evidence/deployment/BACKUP_RESTORE_EVIDENCE.md` records commands, safety notes, and limitations. |
 
+## Summary DTO Evidence
+
+| Check | Result | Notes |
+|---|---|---|
+| Shared summary contract | Pass | `corepack pnpm --dir apps/api test:unit -- summary-contract` passed. |
+| Dashboard summary | Pass | Dashboard unit and integration summary tests passed. |
+| Procurement summary | Pass | Procurement summary unit/integration tests passed, including forbidden finance-only access. |
+| Finance summary | Pass | Finance summary unit/integration tests passed, including forbidden procurement-only access. |
+| Summary UI | Pass | `corepack pnpm --dir apps/web test -- summary procurementHub opportunities` and `corepack pnpm test:e2e -- tests/e2e/20-summary-api-ui.spec.ts` passed. Screenshots are in `docs/evidence/uat/summary-procurement-hub.png` and `docs/evidence/uat/summary-finance-panel.png`. |
+
 ## Known Issues And Risks
 
 - `format:check` is documented in the testing strategy but is not currently a
