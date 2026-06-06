@@ -4608,13 +4608,13 @@ textarea {
 }
 
 .demo-guide {
-  bottom: 22px;
   display: grid;
   gap: 10px;
   justify-items: end;
   pointer-events: none;
   position: fixed;
   right: 22px;
+  top: 82px;
   width: min(420px, calc(100vw - 32px));
   z-index: 40;
 }
@@ -5210,6 +5210,7 @@ textarea {
   .demo-guide {
     bottom: 12px;
     right: 12px;
+    top: auto;
     width: calc(100vw - 24px);
   }
 

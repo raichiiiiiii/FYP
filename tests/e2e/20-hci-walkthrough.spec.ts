@@ -142,6 +142,9 @@ async function navigateForHci(
   routeProbe: RouteProbe,
 ) {
   const screenshotPath = path.join(screenshotDir, routeProbe.screenshotName);
+  const screenshotEvidencePath = path
+    .relative(process.cwd(), screenshotPath)
+    .replaceAll(path.sep, '/');
 
   try {
     const response = await page.goto(routeProbe.route, {
@@ -153,7 +156,7 @@ async function navigateForHci(
       return {
         ok: false,
         reason: `${routeProbe.route} returned HTTP ${response.status()}`,
-        screenshot: screenshotPath,
+        screenshot: screenshotEvidencePath,
       };
     }
 
@@ -167,7 +170,7 @@ async function navigateForHci(
       return {
         ok: false,
         reason: `${routeProbe.route} rendered Access denied for the seeded walkthrough role`,
-        screenshot: screenshotPath,
+        screenshot: screenshotEvidencePath,
       };
     }
 
@@ -187,7 +190,7 @@ async function navigateForHci(
       body: JSON.stringify(
         {
           route: routeProbe.route,
-          screenshot: screenshotPath,
+          screenshot: screenshotEvidencePath,
           status: 'measured',
         },
         null,
@@ -199,7 +202,7 @@ async function navigateForHci(
     return {
       ok: true,
       reason: null,
-      screenshot: screenshotPath,
+      screenshot: screenshotEvidencePath,
     };
   } catch (error) {
     await page.screenshot({ path: screenshotPath, fullPage: true }).catch(
@@ -208,7 +211,7 @@ async function navigateForHci(
     return {
       ok: false,
       reason: error instanceof Error ? error.message : String(error),
-      screenshot: screenshotPath,
+      screenshot: screenshotEvidencePath,
     };
   }
 }

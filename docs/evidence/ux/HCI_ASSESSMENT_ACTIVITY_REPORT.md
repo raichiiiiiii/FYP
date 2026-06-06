@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Product | Mudarabah-Enabled Procurement Network |
-| Worktree | `C:\Users\User\dev\FYP-ui-hci-docs` |
-| Branch | `feature/ui-hci-evaluation-docs` |
-| Prepared by | Agent E - HCI Instrumentation + Evaluation Docs |
-| Status | Template prepared. Automated route-health instrumentation passed on the validation run; final human HCI scoring and SUS remain not measured. |
+| Worktree | `C:\Users\User\dev\FYP` |
+| Branch | `feature/reviewer-delighters-sprint-1` |
+| Prepared by | Agent E - HCI Instrumentation + Evaluation Docs; aggregated by Agent F |
+| Status | Route-health and HCI Playwright instrumentation passed on the aggregation run; final human HCI scoring and SUS remain not measured. |
 
 ## Assessment Boundary
 
@@ -58,9 +58,9 @@ The Figma Make prototype is a visual and interaction reference only. It is not a
 
 | Metric | Source | Current status | Rule |
 | --- | --- | --- | --- |
-| Task Completion Rate | Playwright-instrumented route/task completion only when measured | Not measured | Do not infer from template completion or expected routes. |
-| Error Frequency Rate | Playwright-instrumented observed UI/API/console errors only when measured | Not measured | Count only observed errors during defined tasks. |
-| Time-on-Task | Playwright-instrumented timings only when measured | Not measured | Capture elapsed time for scripted tasks, but do not generalize to human users. |
+| Task Completion Rate | Playwright-instrumented route/task completion only | Instrumented; scripted walkthrough completed | Do not generalize to human users or participant outcomes. |
+| Error Frequency Rate | Playwright-instrumented observed UI/API/console errors only | Instrumented; latest scripted run recorded zero observed errors | Count only observed errors during defined tasks. |
+| Time-on-Task | Playwright-instrumented timings only | Instrumented; latest timings recorded in `hci-walkthrough-instrumentation.json` | Automation timing supports regression tracking only. |
 | System Usability Scale | Participant survey | Not measured | Requires participant survey responses. Do not fabricate. |
 
 ## Blocking Conditions

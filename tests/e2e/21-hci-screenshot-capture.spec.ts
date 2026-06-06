@@ -54,6 +54,36 @@ const screenshotTargets: ScreenshotTarget[] = [
     expectedText: 'Evidence Package Browser',
     screenshotName: 'shot-06-evidence-package.png',
   },
+  {
+    id: 'HCI-REQ-01',
+    route: '/dashboard',
+    expectedText: /dashboard|MEPN API|system health/i,
+    screenshotName: 'hci-dashboard-status-visibility.png',
+  },
+  {
+    id: 'HCI-REQ-02',
+    route: '/finance/applications',
+    expectedText: /Application pipeline|Gate visibility/i,
+    screenshotName: 'hci-finance-approval-flow.png',
+  },
+  {
+    id: 'HCI-REQ-03',
+    route: '/finance/contracts',
+    expectedText: /Contracts|Signer email/i,
+    screenshotName: 'hci-contract-confirmation-state.png',
+  },
+  {
+    id: 'HCI-REQ-04',
+    route: '/graph/projects',
+    expectedText: /graph|network|canvas/i,
+    screenshotName: 'hci-graph-information-density.png',
+  },
+  {
+    id: 'HCI-REQ-05',
+    route: '/operations',
+    expectedText: /deployment|runtime|operations/i,
+    screenshotName: 'hci-operations-error-prevention.png',
+  },
 ];
 
 test.beforeEach(async () => {

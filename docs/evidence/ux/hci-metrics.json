@@ -1,7 +1,7 @@
 {
   "product": "MEPN",
-  "worktree": "C:\\Users\\User\\dev\\FYP-ui-hci-docs",
-  "branch": "feature/ui-hci-evaluation-docs",
+  "worktree": "C:\\Users\\User\\dev\\FYP",
+  "branch": "feature/reviewer-delighters-sprint-1",
   "status": "placeholder-with-instrumentation",
   "scoringGate": {
     "routeHealthRequired": true,

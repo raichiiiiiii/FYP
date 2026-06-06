@@ -6,27 +6,27 @@
       "id": "CW-01",
       "route": "/dashboard",
       "status": "measured",
-      "elapsedMs": 1031,
+      "elapsedMs": 997,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-01-dashboard.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-01-dashboard.png",
       "blocker": null
     },
     {
       "id": "CW-02",
       "route": "/procurement",
       "status": "measured",
-      "elapsedMs": 828,
+      "elapsedMs": 841,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-02-procurement-hub.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-02-procurement-hub.png",
       "blocker": null
     },
     {
       "id": "CW-03",
       "route": "/finance/opportunities",
       "status": "measured",
-      "elapsedMs": 801,
+      "elapsedMs": 829,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-03-finance-opportunities.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-03-finance-opportunities.png",
       "blocker": null
     },
     {
@@ -35,34 +35,34 @@
       "status": "measured",
       "elapsedMs": 718,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-04-evidence-packs.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-04-evidence-packs.png",
       "blocker": null
     },
     {
       "id": "CW-05",
       "route": "/audit",
       "status": "measured",
-      "elapsedMs": 912,
+      "elapsedMs": 992,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-05-audit.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-05-audit.png",
       "blocker": null
     },
     {
       "id": "CW-06",
       "route": "/evidence/hashes",
       "status": "measured",
-      "elapsedMs": 690,
+      "elapsedMs": 699,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-06-hash-verification.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-06-hash-verification.png",
       "blocker": null
     },
     {
       "id": "CW-07",
       "route": "/graph/projects",
       "status": "measured",
-      "elapsedMs": 837,
+      "elapsedMs": 887,
       "errorsObserved": 0,
-      "screenshot": "C:\\Users\\User\\dev\\FYP-ui-hci-docs\\docs\\evidence\\ux\\screenshots\\cw-07-graph-projects.png",
+      "screenshot": "docs/evidence/ux/screenshots/cw-07-graph-projects.png",
       "blocker": null
     }
   ],

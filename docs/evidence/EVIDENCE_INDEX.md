@@ -12,6 +12,7 @@ not be stored in this directory.
 | Evidence | Purpose | Status |
 |---|---|---|
 | `docs/roadmap/soon-to-be-feature-implementation-report.md` | Final implementation report for the soon-to-be feature round, including phase results, commits, validation, and remaining hardening work. | Complete. |
+| `docs/roadmap/ui-hci-recovery-workstream-report.md` | Multi-agent UI/HCI recovery and route-health workstream report. | Complete for latest reviewer-delighter sprint. |
 | `docs/roadmap/feature-status-and-future-implementation.md` | Current feature status roadmap and phase/slice tracker. | Complete for latest reconciliation. |
 | `docs/testing/final-validation-matrix.md` | Final validation command matrix and latest full regression result summary. | Complete for latest local regression pass. |
 
@@ -47,6 +48,12 @@ not be stored in this directory.
 | `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md` | Accessibility helper, axe/focus checks, and critical-route evidence. | Complete for automated FYP scope. |
 | `docs/evidence/qa/SUMMARY_DTO_EVIDENCE.md` | Dashboard/procurement/finance summary DTO and UI evidence. | Complete for FYP scope. |
 | `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` | Graph anchor overlay, backend risk metadata, saved views, URL filters, and no-leak E2E evidence. | Complete for FYP scope. |
+| `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` | Route-health audit for dashboard, finance, graph, and operations routes. | Complete for latest UI/HCI recovery run. |
+| `docs/evidence/ux/HCI_ASSESSMENT_ACTIVITY_REPORT.md` | HCI assessment boundary, DECIDE-aligned activity plan, and metric rules. | Prepared; participant scoring remains unmeasured. |
+| `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md` | Cognitive walkthrough workflow mapping and evidence rules. | Prepared with Playwright instrumentation evidence. |
+| `docs/evidence/ux/HCI_HEURISTIC_EVALUATION.md` | Heuristic evaluation worksheet for MEPN reviewer surfaces. | Prepared; findings require reviewer assessment. |
+| `docs/evidence/ux/HCI_ACTION_PLAN.md` | UX remediation action plan and metric-governance checklist. | Prepared. |
+| `docs/evidence/ux/SCREENSHOT_INDEX.md` | Index of route-health, cognitive-walkthrough, and HCI screenshot evidence. | Complete for latest screenshot capture. |
 
 ## Screenshot Evidence
 
@@ -65,6 +72,17 @@ not be stored in this directory.
 | `docs/evidence/uat/graph-anchor-overlay-auditor.png` | Admin/auditor graph with hash/anchor overlay. |
 | `docs/evidence/uat/graph-anchor-overlay-procurement-filtered.png` | Procurement role graph with finance context hidden. |
 | `docs/evidence/uat/graph-risk-saved-view.png` | Saved graph view restoring an anchor-only filtered view. |
+| `docs/evidence/ux/screenshots/after-dashboard.png` | Dashboard route-health after screenshot. |
+| `docs/evidence/ux/screenshots/after-finance-opportunities.png` | Finance opportunities route-health after screenshot. |
+| `docs/evidence/ux/screenshots/after-finance-applications.png` | Finance applications route-health after screenshot and overflow fix proof. |
+| `docs/evidence/ux/screenshots/after-finance-contracts.png` | Finance contracts route-health after screenshot. |
+| `docs/evidence/ux/screenshots/after-graph-projects.png` | Graph projects route-health after screenshot. |
+| `docs/evidence/ux/screenshots/after-operations.png` | Operations route-health after screenshot. |
+| `docs/evidence/ux/screenshots/hci-dashboard-status-visibility.png` | HCI screenshot for visibility of system status. |
+| `docs/evidence/ux/screenshots/hci-finance-approval-flow.png` | HCI screenshot for finance approval-flow clarity. |
+| `docs/evidence/ux/screenshots/hci-contract-confirmation-state.png` | HCI screenshot for contract confirmation state. |
+| `docs/evidence/ux/screenshots/hci-graph-information-density.png` | HCI screenshot for graph information density. |
+| `docs/evidence/ux/screenshots/hci-operations-error-prevention.png` | HCI screenshot for operations error prevention. |
 
 ## Resolved Blockers
 

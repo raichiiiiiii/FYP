@@ -68,6 +68,8 @@ state. The classifications are intentionally conservative:
 | Backup/restore proof | implemented for PostgreSQL FYP review scope | Backup/restore scope is documented in `docs/deployment/backup-restore-runbook.md`, including PostgreSQL, MinIO/object storage, Redis treatment, Fabric secret exclusions, and restore proof requirements. `scripts/backup/backup-postgres.sh` creates timestamped gzip logical dumps. `scripts/backup/restore-postgres.sh` validates and restores gzip dumps into an explicitly confirmed target database. `scripts/backup/smoke-restore.sh` validates restored schema and sanitized record counts. Evidence is recorded in `docs/evidence/deployment/BACKUP_RESTORE_EVIDENCE.md`. | Keep MinIO/object backup automation, scheduling, retention, and off-VM storage in post-demo hardening. |
 | Richer dashboard/procurement/finance summaries | implemented for FYP review scope | Dashboard, procurement, and finance summary endpoints return backend-owned aggregate DTOs with role enforcement, queues, blockers, readiness, and status breakdowns. Procurement Hub and finance opportunities consume the summary APIs, and browser evidence is recorded. | Keep supplier scoring, spend trend analytics, maverick-spend analytics, richer risk scoring, and deeper operational summary slices in post-demo hardening. |
 | Graph saved views and risk scoring | implemented for FYP review scope | Read-only graph now includes backend-owned risk metadata, URL-backed filters, persisted private/organization saved views, saved-view UI controls, hash/anchor overlay, role filtering, no-leak tests, and E2E screenshots. | Persisted drag/drop layout, graph annotations, time-based risk ageing, and team-curated default views remain post-demo hardening. |
+| Graph annotations | partially scaffolded | `GraphAnnotation` persistence and backend API routes exist with target visibility, organization boundary, owner/admin mutation checks, and graph unit/integration coverage. | Add graph annotation UI panel, browser no-leak E2E, and reviewer screenshot evidence before marking this delighter complete. |
+| UI/HCI route recovery evidence | implemented evidence workstream | Route-health E2E, route audit, HCI walkthrough instrumentation, HCI screenshot capture, screenshot index, and workstream report exist. The reported route failures were not reproduced as server errors; one finance applications overflow was fixed. | Human heuristic findings and SUS remain unmeasured until a reviewer/participant study is conducted. |
 
 ## Implemented Features
 
@@ -88,6 +90,7 @@ state. The classifications are intentionally conservative:
 | Real Fabric Gateway UAT proof | VM-local Fabric runtime proof with worker-submitted transaction, API-side `ReadAnchor` verification, transaction metadata, and reviewer-facing screenshots. | `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md`, `docs/evidence/uat/fabric-gateway-hash-record-verification.png`, `docs/evidence/uat/fabric-gateway-proof-panel.png` |
 | Fabric chaincode/local network | Audit anchor chaincode, local Fabric test network scripts, Gateway env export helper. | `chaincode/audit-anchor-go/`, `infra/fabric/` |
 | Graph/canvas | Read-only project graph with role-filtered procurement, finance, hash-record, anchor overlay, backend risk metadata, URL filters, saved views, and no-leak E2E evidence. | `apps/api/src/modules/graph/`, `apps/web/src/features/graph/`, `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` |
+| Graph Annotation API | Backend annotation model and API for visible graph nodes/saved views with owner/admin mutation rules and no hidden finance target leakage. | `apps/api/prisma/schema.prisma`, `apps/api/src/modules/graph/`, `apps/api/test/integration/graph.integration.spec.ts`, `docs/evidence/ux/agent-notes/agent-a-graph-annotation-api.md` |
 | Integrations | Integration status cards, Fabric runtime mode display, outbox visibility, retry/degraded/unavailable states. | `apps/api/src/modules/integrations/`, `apps/web/src/features/integrations/` |
 | Operations | Worker heartbeat model/API/UI for queue and worker liveness visibility. | `apps/api/prisma/schema.prisma`, `apps/api/src/modules/integrations/`, `apps/web/src/features/operations/` |
 | Operations Timeline | Backend-backed reviewer timeline for worker, outbox, reconciliation, Fabric anchor, and report export events with sanitized summaries and E2E evidence. | `apps/api/src/modules/integrations/status/operations-timeline.dto.ts`, `apps/web/src/features/operations/OperationsTimeline.tsx`, `tests/e2e/24-operations-timeline.spec.ts`, `docs/evidence/qa/OPERATIONS_TIMELINE_EVIDENCE.md` |
@@ -98,6 +101,7 @@ state. The classifications are intentionally conservative:
 | Fabric secret delivery | GitHub Actions VM secret materialization, validation, smoke, and evidence scripts. | `.github/workflows/deploy-azure-vm.yml`, `scripts/deploy/`, `scripts/validate-fabric-secrets.sh` |
 | Azure VM Gateway deployment evidence | GitHub Actions deployment to the Azure Student VM passed with sanitized service-health and Fabric Gateway configuration evidence. | `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md`, `docs/evidence/deployment/latest-vm-deployment-evidence.txt` |
 | Testing | Unit/component/API tests and Playwright E2E suite covering critical demo flows. | `tests/e2e/`, `apps/*/test/` |
+| UI/HCI evidence | Route-health audit, HCI walkthrough instrumentation, heuristic/evaluation templates, screenshot index, and route recovery report. | `docs/evidence/ux/`, `tests/e2e/00-route-health.spec.ts`, `tests/e2e/20-hci-walkthrough.spec.ts`, `tests/e2e/21-hci-screenshot-capture.spec.ts`, `docs/roadmap/ui-hci-recovery-workstream-report.md` |
 | Documentation | ADRs, UI contract docs, Figma reference docs, demo script, UAT/testing strategy, roadmap trackers. | `docs/` |
 
 ## Partially Implemented Features
@@ -112,7 +116,7 @@ state. The classifications are intentionally conservative:
 | Backup/restore hardening | Deployment docs, backup/restore scope runbook, PostgreSQL backup script, restore script, restore smoke script, and evidence doc exist. | MinIO object backup automation, scheduled backups, retention, and off-VM storage remain incomplete. |
 | Dashboard task depth | Dashboard, procurement, and finance summary DTOs now provide backend-owned queues, blockers, evidence/review readiness, and operational counts for FYP review scope. | Deeper analytics, trend history, SLA ageing, and product-specific risk scoring remain incomplete. |
 | Procurement analytics | Core procurement path works. | Supplier scoring, richer matching exception workflow, and sourcing analytics remain incomplete. |
-| Graph advanced behavior | Role-filtered read-only graph, backend risk metadata, URL-backed filters, and persisted saved filter/layout views work for FYP review scope. | Persisted drag/drop node positions, annotations, time-based risk ageing, and team-curated default views remain incomplete. |
+| Graph advanced behavior | Role-filtered read-only graph, backend risk metadata, URL-backed filters, persisted saved filter/layout views, and backend graph annotation API work for FYP review scope. | Graph annotation UI/no-leak browser evidence, persisted drag/drop node positions, time-based risk ageing, and team-curated default views remain incomplete. |
 | External integrations | Mock/outbox integration boundary exists. | Real ERP, e-signature, payment/finance provider, and external Fabric provider probes remain incomplete. |
 
 ## Soon-To-Be Implemented Features
@@ -129,7 +133,7 @@ post-demo/product-hardening slices.
 | P2 | Accessibility hardening | Critical-route automation exists. Add CI separation, manual screen-reader review, mobile-specific accessibility checks, and documented exceptions. | CI/a11y logs, manual review notes, mobile screenshots. |
 | P2 | Backup/restore hardening | PostgreSQL proof exists. Add MinIO/object backup automation, scheduled backups, retention, restore drills, and off-VM storage. | Restore artifacts, smoke logs, backup retention evidence. |
 | P2 | Analytics and summary hardening | Backend dashboard/procurement/finance summaries exist. Add trends, SLA ageing, supplier scoring, sourcing analytics, and maverick-spend analysis. | API tests, UI evidence, analytics fixtures/seed data. |
-| P3 | Graph advanced hardening | Risk, filters, saved views, and no-leak tests exist. Add persisted node positions, annotations, team-curated defaults, and time-based risk ageing if approved. | Graph API/UI/E2E tests, no-leak assertions, evidence screenshots. |
+| P3 | Graph advanced hardening | Risk, filters, saved views, annotation model/API, and no-leak tests exist. Add annotation UI/no-leak browser evidence, persisted node positions, team-curated defaults, and time-based risk ageing if approved. | Graph API/UI/E2E tests, no-leak assertions, evidence screenshots. |
 | P3 | External integration hardening | Mock/outbox boundary and Fabric Gateway demo proof exist. Add real ERP, e-signature, payment/finance provider, monitoring, and provider-specific reconciliation. | Adapter tests, sanitized integration evidence, operations/readiness screenshots. |
 
 ## Phased Implementation Plan For Soon-To-Be Features
@@ -308,12 +312,13 @@ demo, and product polish.
 
 | Delighter | Value | Safe implementation approach |
 |---|---|---|
-| Guided demo mode | Opens the correct seeded role, record, and route for reviewers. | Clearly label as demo tooling; do not replace production auth. |
+| Guided demo mode | Implemented. Opens reviewer routes and evidence links through a local progress checklist. | Clearly label as demo tooling; do not replace production auth. |
 | Verification proof drawer | Explains local hash, stored anchor, chaincode query, transaction ID, and mismatch reasons. | Drive only from `fabric-verification` API response. |
 | Audit story timeline | Shows procurement event -> evidence hash -> Fabric anchor -> finance review -> closure. | Use backend audit/hash/anchor data, not Figma mock records. |
 | Graph-to-workflow drilldown | Lets reviewers click graph nodes/edges and open exact source records. | Use central entity-route registry and permission checks. |
 | Reviewer evidence export pack | Bundles screenshots, hashes, Fabric proof, UAT notes, and limitations. | Generate from API-backed records and sanitized evidence scripts. |
-| Operations readiness score | Summarizes API, DB, Redis, worker heartbeat, outbox backlog, Fabric mode, and VM deployment. | Use health/status endpoints only; do not infer external provider health. Current operations timeline provides event history, not a production readiness score. |
+| Operations readiness score | Partially supported by Operations Timeline and status cards. | Use health/status endpoints only; do not infer external provider health. Current operations timeline provides event history, not a production readiness score. |
+| UI/HCI evidence cockpit | Implemented as route-health audit, screenshot index, HCI docs, and Playwright instrumentation. | Keep metrics source-labelled; SUS remains not measured until participant surveys exist. |
 | Demo-only role preview switcher | Speeds walkthroughs across roles. | Feature-flag as demo-only and never use as production auth. |
 | Mudarabah compliance explainer | Helps reviewers understand no guaranteed fixed return and loss exception handling. | Keep copy aligned with SRS and Shariah/legal review. |
 | First-run deployment checklist UI | Shows operator what remains to configure for a self-hosted SME node. | Pull from real config/readiness endpoints; label unavailable items honestly. |
