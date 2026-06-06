@@ -19,6 +19,21 @@ type GraphNodeCategory =
   | 'evidence'
   | 'finance';
 
+type GraphRiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+type GraphRiskVisibilityScope =
+  | 'procurement'
+  | 'finance'
+  | 'audit'
+  | 'operations';
+
+type ProjectGraphRisk = {
+  riskLevel: GraphRiskLevel;
+  riskReasons: string[];
+  sourceEntityIds: string[];
+  visibilityScope: GraphRiskVisibilityScope;
+};
+
 type ProjectGraphNode = {
   id: string;
   entityType: string;
@@ -32,6 +47,7 @@ type ProjectGraphNode = {
     x: number;
     y: number;
   };
+  risk?: ProjectGraphRisk;
 };
 
 type ProjectGraphEdge = {
@@ -91,6 +107,7 @@ export class GraphService {
                     purchaseOrders: {
                       include: {
                         supplier: true,
+                        receipts: true,
                         invoices: true,
                       },
                     },
@@ -101,6 +118,7 @@ export class GraphService {
             purchaseOrders: {
               include: {
                 supplier: true,
+                receipts: true,
                 invoices: true,
                 quotation: {
                   include: {
@@ -117,6 +135,12 @@ export class GraphService {
             evidencePack: true,
             applications: {
               include: {
+                evidenceChecklist: {
+                  include: {
+                    items: true,
+                  },
+                },
+                lossExceptions: true,
                 contracts: true,
                 closurePacks: true,
               },
@@ -191,6 +215,7 @@ export class GraphService {
       category: 'procurement',
       sourcePath: '/procurement/projects',
       position: { x: 280, y: 170 },
+      risk: projectStatusRisk(project.status, project.id),
     });
     addEdge(orgNodeId, buyerNodeId, 'owns');
     addEdge(buyerNodeId, projectNodeId, 'buys for');
@@ -207,6 +232,13 @@ export class GraphService {
         category: 'procurement',
         sourcePath: `/procurement/requisitions/${requisition.id}`,
         position: { x: 480, y: 80 + index * 170 },
+        risk: workflowStatusRisk({
+          status: requisition.status,
+          sourceEntityId: requisition.id,
+          visibilityScope: 'procurement',
+          pendingReason: 'Requisition is waiting for procurement action.',
+          blockedReason: 'Requisition is blocked or rejected.',
+        }),
       });
       addEdge(projectNodeId, requisitionNodeId, 'requests');
 
@@ -222,6 +254,13 @@ export class GraphService {
           category: 'procurement',
           sourcePath: `/procurement/rfqs/${rfq.id}`,
           position: { x: 660, y: 40 + index * 170 + rfqIndex * 90 },
+          risk: workflowStatusRisk({
+            status: rfq.status,
+            sourceEntityId: rfq.id,
+            visibilityScope: 'procurement',
+            pendingReason: 'RFQ is still open for sourcing action.',
+            blockedReason: 'RFQ is blocked, cancelled, or failed.',
+          }),
         });
         addEdge(requisitionNodeId, rfqNodeId, 'sources');
 
@@ -288,6 +327,7 @@ export class GraphService {
           category: 'procurement',
           sourcePath: `/procurement/purchase-orders/${purchaseOrder.id}`,
           position: { x: 660, y: 360 + poIndex * 130 },
+          risk: purchaseOrderRisk(purchaseOrder),
         });
         addEdge(requisitionNodeId, purchaseOrderNodeId, 'awards');
         addEdge(buyerNodeId, supplierNodeId, 'buys from');
@@ -352,6 +392,14 @@ export class GraphService {
           category: 'finance',
           sourcePath: '/finance/opportunities',
           position: { x: 80, y: 450 + index * 150 },
+          risk: workflowStatusRisk({
+            status: opportunity.status,
+            sourceEntityId: opportunity.id,
+            visibilityScope: 'finance',
+            pendingReason:
+              'Finance opportunity is waiting for application or review action.',
+            blockedReason: 'Finance opportunity is blocked or rejected.',
+          }),
         });
         addEdge(opportunityNodeId, projectNodeId, 'funds');
 
@@ -384,6 +432,7 @@ export class GraphService {
               x: 280,
               y: 560 + index * 150 + applicationIndex * 120,
             },
+            risk: applicationRisk(application),
           });
           addEdge(opportunityNodeId, applicationNodeId, 'approves');
 
@@ -553,6 +602,7 @@ export class GraphService {
           x: sourceNode.position.x + 180,
           y: sourceNode.position.y + 90 + (index % 3) * 28,
         },
+        risk: hashAnchorRisk(record, anchor, outboxEvent),
       });
       addGraphEdge(
         input.edges,
@@ -584,6 +634,7 @@ export class GraphService {
             x: sourceNode.position.x + 360,
             y: sourceNode.position.y + 90 + (index % 3) * 28,
           },
+          risk: anchorRisk(anchor, record.id),
         });
         addGraphEdge(
           input.edges,
@@ -696,4 +747,340 @@ function hashRecordStatus(
   }
 
   return record.verifiedAt ? 'HASH_VERIFIED' : 'HASH_RECORDED';
+}
+
+const riskRank: Record<GraphRiskLevel, number> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
+
+const blockedStatuses = new Set([
+  'BLOCKED',
+  'CANCELLED',
+  'CANCELED',
+  'FAILED',
+  'REJECTED',
+  'SUSPENDED',
+  'VOID',
+]);
+
+const pendingStatuses = new Set([
+  'DRAFT',
+  'OPEN',
+  'PENDING',
+  'PENDING_APPROVAL',
+  'PENDING_SHARIAH',
+  'PENDING_SIGNATURE',
+  'READY_FOR_APPLICATION',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+]);
+
+const anchorPendingStatuses = new Set([
+  'ANCHOR_PENDING',
+  'ANCHOR_REQUESTED',
+  'ANCHOR_RETRYING',
+  'FABRIC_ANCHOR_REQUESTED',
+]);
+
+const anchorFailedStatuses = new Set([
+  'ANCHOR_FAILED',
+  'FAILED',
+  'FABRIC_CONFIGURATION_ERROR',
+  'FABRIC_UNAVAILABLE',
+]);
+
+const unresolvedLossExceptionStatuses = new Set([
+  'OPEN',
+  'UNDER_REVIEW',
+  'CLASSIFIED',
+]);
+
+function projectStatusRisk(
+  status: string | null | undefined,
+  sourceEntityId: string,
+) {
+  return workflowStatusRisk({
+    status,
+    sourceEntityId,
+    visibilityScope: 'procurement',
+    pendingReason: 'Project is active and still has workflow work in progress.',
+    blockedReason: 'Project is blocked or cancelled.',
+  });
+}
+
+function workflowStatusRisk(input: {
+  status: string | null | undefined;
+  sourceEntityId: string;
+  visibilityScope: GraphRiskVisibilityScope;
+  pendingReason: string;
+  blockedReason: string;
+}): ProjectGraphRisk | undefined {
+  const status = normalizeStatus(input.status);
+
+  if (!status) {
+    return undefined;
+  }
+
+  if (blockedStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: 'high',
+      reason: input.blockedReason,
+      sourceEntityIds: [input.sourceEntityId],
+      visibilityScope: input.visibilityScope,
+    });
+  }
+
+  if (pendingStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: status === 'DRAFT' ? 'low' : 'medium',
+      reason: input.pendingReason,
+      sourceEntityIds: [input.sourceEntityId],
+      visibilityScope: input.visibilityScope,
+    });
+  }
+
+  return undefined;
+}
+
+function purchaseOrderRisk(purchaseOrder: {
+  id: string;
+  status?: string | null;
+  totalAmount?: number | null;
+  receipts?: Array<{ id: string }>;
+  invoices?: Array<{ amount?: number | null; status?: string | null }>;
+}): ProjectGraphRisk | undefined {
+  const workflowRisk = workflowStatusRisk({
+    status: purchaseOrder.status,
+    sourceEntityId: purchaseOrder.id,
+    visibilityScope: 'procurement',
+    pendingReason: 'Purchase order is issued but matching remains incomplete.',
+    blockedReason: 'Purchase order is blocked, cancelled, or failed.',
+  });
+  const invoices = purchaseOrder.invoices ?? [];
+  const receipts = purchaseOrder.receipts ?? [];
+  const invoiceTotal = invoices.reduce(
+    (total, invoice) => total + Number(invoice.amount ?? 0),
+    0,
+  );
+  const matchingRisks: ProjectGraphRisk[] = [];
+
+  if (invoices.length > 0 && receipts.length === 0) {
+    matchingRisks.push(
+      makeRisk({
+        riskLevel: 'high',
+        reason:
+          'Invoice exists before a recorded receipt; matching needs review.',
+        sourceEntityIds: [purchaseOrder.id],
+        visibilityScope: 'procurement',
+      }),
+    );
+  }
+
+  if (
+    purchaseOrder.totalAmount &&
+    invoiceTotal > 0 &&
+    invoiceTotal > purchaseOrder.totalAmount
+  ) {
+    matchingRisks.push(
+      makeRisk({
+        riskLevel: 'high',
+        reason: 'Invoice amount exceeds purchase order value.',
+        sourceEntityIds: [purchaseOrder.id],
+        visibilityScope: 'procurement',
+      }),
+    );
+  }
+
+  return combineRisks(workflowRisk, ...matchingRisks);
+}
+
+function applicationRisk(application: {
+  id: string;
+  status?: string | null;
+  evidenceChecklist?: {
+    status?: string | null;
+    items?: Array<{ status?: string | null }>;
+  } | null;
+  lossExceptions?: Array<{ status?: string | null }>;
+}): ProjectGraphRisk | undefined {
+  const risks: Array<ProjectGraphRisk | undefined> = [
+    workflowStatusRisk({
+      status: application.status,
+      sourceEntityId: application.id,
+      visibilityScope: 'finance',
+      pendingReason:
+        'Finance application is waiting for evidence or reviewer action.',
+      blockedReason: 'Finance application is blocked or rejected.',
+    }),
+  ];
+  const checklist = application.evidenceChecklist;
+
+  if (!checklist) {
+    risks.push(
+      makeRisk({
+        riskLevel: 'high',
+        reason: 'Evidence checklist has not been created for this application.',
+        sourceEntityIds: [application.id],
+        visibilityScope: 'finance',
+      }),
+    );
+  } else if (
+    normalizeStatus(checklist.status) !== 'COMPLETED' ||
+    (checklist.items ?? []).some(
+      (item) => normalizeStatus(item.status) !== 'COMPLETED',
+    )
+  ) {
+    risks.push(
+      makeRisk({
+        riskLevel: 'high',
+        reason:
+          'Finance evidence checklist still has missing or incomplete items.',
+        sourceEntityIds: [application.id],
+        visibilityScope: 'finance',
+      }),
+    );
+  }
+
+  if (
+    (application.lossExceptions ?? []).some((lossException) =>
+      unresolvedLossExceptionStatuses.has(
+        normalizeStatus(lossException.status),
+      ),
+    )
+  ) {
+    risks.push(
+      makeRisk({
+        riskLevel: 'critical',
+        reason:
+          'Unresolved loss exception blocks closure until reviewer resolution.',
+        sourceEntityIds: [application.id],
+        visibilityScope: 'finance',
+      }),
+    );
+  }
+
+  return combineRisks(...risks);
+}
+
+function hashAnchorRisk(
+  record: HashRecord,
+  anchor: AuditAnchor | undefined,
+  outboxEvent: OutboxWithReconciliation | undefined,
+) {
+  const status = normalizeStatus(hashRecordStatus(record, anchor, outboxEvent));
+
+  if (anchorFailedStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: 'high',
+      reason:
+        'Fabric anchoring failed or is unavailable; this is not verified on-chain proof.',
+      sourceEntityIds: [record.entityId, record.id],
+      visibilityScope: 'operations',
+    });
+  }
+
+  if (anchorPendingStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: 'medium',
+      reason: 'Fabric anchoring is still pending or retrying.',
+      sourceEntityIds: [record.entityId, record.id],
+      visibilityScope: 'audit',
+    });
+  }
+
+  if (anchor?.anchorType === 'FABRIC_MOCK') {
+    return makeRisk({
+      riskLevel: 'medium',
+      reason: 'Mock anchor is not real Fabric proof.',
+      sourceEntityIds: [record.entityId, record.id],
+      visibilityScope: 'audit',
+    });
+  }
+
+  return undefined;
+}
+
+function anchorRisk(anchor: AuditAnchor, sourceEntityId: string) {
+  const status = normalizeStatus(anchor.status);
+
+  if (anchorFailedStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: 'high',
+      reason: 'Anchor status requires operator review.',
+      sourceEntityIds: [sourceEntityId, anchor.id],
+      visibilityScope: 'operations',
+    });
+  }
+
+  if (anchorPendingStatuses.has(status)) {
+    return makeRisk({
+      riskLevel: 'medium',
+      reason: 'Anchor transaction is not yet verified as complete.',
+      sourceEntityIds: [sourceEntityId, anchor.id],
+      visibilityScope: 'audit',
+    });
+  }
+
+  if (anchor.anchorType === 'FABRIC_MOCK') {
+    return makeRisk({
+      riskLevel: 'medium',
+      reason: 'Mock anchor is not real Fabric proof.',
+      sourceEntityIds: [sourceEntityId, anchor.id],
+      visibilityScope: 'audit',
+    });
+  }
+
+  return undefined;
+}
+
+function combineRisks(
+  ...risks: Array<ProjectGraphRisk | undefined>
+): ProjectGraphRisk | undefined {
+  const presentRisks = risks.filter(
+    (risk): risk is ProjectGraphRisk => risk !== undefined,
+  );
+
+  if (!presentRisks.length) {
+    return undefined;
+  }
+
+  const strongest = presentRisks.reduce((current, candidate) =>
+    riskRank[candidate.riskLevel] > riskRank[current.riskLevel]
+      ? candidate
+      : current,
+  );
+
+  return {
+    riskLevel: strongest.riskLevel,
+    riskReasons: unique(presentRisks.flatMap((risk) => risk.riskReasons)),
+    sourceEntityIds: unique(
+      presentRisks.flatMap((risk) => risk.sourceEntityIds),
+    ),
+    visibilityScope: strongest.visibilityScope,
+  };
+}
+
+function makeRisk(input: {
+  riskLevel: GraphRiskLevel;
+  reason: string;
+  sourceEntityIds: string[];
+  visibilityScope: GraphRiskVisibilityScope;
+}): ProjectGraphRisk {
+  return {
+    riskLevel: input.riskLevel,
+    riskReasons: [input.reason],
+    sourceEntityIds: input.sourceEntityIds,
+    visibilityScope: input.visibilityScope,
+  };
+}
+
+function unique(values: string[]) {
+  return [...new Set(values)];
+}
+
+function normalizeStatus(status: string | null | undefined) {
+  return status?.trim().toUpperCase() ?? '';
 }

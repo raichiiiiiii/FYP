@@ -71,6 +71,11 @@ describe('Integration: graph read model', () => {
       nodes: Array<{
         entityType: string;
         sourcePath: string;
+        risk?: {
+          riskLevel: string;
+          riskReasons: string[];
+          visibilityScope: string;
+        };
       }>;
       edges: Array<{ label: string }>;
     };
@@ -111,6 +116,9 @@ describe('Integration: graph read model', () => {
         expect.objectContaining({ label: 'closes' }),
       ]),
     );
+    expect(adminGraph.nodes.some((node) => node.risk?.riskReasons.length)).toBe(
+      true,
+    );
 
     const procurementRole = await context.prisma.role.upsert({
       where: { code: 'PROCUREMENT_OFFICER' },
@@ -146,10 +154,13 @@ describe('Integration: graph read model', () => {
     const procurementEntityTypes = procurementGraph.nodes.map(
       (node) => node.entityType,
     );
+    const procurementGraphText = JSON.stringify(procurementGraph);
 
     expect(procurementGraph.visibility.financeNodesIncluded).toBe(false);
     expect(procurementEntityTypes).toContain('PurchaseOrder');
     expect(procurementEntityTypes).not.toContain('ProcurementOpportunity');
     expect(procurementEntityTypes).not.toContain('MudarabahApplication');
+    expect(procurementGraphText).not.toContain('Finance evidence checklist');
+    expect(procurementGraphText).not.toContain('Unresolved loss exception');
   });
 });

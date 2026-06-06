@@ -48,9 +48,76 @@ describe('GraphService Fabric anchor overlay', () => {
       ),
     ).toBe(true);
   });
+
+  it('adds backend-owned risk metadata for visible procurement, finance, and anchor issues', async () => {
+    const service = new GraphService(
+      prismaForRoles(['ORG_ADMIN'], {
+        anchors: [
+          auditAnchor({
+            id: 'anchor-po',
+            rootHash: poHash,
+            status: 'FAILED',
+          }),
+          auditAnchor({
+            id: 'anchor-finance',
+            rootHash: financeHash,
+          }),
+        ],
+      }),
+    );
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+    });
+    const purchaseOrder = graph.nodes.find(
+      (node) => node.id === 'PurchaseOrder:po-1',
+    );
+    const application = graph.nodes.find(
+      (node) => node.id === 'MudarabahApplication:app-1',
+    );
+    const anchor = graph.nodes.find(
+      (node) => node.id === 'AuditAnchor:anchor-po',
+    );
+
+    expect(purchaseOrder?.risk?.riskLevel).toBe('high');
+    expect(purchaseOrder?.risk?.visibilityScope).toBe('procurement');
+    expect(purchaseOrder?.risk?.riskReasons).toContain(
+      'Invoice exists before a recorded receipt; matching needs review.',
+    );
+    expect(application?.risk?.riskLevel).toBe('critical');
+    expect(application?.risk?.visibilityScope).toBe('finance');
+    expect(application?.risk?.riskReasons).toContain(
+      'Unresolved loss exception blocks closure until reviewer resolution.',
+    );
+    expect(anchor?.risk?.riskLevel).toBe('high');
+    expect(anchor?.risk?.visibilityScope).toBe('operations');
+  });
+
+  it('does not leak hidden finance risk reasons to procurement-only graph responses', async () => {
+    const service = new GraphService(prismaForRoles(['PROCUREMENT_OFFICER']));
+
+    const graph = await service.getProjectGraph({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      projectId: 'project-1',
+    });
+    const serialized = JSON.stringify(graph);
+
+    expect(serialized).not.toContain('Finance evidence checklist');
+    expect(serialized).not.toContain('Unresolved loss exception');
+    expect(serialized).not.toContain('MudarabahApplication:app-1');
+  });
 });
 
-function prismaForRoles(roleCodes: string[]) {
+function prismaForRoles(
+  roleCodes: string[],
+  overrides: {
+    anchors?: ReturnType<typeof auditAnchor>[];
+    outboxEvents?: Array<Record<string, unknown>>;
+  } = {},
+) {
   return {
     membership: {
       findMany: jest.fn().mockResolvedValue(
@@ -81,19 +148,21 @@ function prismaForRoles(roleCodes: string[]) {
       ]),
     },
     auditAnchor: {
-      findMany: jest.fn().mockResolvedValue([
-        auditAnchor({
-          id: 'anchor-po',
-          rootHash: poHash,
-        }),
-        auditAnchor({
-          id: 'anchor-finance',
-          rootHash: financeHash,
-        }),
-      ]),
+      findMany: jest.fn().mockResolvedValue(
+        overrides.anchors ?? [
+          auditAnchor({
+            id: 'anchor-po',
+            rootHash: poHash,
+          }),
+          auditAnchor({
+            id: 'anchor-finance',
+            rootHash: financeHash,
+          }),
+        ],
+      ),
     },
     outboxEvent: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue(overrides.outboxEvents ?? []),
     },
   } as never;
 }
@@ -120,13 +189,22 @@ function projectFixture() {
             id: 'po-1',
             poNumber: 'PO-001',
             status: 'ISSUED',
+            totalAmount: 3000,
             supplier: {
               id: 'supplier-1',
               name: 'Mega Components',
               email: 'supplier@example.com',
               status: 'ACTIVE',
             },
-            invoices: [],
+            receipts: [],
+            invoices: [
+              {
+                id: 'invoice-1',
+                invoiceNumber: 'INV-001',
+                amount: 3500,
+                status: 'RECORDED',
+              },
+            ],
             quotation: null,
           },
         ],
@@ -140,7 +218,29 @@ function projectFixture() {
         status: 'READY_FOR_APPLICATION',
         evidencePackId: null,
         evidencePack: null,
-        applications: [],
+        applications: [
+          {
+            id: 'app-1',
+            status: 'UNDER_REVIEW',
+            currency: 'MYR',
+            requestedCapital: 6000,
+            evidenceChecklist: {
+              status: 'PENDING',
+              items: [
+                {
+                  status: 'PENDING',
+                },
+              ],
+            },
+            lossExceptions: [
+              {
+                status: 'OPEN',
+              },
+            ],
+            contracts: [],
+            closurePacks: [],
+          },
+        ],
       },
     ],
   };
@@ -163,11 +263,15 @@ function hashRecord(overrides: {
   };
 }
 
-function auditAnchor(overrides: { id: string; rootHash: string }) {
+function auditAnchor(overrides: {
+  id: string;
+  rootHash: string;
+  status?: string;
+}) {
   return {
     organizationId: 'org-1',
     anchorType: 'FABRIC',
-    status: 'ANCHORED',
+    status: overrides.status ?? 'ANCHORED',
     fromAuditEventId: null,
     toAuditEventId: null,
     metadata: {},
@@ -180,6 +284,7 @@ function auditAnchor(overrides: { id: string; rootHash: string }) {
     fabricEndorsementStatus: null,
     fabricVerifiedAt: null,
     createdAt: now,
-    ...overrides,
+    id: overrides.id,
+    rootHash: overrides.rootHash,
   };
 }
