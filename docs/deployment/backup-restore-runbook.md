@@ -2,8 +2,8 @@
 
 ## Status
 
-Phase 7.1 backup/restore scope is defined. Executable scripts are added in
-later Phase 7 slices.
+Phase 7.2 PostgreSQL backup script is implemented. Restore and restore-smoke
+scripts are added in later Phase 7 slices.
 
 ## Runtime Data Inventory
 
@@ -31,6 +31,29 @@ Minimum backup set for a reviewable restore:
 3. The Git commit SHA and `.env.production` variable names used for the runtime,
    without secret values.
 
+## PostgreSQL Backup
+
+Create a timestamped gzip-compressed logical dump:
+
+```bash
+scripts/backup/backup-postgres.sh \
+  --compose-file docker-compose.prod.yml \
+  --env-file .env.production \
+  --output-dir backups
+```
+
+Local infra validation example:
+
+```bash
+scripts/backup/backup-postgres.sh \
+  --compose-file infra/docker-compose.yml \
+  --env-file .env.production.example \
+  --output-dir artifacts/backup-smoke
+```
+
+The script prints only paths, service names, and sanitized byte counts. It does
+not print database passwords, connection strings, or dump contents.
+
 ## Restore Scope
 
 Minimum restore proof:
@@ -56,7 +79,6 @@ Minimum restore proof:
 
 ## Known Gaps Before Later Phase 7 Slices
 
-- `scripts/backup/backup-postgres.sh` is not yet implemented.
 - `scripts/backup/restore-postgres.sh` is not yet implemented.
 - `scripts/backup/smoke-restore.sh` is not yet implemented.
 - MinIO/object-storage backup automation remains a later enhancement; the first
