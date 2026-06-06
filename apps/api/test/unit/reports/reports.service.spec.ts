@@ -44,7 +44,11 @@ describe('ReportsService', () => {
 
   it('marks finance as restricted without querying finance aggregates for procurement-only users', async () => {
     const prisma = createPrisma(['PROCUREMENT_OFFICER']);
-    const service = new ReportsService(prisma as never);
+    const service = new ReportsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
 
     const summary = await service.getSummary({
       organizationId: 'org-1',
@@ -66,7 +70,11 @@ describe('ReportsService', () => {
 
   it('rejects direct finance reports for procurement-only users', async () => {
     const prisma = createPrisma(['PROCUREMENT_OFFICER']);
-    const service = new ReportsService(prisma as never);
+    const service = new ReportsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
 
     await expect(
       service.getFinanceReport({

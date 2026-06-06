@@ -5,7 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { AuditEventsService } from '../../audit-events/audit-events.service';
 import { PrismaService } from '../../database/prisma.service';
+import { ObjectStorageService } from '../evidence/object-storage/object-storage.service';
 import {
   assertReportExportTransition,
   normalizeReportExportFormat,
@@ -70,7 +72,11 @@ const procurementReportRoles = new Set([
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditEvents: AuditEventsService,
+    private readonly objectStorage: ObjectStorageService,
+  ) {}
 
   async getSummary(input: ReportInput) {
     const actor = await this.requireActor(input);
@@ -199,6 +205,107 @@ export class ReportsService {
     });
   }
 
+  async requestExport(input: CreateReportExportJobInput) {
+    const reportType = normalizeReportType(input.reportType);
+    const format = normalizeReportExportFormat(input.format);
+    const exportJob = await this.createExportJob({
+      ...input,
+      reportType,
+      format,
+    });
+
+    await this.auditReportExport({
+      organizationId: exportJob.organizationId,
+      actorUserId: exportJob.requestedByUserId ?? undefined,
+      eventType: 'REPORT_EXPORT_REQUESTED',
+      exportJobId: exportJob.id,
+      metadata: {
+        reportType,
+        format,
+      },
+    });
+
+    await this.transitionExportJob({
+      organizationId: exportJob.organizationId,
+      exportJobId: exportJob.id,
+      status: 'processing',
+    });
+
+    try {
+      const report = await this.buildReportPayload({
+        organizationId: exportJob.organizationId,
+        actorUserId: exportJob.requestedByUserId ?? undefined,
+        reportType,
+      });
+      const content = JSON.stringify(
+        {
+          exportJob: {
+            id: exportJob.id,
+            organizationId: exportJob.organizationId,
+            reportType,
+            format,
+            requestedByUserId: exportJob.requestedByUserId,
+            generatedAt: new Date().toISOString(),
+          },
+          report,
+        },
+        null,
+        2,
+      );
+      const objectName = reportExportObjectName(exportJob.id, reportType);
+      const stored = await this.objectStorage.putObject({
+        objectName,
+        content,
+        contentType: 'application/json',
+      });
+      const completed = await this.transitionExportJob({
+        organizationId: exportJob.organizationId,
+        exportJobId: exportJob.id,
+        status: 'completed',
+        filePath: stored.storageUri,
+        objectKey: stored.objectName,
+      });
+
+      await this.auditReportExport({
+        organizationId: exportJob.organizationId,
+        actorUserId: exportJob.requestedByUserId ?? undefined,
+        eventType: 'REPORT_EXPORT_COMPLETED',
+        exportJobId: exportJob.id,
+        metadata: {
+          reportType,
+          format,
+          objectKey: stored.objectName,
+          sizeBytes: stored.sizeBytes,
+        },
+      });
+
+      return completed;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Report export failed';
+
+      await this.transitionExportJob({
+        organizationId: exportJob.organizationId,
+        exportJobId: exportJob.id,
+        status: 'failed',
+        errorMessage: message,
+      }).catch(() => undefined);
+      await this.auditReportExport({
+        organizationId: exportJob.organizationId,
+        actorUserId: exportJob.requestedByUserId ?? undefined,
+        eventType: 'REPORT_EXPORT_FAILED',
+        exportJobId: exportJob.id,
+        metadata: {
+          reportType,
+          format,
+          errorMessage: message,
+        },
+      }).catch(() => undefined);
+
+      throw new BadRequestException(`Report export failed: ${message}`);
+    }
+  }
+
   async getExportJob(input: GetReportExportJobInput) {
     const actor = await this.requireActor(input);
     const exportJobId = required(input.exportJobId, 'exportJobId');
@@ -253,6 +360,38 @@ export class ReportsService {
     });
   }
 
+  async downloadExport(input: GetReportExportJobInput) {
+    const exportJob = await this.getExportJob(input);
+
+    if (exportJob.status !== 'completed' || !exportJob.objectKey) {
+      throw new BadRequestException('Report export is not ready to download');
+    }
+
+    const content = await this.objectStorage.getObjectBuffer(
+      reportExportBucket(),
+      exportJob.objectKey,
+    );
+
+    await this.auditReportExport({
+      organizationId: exportJob.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'REPORT_EXPORT_DOWNLOADED',
+      exportJobId: exportJob.id,
+      metadata: {
+        reportType: exportJob.reportType,
+        format: exportJob.format,
+        objectKey: exportJob.objectKey,
+      },
+    });
+
+    return {
+      exportJob,
+      content,
+      contentType: 'application/json',
+      fileName: `${exportJob.reportType}-report-${exportJob.id}.json`,
+    };
+  }
+
   private async requireActor(input: ReportInput): Promise<ActorReportContext> {
     const organizationId = required(input.organizationId, 'organizationId');
     const actorUserId = required(input.actorUserId, 'actorUserId');
@@ -299,6 +438,42 @@ export class ReportsService {
     if (reportType === 'procurement' && !this.canViewProcurement(actor)) {
       throw new ForbiddenException('Procurement report access denied');
     }
+  }
+
+  private buildReportPayload(
+    input: ReportInput & {
+      reportType: ReportType;
+    },
+  ) {
+    switch (input.reportType) {
+      case 'summary':
+        return this.getSummary(input);
+      case 'procurement':
+        return this.getProcurementReport(input);
+      case 'finance':
+        return this.getFinanceReport(input);
+      case 'audit':
+        return this.getAuditReport(input);
+      case 'integrations':
+        return this.getIntegrationReport(input);
+    }
+  }
+
+  private auditReportExport(input: {
+    organizationId: string;
+    actorUserId?: string;
+    eventType: string;
+    exportJobId: string;
+    metadata: Prisma.InputJsonObject;
+  }) {
+    return this.auditEvents.create({
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: input.eventType,
+      entityType: 'ReportExportJob',
+      entityId: input.exportJobId,
+      metadata: input.metadata,
+    });
   }
 
   private async procurementCounts(organizationId: string) {
@@ -595,4 +770,12 @@ function required(value: string | undefined, field: string) {
   }
 
   return value.trim();
+}
+
+function reportExportBucket() {
+  return process.env.MINIO_BUCKET || 'mepn-evidence';
+}
+
+function reportExportObjectName(exportJobId: string, reportType: ReportType) {
+  return `reports/${reportType}/${exportJobId}.json`;
 }

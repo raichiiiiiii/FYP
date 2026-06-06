@@ -134,6 +134,87 @@ describe('Integration: reports', () => {
     ).rejects.toThrow(/cannot transition/);
   });
 
+  it('generates downloadable audited JSON report exports', async () => {
+    const fixture = await createProcurementFixture(context.app);
+
+    const created = await request(context.app.getHttpServer())
+      .post('/api/v1/reports/exports')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        reportType: 'procurement',
+        format: 'json',
+      })
+      .expect(201);
+
+    expect(created.body).toEqual(
+      expect.objectContaining({
+        organizationId: fixture.organizationId,
+        requestedByUserId: fixture.actorUserId,
+        reportType: 'procurement',
+        format: 'json',
+        status: 'completed',
+      }),
+    );
+    expect(created.body.objectKey).toMatch(/^reports\/procurement\//);
+    expect(created.body.filePath).toMatch(/^s3:\/\//);
+
+    const read = await request(context.app.getHttpServer())
+      .get(`/api/v1/reports/exports/${created.body.id}`)
+      .query({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+      })
+      .expect(200);
+
+    expect(read.body.status).toBe('completed');
+
+    const download = await request(context.app.getHttpServer())
+      .get(`/api/v1/reports/exports/${created.body.id}/download`)
+      .query({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+      })
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+
+    const artifact = JSON.parse(download.text) as {
+      exportJob: { id: string; reportType: string };
+      report: { counts: { purchaseOrders: number; invoices: number } };
+    };
+    expect(artifact.exportJob).toEqual(
+      expect.objectContaining({
+        id: created.body.id,
+        reportType: 'procurement',
+      }),
+    );
+    expect(artifact.report.counts).toEqual(
+      expect.objectContaining({
+        purchaseOrders: 1,
+        invoices: 1,
+      }),
+    );
+
+    const events = await context.prisma.auditEvent.findMany({
+      where: {
+        organizationId: fixture.organizationId,
+        entityType: 'ReportExportJob',
+        entityId: created.body.id,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    expect(events.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining([
+        'REPORT_EXPORT_REQUESTED',
+        'REPORT_EXPORT_COMPLETED',
+        'REPORT_EXPORT_DOWNLOADED',
+      ]),
+    );
+  });
+
   it('hides finance reports from procurement-only actors', async () => {
     const setup = await createOrganizationFixture(context.app);
     const role = await context.prisma.role.create({
