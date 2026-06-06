@@ -38,6 +38,17 @@ describe('Integration: auth', () => {
     context = await createIntegrationApp();
     const setup = await createOrganizationFixture(context.app);
 
+    const config = await request(context.app.getHttpServer())
+      .get('/api/v1/auth/config')
+      .expect(200);
+
+    expect(config.body).toEqual(
+      expect.objectContaining({
+        devAuthEnabled: true,
+        oidcEnabled: false,
+      }),
+    );
+
     const response = await request(context.app.getHttpServer())
       .post('/api/v1/auth/dev-login')
       .send({

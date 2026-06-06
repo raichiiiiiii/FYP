@@ -17,6 +17,12 @@ export type AuthSession = {
   oidcEnabled: boolean
 }
 
+export type AuthPublicConfig = {
+  devAuthEnabled: boolean
+  oidcEnabled: boolean
+  oidcTestMode: boolean
+}
+
 export type DevLoginInput = {
   email?: string
   userId?: string

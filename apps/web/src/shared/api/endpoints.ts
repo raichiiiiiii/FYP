@@ -25,8 +25,14 @@ export function scopedPath(path: string, organizationId?: string | null) {
 export const endpoints = {
   health: '/health',
   auth: {
+    config: '/auth/config',
     devLogin: '/auth/dev-login',
     session: '/auth/session',
+    oidcStart: (returnTo?: string | null) =>
+      withQuery('/auth/oidc/start', { returnTo }),
+    invitations: '/auth/invitations',
+    invitationAccept: (token?: string | null) =>
+      withQuery('/auth/invitations/accept', { token }),
   },
   organizations: {
     create: '/orgs',

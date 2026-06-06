@@ -36,6 +36,15 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     allowAnonymous: true,
   },
   {
+    path: '/auth/invitations/accept',
+    label: 'Accept invitation',
+    module: 'Administration',
+    requiredPermissions: [],
+    requiredOrganizationContext: false,
+    showInSidebar: false,
+    allowAnonymous: true,
+  },
+  {
     path: '/dashboard',
     label: 'Dashboard',
     module: 'Dashboard',

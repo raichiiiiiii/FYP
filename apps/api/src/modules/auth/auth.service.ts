@@ -33,6 +33,12 @@ export type AuthSession = {
   oidcEnabled: boolean;
 };
 
+export type AuthPublicConfig = {
+  devAuthEnabled: boolean;
+  oidcEnabled: boolean;
+  oidcTestMode: boolean;
+};
+
 type KnownRole =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
@@ -123,6 +129,16 @@ export class AuthService {
       user,
       organizationId: membership.organizationId,
     });
+  }
+
+  getPublicConfig(): AuthPublicConfig {
+    const config = getAuthRuntimeConfig();
+
+    return {
+      devAuthEnabled: config.devAuthEnabled,
+      oidcEnabled: config.oidcEnabled,
+      oidcTestMode: config.oidcTestMode,
+    };
   }
 
   async getSession(input: SessionLookupInput) {

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createOrganizationViaApi, resetDatabase } from './helpers';
+import { apiPost, createOrganizationViaApi, resetDatabase } from './helpers';
 
 test.beforeEach(async () => {
   await resetDatabase();
@@ -34,4 +34,38 @@ test('SRS-AUTH-001 local dev login creates an authenticated application session'
   expect(storedSession?.roleCodes).toContain('ORG_ADMIN');
   expect(storedSession?.permissionCodes).toContain('users:create');
   expect(storedSession?.expiresAt).toBeTruthy();
+});
+
+test('SRS-AUTH-002 invitation acceptance creates membership and local UAT session', async ({
+  page,
+  request,
+}) => {
+  const session = await createOrganizationViaApi(
+    request,
+    'E2E Invite Auth SME',
+  );
+
+  const invitationBody = await apiPost<{
+    token: string;
+    invitation: {
+      email: string;
+    };
+  }>(request, '/auth/invitations', {
+      organizationId: session.organizationId,
+      actorUserId: session.actorUserId,
+      email: `invite-${Date.now()}@example.test`,
+      roleCode: 'ORG_ADMIN',
+  });
+
+  await page.goto(
+    `/auth/invitations/accept?token=${encodeURIComponent(invitationBody.token)}`,
+  );
+  await expect(page.getByRole('heading', { name: 'Accept MEPN access' })).toBeVisible();
+  await expect(page.getByText(invitationBody.invitation.email)).toBeVisible();
+
+  await page.getByLabel('Display name').fill('Invite Accepted');
+  await page.getByRole('button', { name: 'Accept invitation' }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText(session.legalName)).toBeVisible();
 });

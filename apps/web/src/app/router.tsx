@@ -13,6 +13,7 @@ import {
   AuditSearchScreen,
 } from '../features/audit/AuditScreen'
 import { LoginPage } from '../features/auth/LoginPage'
+import { InviteAcceptancePage } from '../features/auth/InviteAcceptancePage'
 import { RequireAuth } from '../features/auth/RequireAuth'
 import { Dashboard } from '../features/dashboard/Dashboard'
 import { EvidenceRoute } from '../features/evidence/EvidenceRoute'
@@ -101,6 +102,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <LoginPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/auth/invitations/accept"
+            element={
+              <RequireAuth>
+                <InviteAcceptancePage />
               </RequireAuth>
             }
           />

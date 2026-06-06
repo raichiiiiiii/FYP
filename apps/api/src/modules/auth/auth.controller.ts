@@ -31,6 +31,11 @@ export class AuthController {
     return this.authService.getSession({ userId, organizationId });
   }
 
+  @Get('config')
+  getConfig() {
+    return this.authService.getPublicConfig();
+  }
+
   @Get('oidc/start')
   startOidc(@Query('returnTo') returnTo?: string) {
     return this.oidcStrategy.start(returnTo);
