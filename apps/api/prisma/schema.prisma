@@ -73,6 +73,7 @@ model User {
   dueDiligenceReports   DueDiligenceReport[] @relation("DueDiligenceReviewer")
   shariahReviews        ShariahReview[] @relation("ShariahReviewer")
   reportExportJobs      ReportExportJob[] @relation("ReportExportRequestedBy")
+  reviewedLossExceptions LossException[] @relation("LossExceptionReviewer")
 }
 
 model Role {
@@ -942,22 +943,34 @@ model ProfitDistribution {
 }
 
 model LossException {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
   applicationId  String
   statementId    String?
+  reviewerUserId String?
   exceptionType  String
+  status         String    @default("OPEN")
   amount         Float
   notes          String?
-  createdAt      DateTime @default(now())
+  decision       String?
+  rationale      String?
+  evidenceRefs   Json?
+  decidedAt      DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id])
   application MudarabahApplication @relation(fields: [applicationId], references: [id])
   statement ProfitLossStatement? @relation(fields: [statementId], references: [id])
+  reviewerUser User? @relation("LossExceptionReviewer", fields: [reviewerUserId], references: [id])
 
   @@index([organizationId])
   @@index([applicationId])
   @@index([statementId])
+  @@index([reviewerUserId])
+  @@index([exceptionType])
+  @@index([status])
 }
 
 model ClosurePack {

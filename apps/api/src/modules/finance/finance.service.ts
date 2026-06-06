@@ -15,6 +15,13 @@ import {
   positiveNumber,
   requireText,
 } from './finance.service-utils';
+import {
+  assertLossExceptionTransition,
+  getNextLossExceptionStatuses,
+  type LossExceptionStatus,
+  normalizeLossExceptionClassification,
+  normalizeLossExceptionStatus,
+} from './loss-exceptions/loss-exception-lifecycle';
 
 export type CreateOpportunityInput = {
   organizationId: string;
@@ -50,7 +57,9 @@ type FinanceActorRole =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
   | 'FINANCIER_USER'
-  | 'SHARIAH_REVIEWER';
+  | 'FINANCE_ACCOUNTANT'
+  | 'SHARIAH_REVIEWER'
+  | 'AUDITOR';
 
 export type CreateEvidenceChecklistInput = ActorInput;
 
@@ -129,6 +138,33 @@ export type CreateClosureInput = {
   actorUserId?: string;
   applicationId: string;
   evidencePackId?: string;
+};
+
+export type CreateLossExceptionInput = {
+  organizationId: string;
+  actorUserId?: string;
+  applicationId: string;
+  statementId?: string;
+  classification?: string;
+  amount: number | string;
+  notes?: string;
+  evidenceRefs?: Prisma.InputJsonValue;
+};
+
+export type AttachLossExceptionEvidenceInput = ActorInput & {
+  evidenceRefs?: Prisma.InputJsonValue;
+  notes?: string;
+};
+
+export type ClassifyLossExceptionInput = ActorInput & {
+  reviewerUserId?: string;
+  classification: string;
+  decision?: string;
+  rationale: string;
+};
+
+export type ResolveLossExceptionInput = ActorInput & {
+  notes?: string;
 };
 
 const opportunityInclude = {
@@ -242,12 +278,37 @@ const applicationInclude = {
       createdAt: 'desc',
     },
   },
+  lossExceptions: {
+    orderBy: {
+      createdAt: 'desc',
+    },
+  },
   closurePacks: {
     orderBy: {
       createdAt: 'desc',
     },
   },
 } satisfies Prisma.MudarabahApplicationInclude;
+
+const lossExceptionInclude = {
+  application: {
+    include: {
+      opportunity: {
+        include: {
+          project: true,
+        },
+      },
+    },
+  },
+  statement: true,
+  reviewerUser: {
+    select: {
+      id: true,
+      email: true,
+      displayName: true,
+    },
+  },
+} satisfies Prisma.LossExceptionInclude;
 
 const REQUIRED_CHECKLIST_ITEMS = [
   ['PROJECT_SUMMARY', 'Project summary'],
@@ -1395,9 +1456,11 @@ export class FinanceService {
                   create: {
                     organizationId,
                     applicationId: application.id,
-                    exceptionType: 'BUSINESS_LOSS',
+                    exceptionType: 'GENUINE_COMMERCIAL_LOSS',
+                    status: 'OPEN',
                     amount: Math.abs(netProfit),
-                    notes: 'MVP records local loss exception for review.',
+                    notes:
+                      'Negative profit/loss requires reviewer classification before closure.',
                   },
                 }
               : undefined,
@@ -1464,6 +1527,260 @@ export class FinanceService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async createLossException(input: CreateLossExceptionInput) {
+    const organizationId = requireText(input.organizationId, 'organizationId');
+    const application = await this.getApplication(input.applicationId);
+
+    if (application.organizationId !== organizationId) {
+      throw new BadRequestException(
+        'Application does not belong to the organization',
+      );
+    }
+
+    await this.requireActorRole(
+      organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCE_ACCOUNTANT', 'FINANCIER_USER'],
+      'Loss exception creation',
+    );
+
+    const statementId = optionalText(input.statementId);
+    if (
+      statementId &&
+      !application.profitLossStatements.some(
+        (statement) => statement.id === statementId,
+      )
+    ) {
+      throw new BadRequestException(
+        'Profit/loss statement does not belong to the application',
+      );
+    }
+
+    const classification = normalizeLossExceptionClassification(
+      input.classification,
+    );
+    const exception = await this.prisma.lossException.create({
+      data: {
+        organizationId,
+        applicationId: application.id,
+        statementId,
+        exceptionType: classification,
+        status: 'OPEN',
+        amount: positiveNumber(input.amount, 'amount'),
+        notes: optionalText(input.notes),
+        evidenceRefs: input.evidenceRefs,
+      },
+      include: lossExceptionInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'LOSS_EXCEPTION_CREATED',
+      entityType: 'LossException',
+      entityId: exception.id,
+      metadata: {
+        applicationId: application.id,
+        statementId,
+        classification,
+        amount: exception.amount,
+        status: exception.status,
+      },
+    });
+
+    return exception;
+  }
+
+  async getLossException(id: string) {
+    const exception = await this.prisma.lossException.findUnique({
+      where: { id },
+      include: lossExceptionInclude,
+    });
+
+    if (!exception) {
+      throw new NotFoundException('Loss exception not found');
+    }
+
+    return exception;
+  }
+
+  listLossExceptions(organizationId?: string, applicationId?: string) {
+    if (!organizationId?.trim()) {
+      throw new BadRequestException(
+        'organizationId query parameter is required',
+      );
+    }
+
+    return this.prisma.lossException.findMany({
+      where: {
+        organizationId,
+        applicationId,
+      },
+      include: lossExceptionInclude,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async attachLossExceptionEvidence(
+    id: string,
+    input: AttachLossExceptionEvidenceInput,
+  ) {
+    const exception = await this.getLossException(id);
+
+    await this.requireActorRole(
+      exception.organizationId,
+      input.actorUserId,
+      [
+        'ORG_ADMIN',
+        'FINANCE_ACCOUNTANT',
+        'FINANCIER_USER',
+        'SHARIAH_REVIEWER',
+        'AUDITOR',
+      ],
+      'Loss exception evidence attachment',
+    );
+
+    const currentStatus = normalizeLossExceptionStatus(exception.status);
+    if (
+      !['OPEN', 'EVIDENCE_REQUESTED', 'UNDER_REVIEW', 'REOPENED'].includes(
+        currentStatus,
+      )
+    ) {
+      throw new BadRequestException({
+        code: 'WORKFLOW_RULE_VIOLATION',
+        message:
+          'Evidence can only be attached before a loss exception is closed or classified',
+        requiredState: 'OPEN, EVIDENCE_REQUESTED, UNDER_REVIEW, or REOPENED',
+        actualState: currentStatus,
+        nextAllowedActions: getNextLossExceptionStatuses(currentStatus),
+      });
+    }
+
+    const nextStatus: LossExceptionStatus = 'UNDER_REVIEW';
+    assertLossExceptionTransition(currentStatus, nextStatus);
+
+    const updateData: Prisma.LossExceptionUpdateInput = {
+      status: nextStatus,
+    };
+    const notes = optionalText(input.notes);
+    if (notes) {
+      updateData.notes = notes;
+    }
+    if (input.evidenceRefs !== undefined) {
+      updateData.evidenceRefs = input.evidenceRefs;
+    }
+
+    const updated = await this.prisma.lossException.update({
+      where: { id },
+      data: updateData,
+      include: lossExceptionInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: updated.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'LOSS_EXCEPTION_EVIDENCE_ATTACHED',
+      entityType: 'LossException',
+      entityId: updated.id,
+      metadata: {
+        applicationId: updated.applicationId,
+        status: updated.status,
+      },
+    });
+
+    return updated;
+  }
+
+  async classifyLossException(id: string, input: ClassifyLossExceptionInput) {
+    const exception = await this.getLossException(id);
+
+    await this.requireActorRole(
+      exception.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER', 'SHARIAH_REVIEWER'],
+      'Loss exception classification',
+    );
+    assertLossExceptionTransition(exception.status, 'CLASSIFIED');
+
+    const classification = normalizeLossExceptionClassification(
+      input.classification,
+    );
+    const rationale = requireText(input.rationale, 'rationale');
+    const reviewerUserId =
+      optionalText(input.reviewerUserId) || optionalText(input.actorUserId);
+    const updated = await this.prisma.lossException.update({
+      where: { id },
+      data: {
+        exceptionType: classification,
+        status: 'CLASSIFIED',
+        decision: optionalText(input.decision) || classification,
+        rationale,
+        reviewerUserId,
+        decidedAt: new Date(),
+      },
+      include: lossExceptionInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: updated.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'LOSS_EXCEPTION_CLASSIFIED',
+      entityType: 'LossException',
+      entityId: updated.id,
+      metadata: {
+        applicationId: updated.applicationId,
+        classification,
+        status: updated.status,
+      },
+    });
+
+    return updated;
+  }
+
+  async resolveLossException(id: string, input: ResolveLossExceptionInput) {
+    const exception = await this.getLossException(id);
+
+    await this.requireActorRole(
+      exception.organizationId,
+      input.actorUserId,
+      ['ORG_ADMIN', 'FINANCIER_USER', 'SHARIAH_REVIEWER'],
+      'Loss exception resolution',
+    );
+    assertLossExceptionTransition(exception.status, 'RESOLVED');
+
+    const updateData: Prisma.LossExceptionUpdateInput = {
+      status: 'RESOLVED',
+      resolvedAt: new Date(),
+    };
+    const notes = optionalText(input.notes);
+    if (notes) {
+      updateData.notes = notes;
+    }
+
+    const updated = await this.prisma.lossException.update({
+      where: { id },
+      data: updateData,
+      include: lossExceptionInclude,
+    });
+
+    await this.recordFinanceEvent({
+      organizationId: updated.organizationId,
+      actorUserId: input.actorUserId,
+      eventType: 'LOSS_EXCEPTION_RESOLVED',
+      entityType: 'LossException',
+      entityId: updated.id,
+      metadata: {
+        applicationId: updated.applicationId,
+        classification: updated.exceptionType,
+        status: updated.status,
+      },
+    });
+
+    return updated;
   }
 
   async createClosure(input: CreateClosureInput) {

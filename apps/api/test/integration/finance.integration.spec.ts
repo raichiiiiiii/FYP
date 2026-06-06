@@ -256,4 +256,156 @@ describe('Integration: finance', () => {
     });
     expect(outboxEvents).toHaveLength(2);
   });
+
+  it('persists an unresolved genuine-loss exception for negative profit/loss', async () => {
+    const fixture = await createProcurementFixture(context.app);
+    const evidencePack = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/evidence-packs')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          projectId: fixture.project.id,
+        })
+        .expect(201)
+    ).body as { id: string };
+    const opportunity = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/opportunities')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          projectId: fixture.project.id,
+          requisitionId: fixture.requisition.id,
+          purchaseOrderId: fixture.purchaseOrder.id,
+          evidencePackId: evidencePack.id,
+          estimatedCapital: 6000,
+          expectedProfit: 1200,
+        })
+        .expect(201)
+    ).body as { id: string };
+    const application = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/applications')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          opportunityId: opportunity.id,
+          requestedCapital: 6000,
+          capitalProviderRatio: 0.6,
+          entrepreneurRatio: 0.4,
+        })
+        .expect(201)
+    ).body as { id: string };
+
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/applications/${application.id}/submit`)
+      .send({ actorUserId: fixture.actorUserId })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/applications/${application.id}/evidence-checklist`)
+      .send({ actorUserId: fixture.actorUserId })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/applications/${application.id}/due-diligence`)
+      .send({
+        actorUserId: fixture.actorUserId,
+        reviewerUserId: fixture.actorUserId,
+        status: 'APPROVED',
+        riskRating: 'MEDIUM',
+        decision: 'APPROVED',
+      })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/applications/${application.id}/shariah-review`)
+      .send({
+        actorUserId: fixture.actorUserId,
+        reviewerUserId: fixture.actorUserId,
+        status: 'APPROVED',
+        decision: 'APPROVED',
+      })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/applications/${application.id}/approve`)
+      .send({ actorUserId: fixture.actorUserId })
+      .expect(201);
+    const contract = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/contracts')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          applicationId: application.id,
+        })
+        .expect(201)
+    ).body as { id: string };
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/contracts/${contract.id}/mark-signed`)
+      .send({ actorUserId: fixture.actorUserId })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post('/api/v1/disbursements')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        applicationId: application.id,
+        contractId: contract.id,
+      })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post('/api/v1/project-ledgers/entries')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        applicationId: application.id,
+        entryType: 'REVENUE',
+        description: 'Loss-making delivery revenue',
+        amount: 3000,
+      })
+      .expect(201);
+
+    const statement = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/profit-loss/statements')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          applicationId: application.id,
+          revenue: 3000,
+          costs: 5000,
+        })
+        .expect(201)
+    ).body as {
+      id: string;
+      netProfit: number;
+      distributions: unknown[];
+      lossExceptions: Array<{
+        id: string;
+        exceptionType: string;
+        status: string;
+        amount: number;
+      }>;
+    };
+
+    expect(statement.netProfit).toBe(-2000);
+    expect(statement.distributions).toEqual([]);
+    expect(statement.lossExceptions).toEqual([
+      expect.objectContaining({
+        exceptionType: 'GENUINE_COMMERCIAL_LOSS',
+        status: 'OPEN',
+        amount: 2000,
+      }),
+    ]);
+
+    const persisted = await context.prisma.lossException.findFirstOrThrow({
+      where: {
+        organizationId: fixture.organizationId,
+        applicationId: application.id,
+        statementId: statement.id,
+      },
+    });
+    expect(persisted.exceptionType).toBe('GENUINE_COMMERCIAL_LOSS');
+    expect(persisted.status).toBe('OPEN');
+    expect(persisted.resolvedAt).toBeNull();
+  });
 });

@@ -33,6 +33,12 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
       evidenceChecklist: {
         create: jest.fn(),
       },
+      lossException: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+      },
       $transaction: jest.fn((callback) => callback(tx)),
     };
     const auditEvents = {
@@ -95,6 +101,7 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
       disbursements: [],
       ledgerEntries: [],
       profitLossStatements: [],
+      lossExceptions: [],
       closurePacks: [],
       ...overrides,
     };
@@ -309,10 +316,59 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
         distributions: [],
         lossExceptions: [
           expect.objectContaining({
-            exceptionType: 'BUSINESS_LOSS',
+            exceptionType: 'GENUINE_COMMERCIAL_LOSS',
+            status: 'OPEN',
             amount: 2000,
           }),
         ],
+      }),
+    );
+  });
+
+  it('creates a loss exception lifecycle record and emits audit/outbox events', async () => {
+    const { service, prisma, auditEvents, outbox } = createService();
+    prisma.mudarabahApplication.findUnique.mockResolvedValue(
+      application({
+        profitLossStatements: [
+          {
+            id: 'pl-1',
+          },
+        ],
+      }),
+    );
+    prisma.lossException.create.mockImplementation(({ data }) => ({
+      id: 'loss-1',
+      ...data,
+    }));
+
+    const created = await service.createLossException({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      applicationId: 'app-1',
+      statementId: 'pl-1',
+      classification: 'negligence',
+      amount: 1250,
+      evidenceRefs: {
+        evidenceItemIds: ['evidence-1'],
+      },
+    });
+
+    expect(created).toEqual(
+      expect.objectContaining({
+        id: 'loss-1',
+        exceptionType: 'NEGLIGENCE',
+        status: 'OPEN',
+        amount: 1250,
+      }),
+    );
+    expect(auditEvents.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'LOSS_EXCEPTION_CREATED',
+      }),
+    );
+    expect(outbox.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'LOSS_EXCEPTION_CREATED',
       }),
     );
   });
