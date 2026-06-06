@@ -19,6 +19,13 @@ export const queryKeys = {
       scopedKey('dashboard', 'organization', organizationId),
   },
   procurement: {
+    summary: (organizationId?: string | null, roleCodes?: readonly string[]) =>
+      [
+        'procurement',
+        'summary',
+        organizationId ?? 'global',
+        ...(roleCodes ?? []),
+      ] as const,
     projects: (organizationId?: string | null) =>
       scopedKey('procurement', 'projects', organizationId),
     suppliers: (organizationId?: string | null) =>
@@ -101,6 +108,13 @@ export const queryKeys = {
       ] as const,
   },
   finance: {
+    summary: (organizationId?: string | null, roleCodes?: readonly string[]) =>
+      [
+        'finance',
+        'summary',
+        organizationId ?? 'global',
+        ...(roleCodes ?? []),
+      ] as const,
     opportunities: (organizationId?: string | null) =>
       scopedKey('finance', 'opportunities', organizationId),
     applications: (organizationId?: string | null) =>

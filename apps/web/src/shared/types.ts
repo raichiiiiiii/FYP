@@ -123,3 +123,69 @@ export type AuditEvent = {
   actorUser?: Pick<User, 'id' | 'email' | 'displayName'> | null
   organization?: Pick<Organization, 'id' | 'legalName'> | null
 }
+
+export type SummarySeverity = 'neutral' | 'success' | 'warning' | 'danger'
+
+export type SummaryArea = 'dashboard' | 'procurement' | 'finance'
+
+export type SummaryMetric = {
+  id: string
+  label: string
+  value: number
+  helper: string
+  severity: SummarySeverity
+  targetRoute?: string
+}
+
+export type SummaryQueueItem = {
+  id: string
+  area: SummaryArea
+  title: string
+  description: string
+  count: number
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  status: 'open' | 'blocked' | 'pending_external' | 'done'
+  targetRoute: string
+}
+
+export type SummaryWorkflowBlocker = {
+  id: string
+  area: SummaryArea
+  title: string
+  description: string
+  count: number
+  severity: SummarySeverity
+  requiredAction: string
+  targetRoute: string
+}
+
+export type SummaryReviewReadiness = {
+  id: string
+  area: SummaryArea
+  label: string
+  ready: number
+  total: number
+  missing: number
+  status: 'ready' | 'partial' | 'blocked' | 'empty'
+  targetRoute: string
+}
+
+export type ProcurementSummary = {
+  organizationId: string
+  generatedAt: string
+  metrics: SummaryMetric[]
+  queue: SummaryQueueItem[]
+  blockers: SummaryWorkflowBlocker[]
+  readiness: SummaryReviewReadiness[]
+  statusBreakdown: Record<string, number>
+}
+
+export type FinanceSummary = {
+  organizationId: string
+  generatedAt: string
+  metrics: SummaryMetric[]
+  queue: SummaryQueueItem[]
+  blockers: SummaryWorkflowBlocker[]
+  readiness: SummaryReviewReadiness[]
+  statusBreakdown: Record<string, number>
+}

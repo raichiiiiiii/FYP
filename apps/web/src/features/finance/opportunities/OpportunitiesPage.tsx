@@ -6,13 +6,20 @@ import { EmptyState } from '../../../shared/components/EmptyState'
 import { ErrorState } from '../../../shared/components/ErrorState'
 import { LoadingState } from '../../../shared/components/LoadingState'
 import { StatusBadge } from '../../../shared/components/StatusBadge'
-import type { AppRoleCode, AppSession, LoadState } from '../../../shared/types'
+import type {
+  AppRoleCode,
+  AppSession,
+  FinanceSummary,
+  LoadState,
+} from '../../../shared/types'
 import { formatCurrency } from '../../../shared/utils/formatting'
 import { useEvidencePacks } from '../../evidence/api/useEvidencePacks'
 import { useProjects } from '../../procurement/api/useProjects'
 import { usePurchaseOrders } from '../../procurement/api/usePurchaseOrders'
 import { useApplications } from '../api/useApplications'
+import { useFinanceSummary } from '../api/useFinanceSummary'
 import { useOpportunities } from '../api/useOpportunities'
+import { findSummaryMetric } from '../../summary/summary.model'
 import { CreateOpportunityForm } from './CreateOpportunityForm'
 import type {
   CreateOpportunityFormValues,
@@ -37,6 +44,7 @@ import {
 } from './opportunities.validation'
 
 type OpportunityLoadData = {
+  summary: FinanceSummary
   projects: ProjectOption[]
   purchaseOrders: PurchaseOrderOption[]
   evidencePacks: EvidencePackOption[]
@@ -58,6 +66,7 @@ export function OpportunitiesPage({
   const { listOpportunities, createOpportunity: createOpportunityRecord } =
     useOpportunities(session)
   const { createApplication } = useApplications(session)
+  const { getFinanceSummary } = useFinanceSummary(session, roleCodes)
   const [state, setState] = useState<LoadState<OpportunityLoadData>>({
     status: 'loading',
   })
@@ -79,8 +88,9 @@ export function OpportunitiesPage({
   )
 
   const loadData = useCallback(async (): Promise<OpportunityLoadData> => {
-    const [projects, purchaseOrders, evidencePacks, opportunityRows] =
+    const [summary, projects, purchaseOrders, evidencePacks, opportunityRows] =
       await Promise.all([
+        getFinanceSummary(),
         listProjects<ProjectOption>(),
         listPurchaseOrders<PurchaseOrderOption>(),
         listEvidencePacks<EvidencePackOption>(),
@@ -88,12 +98,19 @@ export function OpportunitiesPage({
       ])
 
     return {
+      summary,
       projects,
       purchaseOrders,
       evidencePacks,
       opportunities: opportunityRows,
     }
-  }, [listEvidencePacks, listOpportunities, listProjects, listPurchaseOrders])
+  }, [
+    getFinanceSummary,
+    listEvidencePacks,
+    listOpportunities,
+    listProjects,
+    listPurchaseOrders,
+  ])
 
   const refresh = useCallback(async () => {
     setState({ status: 'loading' })
@@ -213,6 +230,9 @@ export function OpportunitiesPage({
         Only revenue-generating procurement opportunities with buyer demand or
         equivalent evidence can enter the mudarabah application flow.
       </p>
+      {state.status === 'ready' ? (
+        <FinanceSummaryPanel summary={state.data.summary} />
+      ) : null}
 
       {state.status === 'loading' ? (
         <LoadingState message="Loading finance opportunities..." />
@@ -376,5 +396,93 @@ export function OpportunitiesPage({
         </div>
       ) : null}
     </>
+  )
+}
+
+function FinanceSummaryPanel({ summary }: { summary: FinanceSummary }) {
+  const applicationMetric = findSummaryMetric(
+    summary.metrics,
+    'finance-applications',
+  )
+  const evidenceMetric = findSummaryMetric(
+    summary.metrics,
+    'finance-evidence-gaps',
+  )
+  const lossMetric = findSummaryMetric(
+    summary.metrics,
+    'finance-loss-exceptions',
+  )
+
+  return (
+    <section className="summary-band" aria-label="Finance summary">
+      <div className="dashboard-panel-header">
+        <div>
+          <span className="eyebrow">Backend finance summary</span>
+          <h2>Pipeline readiness</h2>
+        </div>
+      </div>
+      <div className="details-grid dashboard-details-grid">
+        <SummaryDataCard
+          label={applicationMetric?.label ?? 'Applications'}
+          value={applicationMetric?.value ?? 0}
+          helper={applicationMetric?.helper ?? 'No application summary returned.'}
+        />
+        <SummaryDataCard
+          label={evidenceMetric?.label ?? 'Evidence gaps'}
+          value={evidenceMetric?.value ?? 0}
+          helper={evidenceMetric?.helper ?? 'No evidence summary returned.'}
+        />
+        <SummaryDataCard
+          label={lossMetric?.label ?? 'Loss exceptions'}
+          value={lossMetric?.value ?? 0}
+          helper={
+            lossMetric?.helper ??
+            'Loss exception readiness is unavailable from the summary DTO.'
+          }
+        />
+        <SummaryDataCard
+          label="Queue items"
+          value={summary.queue.length}
+          helper="Backend-owned review and blocker queue entries."
+        />
+      </div>
+      {summary.blockers.length ? (
+        <div className="dashboard-signal-list">
+          {summary.blockers.map((blocker) => (
+            <article
+              className={`dashboard-signal dashboard-signal--${blocker.severity}`}
+              key={blocker.id}
+            >
+              <span>{blocker.title}</span>
+              <strong>{blocker.count}</strong>
+              <p>{blocker.description}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="No finance blockers">
+          Backend summary did not return evidence, loss exception, or workflow
+          blockers for this role.
+        </EmptyState>
+      )}
+    </section>
+  )
+}
+
+function SummaryDataCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string
+  value: string | number
+  helper: string
+}) {
+  return (
+    <article className="data-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{helper}</p>
+    </article>
   )
 }

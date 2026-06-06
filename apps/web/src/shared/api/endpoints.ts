@@ -121,6 +121,8 @@ export const endpoints = {
     create: '/invoices',
   },
   procurementOperations: {
+    summary: (organizationId?: string | null, roleCodes?: string | null) =>
+      withQuery('/procurement/summary', { organizationId, roleCodes }),
     approvals: (
       organizationId?: string | null,
       actorUserId?: string | null,
@@ -269,6 +271,10 @@ export const endpoints = {
         organizationId,
         actorUserId,
       }),
+  },
+  financeSummary: {
+    summary: (organizationId?: string | null, roleCodes?: string | null) =>
+      withQuery('/finance/summary', { organizationId, roleCodes }),
   },
   graph: {
     project: (

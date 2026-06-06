@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { PageHeader } from '../../layouts/PageHeader'
@@ -6,30 +6,28 @@ import { EmptyState } from '../../shared/components/EmptyState'
 import { ErrorState } from '../../shared/components/ErrorState'
 import { LoadingState } from '../../shared/components/LoadingState'
 import { StatusBadge } from '../../shared/components/StatusBadge'
-import type { AppSession, LoadState } from '../../shared/types'
+import type {
+  AppRoleCode,
+  AppSession,
+  LoadState,
+  ProcurementSummary,
+} from '../../shared/types'
 import { formatCurrency } from '../../shared/utils/formatting'
-import { useApprovalTasks } from './api/useApprovalTasks'
-import { useMatching } from './api/useMatching'
+import {
+  findSummaryMetric,
+  summaryToneForSeverity,
+} from '../summary/summary.model'
+import { useProcurementSummary } from './api/useProcurementSummary'
 import { useProjects } from './api/useProjects'
 import { usePurchaseOrders } from './api/usePurchaseOrders'
-import { useQuotations } from './api/useQuotations'
 import { useRequisitions } from './api/useRequisitions'
-import { useRfqs } from './api/useRfqs'
 import { useSuppliers } from './api/useSuppliers'
 import type {
-  HubApprovalTask,
-  HubMatchingRecord,
   HubPurchaseOrder,
-  HubQuotation,
   HubRequisition,
-  HubRfq,
   HubSupplier,
 } from './procurementHub.model'
-import {
-  isMatchException,
-  summarizeProcurementHub,
-  toHubNumber,
-} from './procurementHub.model'
+import { toHubNumber } from './procurementHub.model'
 
 type HubProject = {
   id: string
@@ -40,14 +38,11 @@ type HubProject = {
 }
 
 type ProcurementHubData = {
+  summary: ProcurementSummary
   projects: HubProject[]
   suppliers: HubSupplier[]
   requisitions: HubRequisition[]
-  rfqs: HubRfq[]
-  quotations: HubQuotation[]
   purchaseOrders: HubPurchaseOrder[]
-  approvalTasks: HubApprovalTask[]
-  matchingRecords: HubMatchingRecord[]
 }
 
 const lifecycleTiles = [
@@ -76,61 +71,48 @@ const lifecycleTiles = [
 export function ProcurementHubPage({
   session,
   navigate,
+  roleCodes,
 }: {
   session: AppSession
   navigate: (path: string) => void
+  roleCodes: AppRoleCode[]
 }) {
+  const { getProcurementSummary } = useProcurementSummary(session, roleCodes)
   const { listProjects } = useProjects(session)
   const { listSuppliers } = useSuppliers(session)
   const { listRequisitions } = useRequisitions(session)
-  const { listRfqs } = useRfqs(session)
-  const { listQuotations } = useQuotations(session)
   const { listPurchaseOrders } = usePurchaseOrders(session)
-  const { listApprovalTasks } = useApprovalTasks(session)
-  const { listMatchingRecords } = useMatching(session)
   const [state, setState] = useState<LoadState<ProcurementHubData>>({
     status: 'loading',
   })
 
   const loadHubData = useCallback(async (): Promise<ProcurementHubData> => {
     const [
+      summary,
       projects,
       suppliers,
       requisitions,
-      rfqs,
-      quotations,
       purchaseOrders,
-      approvalTasks,
-      matchingRecords,
     ] = await Promise.all([
+      getProcurementSummary(),
       listProjects<HubProject>(),
       listSuppliers<HubSupplier>(),
       listRequisitions<HubRequisition>(),
-      listRfqs<HubRfq>(),
-      listQuotations<HubQuotation>(),
       listPurchaseOrders<HubPurchaseOrder>(),
-      listApprovalTasks<HubApprovalTask>(),
-      listMatchingRecords<HubMatchingRecord>(),
     ])
 
     return {
+      summary,
       projects,
       suppliers,
       requisitions,
-      rfqs,
-      quotations,
       purchaseOrders,
-      approvalTasks,
-      matchingRecords,
     }
   }, [
-    listApprovalTasks,
-    listMatchingRecords,
+    getProcurementSummary,
     listProjects,
     listPurchaseOrders,
-    listQuotations,
     listRequisitions,
-    listRfqs,
     listSuppliers,
   ])
 
@@ -197,33 +179,23 @@ function ProcurementHubContent({
   data: ProcurementHubData
   navigate: (path: string) => void
 }) {
-  const summary = useMemo(
-    () =>
-      summarizeProcurementHub({
-        requisitions: data.requisitions,
-        suppliers: data.suppliers,
-        purchaseOrders: data.purchaseOrders,
-        matchingRecords: data.matchingRecords,
-        approvalTasks: data.approvalTasks,
-        rfqs: data.rfqs,
-        quotations: data.quotations,
-      }),
-    [data],
-  )
-  const exceptions = data.matchingRecords.filter(isMatchException)
+  const summary = data.summary
+  const metrics = summary.metrics
+  const matchingExceptions =
+    findSummaryMetric(metrics, 'matching-exceptions')?.value ?? 0
   const recentRequisitions = data.requisitions.slice(0, 4)
   const recentPurchaseOrders = data.purchaseOrders.slice(0, 4)
   const highlightedSuppliers = data.suppliers.slice(0, 4)
 
   return (
     <div className="procurement-hub">
-      {exceptions.length ? (
+      {matchingExceptions ? (
         <section className="procurement-alert procurement-alert--danger">
           <div>
             <span className="eyebrow">Blocked action</span>
             <strong>
-              {exceptions.length} receipt or invoice match exception
-              {exceptions.length > 1 ? 's' : ''}
+              {matchingExceptions} receipt or invoice match exception
+              {matchingExceptions > 1 ? 's' : ''}
             </strong>
             <p>
               Resolve exceptions before payment approval or finance evidence
@@ -241,8 +213,8 @@ function ProcurementHubContent({
             <span className="eyebrow">Matching status</span>
             <strong>No active match exceptions returned</strong>
             <p>
-              The hub is using current matching records. Supplier scoring and
-              spend analytics remain unavailable until dedicated DTOs exist.
+              The hub is using backend summary DTOs for current queue, blocker,
+              and readiness state. Supplier scoring remains post-demo hardening.
             </p>
           </div>
           <button type="button" onClick={() => navigate('/procurement/matching')}>
@@ -252,36 +224,15 @@ function ProcurementHubContent({
       )}
 
       <section className="procurement-hub-kpis" aria-label="Procurement KPIs">
-        <HubKpi
-          label="Open POs"
-          value={summary.openPurchaseOrders}
-          tone="blue"
-          detail={formatCurrency(summary.totalCommittedValue)}
-        />
-        <HubKpi
-          label="Matched"
-          value={summary.matchedRecords}
-          tone="green"
-          detail="PO / receipt / invoice"
-        />
-        <HubKpi
-          label="Exceptions"
-          value={summary.matchExceptions}
-          tone={summary.matchExceptions ? 'red' : 'green'}
-          detail="Requires review"
-        />
-        <HubKpi
-          label="Pending approval"
-          value={summary.pendingApproval}
-          tone="amber"
-          detail={`${summary.approvedRequisitions} approved`}
-        />
-        <HubKpi
-          label="Active suppliers"
-          value={summary.activeSuppliers}
-          tone="purple"
-          detail={`${summary.quotationsReceived} quotations`}
-        />
+        {metrics.map((metric) => (
+          <HubKpi
+            key={metric.id}
+            label={metric.label}
+            value={metric.value}
+            tone={summaryToneForSeverity(metric.severity)}
+            detail={metric.helper}
+          />
+        ))}
       </section>
 
       <section className="procurement-hub-grid">
@@ -324,12 +275,12 @@ function ProcurementHubContent({
           </div>
           <div className="procurement-pulse-grid">
             <div>
-              <span>Active RFQs</span>
-              <strong>{summary.activeRfqs}</strong>
+              <span>Queue items</span>
+              <strong>{summary.queue.length}</strong>
             </div>
             <div>
-              <span>Quotations</span>
-              <strong>{summary.quotationsReceived}</strong>
+              <span>Readiness checks</span>
+              <strong>{summary.readiness.length}</strong>
             </div>
           </div>
           <div className="inline-actions">
@@ -344,6 +295,52 @@ function ProcurementHubContent({
             </button>
           </div>
         </article>
+      </section>
+
+      <section className="procurement-hub-grid">
+        <SummaryListPanel
+          title="Backend queue"
+          eyebrow="DTO-backed"
+          empty="No procurement queue items returned."
+        >
+          {summary.queue.map((item) => (
+            <button
+              className="procurement-record-card"
+              key={item.id}
+              type="button"
+              onClick={() => navigate(item.targetRoute)}
+            >
+              <div>
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+              </div>
+              <StatusBadge status={item.status} />
+            </button>
+          ))}
+        </SummaryListPanel>
+
+        <SummaryListPanel
+          title="Review readiness"
+          eyebrow="Server computed"
+          empty="No readiness checks returned."
+        >
+          {summary.readiness.map((item) => (
+            <button
+              className="procurement-record-card"
+              key={item.id}
+              type="button"
+              onClick={() => navigate(item.targetRoute)}
+            >
+              <div>
+                <strong>{item.label}</strong>
+                <span>
+                  {item.ready}/{item.total} ready, {item.missing} missing
+                </span>
+              </div>
+              <StatusBadge status={item.status} />
+            </button>
+          ))}
+        </SummaryListPanel>
       </section>
 
       <section className="procurement-hub-columns">
@@ -454,16 +451,45 @@ function ProcurementHubContent({
 
         <article className="procurement-hub-panel procurement-hub-panel--muted">
           <span className="eyebrow">Not overstated</span>
-          <h2>Analytics need a summary DTO</h2>
+          <h2>Analytics remain scoped</h2>
           <p>
             Spend trend, supplier score, delivery-rate, invoice-accuracy, and
             maverick-spend analytics are Figma reference patterns only in this
-            phase. The production hub shows navigation and safe counts from
-            existing APIs.
+            phase. The production hub uses backend summary DTOs for safe counts,
+            queue state, blockers, and readiness.
           </p>
         </article>
       </section>
     </div>
+  )
+}
+
+function SummaryListPanel({
+  eyebrow,
+  title,
+  empty,
+  children,
+}: {
+  eyebrow: string
+  title: string
+  empty: string
+  children: ReactNode
+}) {
+  const hasChildren =
+    Array.isArray(children) ? children.filter(Boolean).length > 0 : Boolean(children)
+
+  return (
+    <article className="procurement-hub-panel">
+      <div className="procurement-hub-panel-header">
+        <div>
+          <span className="eyebrow">{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+      <div className="procurement-record-list">
+        {hasChildren ? children : <EmptyState>{empty}</EmptyState>}
+      </div>
+    </article>
   )
 }
 

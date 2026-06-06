@@ -2346,7 +2346,11 @@ export function ProcurementRoute({
       <Route
         index
         element={
-          <ProcurementHubPage session={session} navigate={navigate} />
+          <ProcurementHubPage
+            session={session}
+            navigate={navigate}
+            roleCodes={roleCodes}
+          />
         }
       />
       <Route path="projects" element={<ProjectsScreen session={session} />} />
