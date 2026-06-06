@@ -10,12 +10,13 @@ describe('report export lifecycle helpers', () => {
   it('normalizes supported report types, formats, and statuses', () => {
     expect(normalizeReportType(' Finance ')).toBe('finance');
     expect(normalizeReportExportFormat(' JSON ')).toBe('json');
+    expect(normalizeReportExportFormat(' CSV ')).toBe('csv');
     expect(normalizeReportExportStatus(' Completed ')).toBe('completed');
   });
 
   it('rejects unsupported report types, formats, and statuses', () => {
     expect(() => normalizeReportType('payroll')).toThrow(BadRequestException);
-    expect(() => normalizeReportExportFormat('pdf')).toThrow(
+    expect(() => normalizeReportExportFormat('xlsx')).toThrow(
       BadRequestException,
     );
     expect(() => normalizeReportExportStatus('done')).toThrow(

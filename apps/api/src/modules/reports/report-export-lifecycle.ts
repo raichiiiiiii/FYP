@@ -8,7 +8,7 @@ export const reportTypes = [
   'integrations',
 ] as const;
 
-export const reportExportFormats = ['json'] as const;
+export const reportExportFormats = ['json', 'csv'] as const;
 
 export const reportExportStatuses = [
   'queued',
