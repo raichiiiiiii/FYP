@@ -414,6 +414,11 @@
   flex: 0 0 auto;
 }
 
+.account-menu__avatar-image {
+  display: block;
+  object-fit: cover;
+}
+
 .account-menu__summary {
   flex: 1;
   min-width: 0;

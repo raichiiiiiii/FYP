@@ -7,6 +7,7 @@ export type AuthSession = {
   userId: string
   email: string
   displayName: string
+  profileImageUrl?: string | null
   organizationId: string
   roleCodes: string[]
   permissionCodes: AppPermission[]

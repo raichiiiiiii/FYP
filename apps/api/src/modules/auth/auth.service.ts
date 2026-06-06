@@ -23,6 +23,7 @@ export type AuthSession = {
   userId: string;
   email: string;
   displayName: string;
+  profileImageUrl: string | null;
   organizationId: string;
   roleCodes: string[];
   permissionCodes: Permission[];
@@ -259,6 +260,7 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl,
       organizationId: input.organizationId,
       roleCodes,
       permissionCodes: [...permissionCodes],

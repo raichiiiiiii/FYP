@@ -43,6 +43,7 @@ vi.mock('../features/auth/useAuth', () => ({
       userId: 'user_123',
       email: 'admin@example.test',
       displayName: 'Admin User',
+      profileImageUrl: '/mock/example-sme-logo.png',
       organizationId: 'org_123',
       roleCodes: ['ORG_ADMIN'],
       permissionCodes: ['users:create'],
@@ -101,6 +102,17 @@ describe('Sidebar', () => {
     expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('title="Dashboard"')
     expect(html).toContain('nav-item__icon')
+  })
+
+  it('uses the account profile image in the sidebar avatar when available', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Sidebar />
+      </MemoryRouter>,
+    )
+
+    expect(html).toContain('src="/mock/example-sme-logo.png"')
+    expect(html).toContain('alt="Admin User profile"')
   })
 
   it('groups visible routes by module without changing route visibility', () => {

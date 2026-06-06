@@ -24,6 +24,7 @@ export function AccountMenu() {
   const [unreadCount, setUnreadCount] = useState(0)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const displayName = authSession?.displayName ?? 'Account'
+  const profileImageUrl = authSession?.profileImageUrl
   const roleLabel = authorization.roleCodes[0]
     ? formatRoleLabel(authorization.roleCodes[0])
     : 'No role loaded'
@@ -90,9 +91,10 @@ export function AccountMenu() {
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="sidebar-avatar account-menu__avatar" aria-hidden="true">
-          {getInitials(displayName)}
-        </span>
+        <AccountMenuAvatar
+          displayName={displayName}
+          profileImageUrl={profileImageUrl}
+        />
         <span className="account-menu__summary">
           <strong>{displayName}</strong>
           <span>{roleLabel}</span>
@@ -161,6 +163,30 @@ function getInitials(label: string) {
     .map((part) => part.charAt(0))
     .join('')
     .toUpperCase()
+}
+
+function AccountMenuAvatar({
+  displayName,
+  profileImageUrl,
+}: {
+  displayName: string
+  profileImageUrl?: string | null
+}) {
+  if (profileImageUrl) {
+    return (
+      <img
+        className="sidebar-avatar account-menu__avatar account-menu__avatar-image"
+        src={profileImageUrl}
+        alt={`${displayName} profile`}
+      />
+    )
+  }
+
+  return (
+    <span className="sidebar-avatar account-menu__avatar" aria-hidden="true">
+      {getInitials(displayName)}
+    </span>
+  )
 }
 
 function formatRoleLabel(roleCode: string) {
