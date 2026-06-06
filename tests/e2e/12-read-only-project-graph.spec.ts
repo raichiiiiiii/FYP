@@ -57,6 +57,7 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
   await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
   const savedViewName = `Anchor review ${Date.now()}`;
+  await mkdir(path.resolve('docs/evidence/uat'), { recursive: true });
   await page.getByLabel('Saved view name').fill(savedViewName);
   await page.getByRole('button', { name: 'Save view' }).click();
   await expect(
@@ -70,6 +71,10 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await expect(page).toHaveURL(/nodeType=anchor/);
   await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
   await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
+  await page.screenshot({
+    path: path.resolve('docs/evidence/uat/graph-risk-saved-view.png'),
+    fullPage: true,
+  });
   await page.getByRole('button', { name: 'Delete view' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: `Deleted ${savedViewName}` }),
@@ -83,7 +88,6 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await expect(page.getByTestId('graph-inspector')).toContainText(
     seededAnchors.procurementTx,
   );
-  await mkdir(path.resolve('docs/evidence/uat'), { recursive: true });
   await page.screenshot({
     path: path.resolve(
       'docs/evidence/uat/graph-anchor-overlay-auditor.png',

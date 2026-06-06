@@ -79,21 +79,22 @@ or counts.
 
 ## Saved View Contract
 
-Saved graph views are optional for this implementation round. If implemented,
-they must store only:
+Saved graph views are implemented for the FYP review scope. They store only:
 
 - owner/organization IDs;
 - filter JSON;
 - layout JSON for visible nodes;
 - visibility setting.
 
-Saved view layout data must not persist positions for nodes the actor cannot
-currently see.
+Current implementation supports private and organization-shared views. Saved
+view layout data is limited to safe UI state such as zoom; persisted drag/drop
+node positions remain deferred until a backend policy can guarantee hidden nodes
+are not stored or replayed for unauthorized actors.
 
 ## Open Decisions
 
 - Whether risk ageing thresholds should be time-based or count-based.
 - Whether procurement officers should see evidence anchor risk for finance
   applications derived from procurement source records.
-- Whether saved views should be private only for FYP review scope or support
-  organization-shared views.
+- Whether saved views should later support persisted node positions,
+  annotations, or team-curated default views.

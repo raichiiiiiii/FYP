@@ -1,10 +1,10 @@
-# Graph Anchor Overlay E2E Evidence
+# Graph Anchor Overlay And Saved View E2E Evidence
 
 ## Purpose
 
 This file records browser evidence that the project graph displays hash/anchor
-overlay context without leaking restricted finance details to unauthorized
-roles.
+overlay context, backend-owned risk metadata, URL-backed filters, and saved
+views without leaking restricted finance details to unauthorized roles.
 
 ## Automated Coverage
 
@@ -18,25 +18,54 @@ Verified behavior:
 
 - Admin/auditor-capable session sees project, procurement, finance, hash-record,
   and anchor context.
+- Backend graph risk metadata is rendered through node badges and inspector
+  risk reasons.
+- Node type, risk, status, finance, and anchor filters are encoded in URL query
+  params and survive reload.
+- A saved anchor-only graph view can be created, applied, and deleted from the
+  browser UI.
 - Procurement officer sees procurement source and procurement anchor context.
 - Procurement officer does not see finance opportunity/application labels or
-  finance anchor transaction text.
+  finance anchor transaction text, even when the URL requests
+  `includeFinance=true`.
 - Selecting an anchor node updates the graph inspector panel with anchor
   metadata.
 
 Latest result:
 
 ```text
-corepack pnpm test:e2e
-20 passed, 1 gated real Gateway UAT screenshot test skipped
+corepack pnpm test:e2e -- tests/e2e/12-read-only-project-graph.spec.ts
+1 passed
+```
+
+Supporting API/UI checks:
+
+```text
+corepack pnpm --dir apps/api test:unit -- graph
+corepack pnpm --dir apps/api test:integration -- graph
+corepack pnpm --dir apps/web test -- graph
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm build
 ```
 
 ## Screenshots
 
 | Screenshot | Expected evidence |
 | --- | --- |
-| `docs/evidence/uat/graph-anchor-overlay-auditor.png` | Auditor/admin view includes hash-record and anchor overlay nodes. |
+| `docs/evidence/uat/graph-anchor-overlay-auditor.png` | Auditor/admin view includes hash-record and anchor overlay nodes with backend risk metadata available in the graph UI. |
 | `docs/evidence/uat/graph-anchor-overlay-procurement-filtered.png` | Procurement role keeps procurement anchor context but hides finance transaction text. |
+| `docs/evidence/uat/graph-risk-saved-view.png` | Saved anchor-only graph view restores the filtered URL-backed graph view. |
+
+## API And Data Model Evidence
+
+- `GraphSavedView` is persisted with organization, owner, filter JSON, optional
+  layout JSON, and visibility.
+- Saved view mutations require active organization membership and owner/admin
+  permission.
+- Graph filters are applied after backend role visibility filtering.
+- Hidden finance nodes, hidden finance anchor endpoints, and hidden finance risk
+  reasons are removed before browser rendering.
 
 ## Notes
 
@@ -45,3 +74,6 @@ corepack pnpm test:e2e
   layout changes.
 - Seeded transaction IDs in this E2E are deterministic test evidence only and
   must not be presented as real Fabric Gateway proof.
+- Saved view layout is limited to the current filter state and zoom for FYP
+  review scope. Persistent drag/drop node positioning remains post-demo
+  hardening unless a backend layout policy is approved.
