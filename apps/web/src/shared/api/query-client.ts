@@ -113,6 +113,18 @@ export const queryKeys = {
       scopedKey('finance', 'ledgers', organizationId),
     profitLoss: (organizationId?: string | null) =>
       scopedKey('finance', 'profit-loss', organizationId),
+    lossExceptions: (
+      organizationId?: string | null,
+      applicationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      [
+        'finance',
+        'loss-exceptions',
+        organizationId ?? 'global',
+        applicationId ?? 'all',
+        actorUserId ?? 'anonymous',
+      ] as const,
     closures: (organizationId?: string | null) =>
       scopedKey('finance', 'closures', organizationId),
   },

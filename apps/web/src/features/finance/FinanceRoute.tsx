@@ -17,6 +17,9 @@ import { useContracts } from './api/useContracts'
 import { useDisbursements } from './api/useDisbursements'
 import { useLedgers } from './api/useLedgers'
 import { useProfitLoss } from './api/useProfitLoss'
+import { LossExceptionPanel } from './applications/workspace/LossExceptionPanel'
+import { mapApplicationWorkspace } from './applications/workspace/applicationWorkspace.model'
+import type { ApplicationWorkspaceRawDto } from './applications/workspace/applicationWorkspace.types'
 import { ApplicationsPage } from './applications/ApplicationsPage'
 import {
   calculateProfitLossSummary,
@@ -168,9 +171,17 @@ type ProfitDistribution = {
 
 type LossException = {
   id: string
+  statementId?: string | null
   exceptionType: string
+  status?: string | null
   amount: number
   notes?: string | null
+  decision?: string | null
+  rationale?: string | null
+  reviewerUserId?: string | null
+  decidedAt?: string | null
+  resolvedAt?: string | null
+  createdAt?: string | null
 }
 
 type ProfitLossStatement = {
@@ -215,6 +226,7 @@ type MudarabahApplication = {
   disbursements?: Disbursement[]
   ledgerEntries?: LedgerEntry[]
   profitLossStatements?: ProfitLossStatement[]
+  lossExceptions?: LossException[]
   closurePacks?: ClosurePack[]
 }
 
@@ -751,6 +763,9 @@ export function LegacyApplicationDetailScreen({
   const latestDisbursement = application?.disbursements?.[0]
   const latestProfitLoss = application?.profitLossStatements?.[0]
   const latestClosure = application?.closurePacks?.[0]
+  const workspaceView = application
+    ? mapApplicationWorkspace(application as unknown as ApplicationWorkspaceRawDto)
+    : null
   const showOverview = selectedTab === 'overview'
   const showEvidence = showOverview || selectedTab === 'evidence'
   const showDueDiligence = showOverview || selectedTab === 'due-diligence'
@@ -760,6 +775,8 @@ export function LegacyApplicationDetailScreen({
   const showLedger = showOverview || selectedTab === 'ledger'
   const showProfitLoss = showOverview || selectedTab === 'profit-loss'
   const showClosure = showOverview || selectedTab === 'closure'
+  const showLossExceptionPanel =
+    selectedTab === 'profit-loss' || selectedTab === 'closure'
   const showAudit = showOverview || selectedTab === 'audit'
   const evidenceReadiness = summarizeChecklist(checklist)
   const ledgerSummary = application
@@ -1576,6 +1593,14 @@ export function LegacyApplicationDetailScreen({
                   </article>
                 </div>
               </section>
+            ) : null}
+            {showLossExceptionPanel && workspaceView ? (
+              <LossExceptionPanel
+                workspace={workspaceView}
+                roleCodes={roleCodes}
+                session={session}
+                onRefresh={refresh}
+              />
             ) : null}
             {showAudit ? (
               <section className="form-grid finance-workspace-panel">

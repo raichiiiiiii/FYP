@@ -48,6 +48,41 @@ export type AuditSummary = {
   anchorStatus: 'not_requested' | 'pending' | 'anchored_mock' | 'verified' | 'failed'
 }
 
+export type LossExceptionStatus =
+  | 'OPEN'
+  | 'EVIDENCE_REQUESTED'
+  | 'UNDER_REVIEW'
+  | 'CLASSIFIED'
+  | 'REJECTED'
+  | 'RESOLVED'
+  | 'REOPENED'
+  | 'CANCELLED'
+
+export type LossExceptionClassification =
+  | 'GENUINE_COMMERCIAL_LOSS'
+  | 'BREACH'
+  | 'NEGLIGENCE'
+  | 'MISCONDUCT'
+  | 'FRAUD'
+  | 'INSUFFICIENT_EVIDENCE'
+
+export type LossException = {
+  id: string
+  statementId?: string | null
+  classification: LossExceptionClassification
+  rawClassification: string
+  status: LossExceptionStatus
+  rawStatus: string
+  amount: number
+  notes?: string | null
+  decision?: string | null
+  rationale?: string | null
+  reviewerUserId?: string | null
+  decidedAt?: string | null
+  resolvedAt?: string | null
+  createdAt?: string | null
+}
+
 export type ApplicationWorkspace = {
   id: string
   opportunityId: string
@@ -68,6 +103,8 @@ export type ApplicationWorkspace = {
   financierDecision: ReviewDecision
   shariahDecision: ReviewDecision
   auditSummary: AuditSummary
+  lossExceptions: LossException[]
+  closureBlockedByLossException: boolean
 }
 
 export type WorkspaceAction = {
@@ -156,10 +193,27 @@ export type ApplicationWorkspaceRawDto = {
     id: string
     status?: string | null
     createdAt?: string | null
+    lossExceptions?: LossExceptionRawDto[]
   }>
+  lossExceptions?: LossExceptionRawDto[]
   closurePacks?: Array<{
     id: string
     status?: string | null
     exportedAt?: string | null
   }>
+}
+
+export type LossExceptionRawDto = {
+  id: string
+  statementId?: string | null
+  exceptionType?: string | null
+  status?: string | null
+  amount?: number | string | null
+  notes?: string | null
+  decision?: string | null
+  rationale?: string | null
+  reviewerUserId?: string | null
+  decidedAt?: string | null
+  resolvedAt?: string | null
+  createdAt?: string | null
 }

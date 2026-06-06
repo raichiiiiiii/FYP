@@ -1649,6 +1649,92 @@ a:focus-visible,
   margin-top: 5px;
 }
 
+.loss-exception-panel {
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.loss-exception-panel > p {
+  overflow-wrap: anywhere;
+}
+
+.loss-exception-list {
+  display: grid;
+  gap: 14px;
+}
+
+.loss-exception-card {
+  background: #f7f9fa;
+  border: 1px solid #dfe7ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.loss-exception-card__summary {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.loss-exception-card__summary strong {
+  color: var(--text-strong);
+  display: block;
+  margin-top: 4px;
+}
+
+.loss-exception-card__summary p,
+.loss-exception-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.loss-exception-meta {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.loss-exception-actions {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  min-width: 0;
+}
+
+.loss-exception-actions .field {
+  min-width: 0;
+}
+
+.loss-exception-actions .button {
+  min-height: 44px;
+  width: 100%;
+}
+
+.loss-exception-rationale {
+  grid-column: 1 / -1;
+}
+
+.loss-exception-rationale textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  width: 100%;
+}
+
 .workspace-timeline {
   display: grid;
   gap: 8px;
@@ -4480,6 +4566,7 @@ textarea {
   .applications-toolbar,
   .workspace-overview-grid,
   .workspace-panels,
+  .loss-exception-actions,
   .workspace-timeline,
   .audit-verification-summary,
   .audit-hash-grid {

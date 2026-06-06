@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +11,7 @@ import {
 import { applicationWorkspaceFixture } from './applicationWorkspace.fixtures'
 import { ApplicationOverviewPanel } from './ApplicationOverviewPanel'
 import { ApplicationWorkspaceTabs } from './ApplicationWorkspaceTabs'
+import { LossExceptionPanel } from './LossExceptionPanel'
 
 describe('application workspace shell', () => {
   it('renders role-visible tabs and disabled unavailable tabs', () => {
@@ -35,6 +37,8 @@ describe('application workspace shell', () => {
 
     expect(workspace.status).toBe('due_diligence')
     expect(workspace.evidence).toHaveLength(2)
+    expect(workspace.lossExceptions).toHaveLength(1)
+    expect(workspace.closureBlockedByLossException).toBe(true)
     expect(timeline.find((step) => step.state === 'current')?.id).toBe(
       'due_diligence',
     )
@@ -62,5 +66,28 @@ describe('application workspace shell', () => {
     expect(html).toContain('Submit evidence')
     expect(html).not.toContain('Record due diligence')
     expect(html).toContain('Read-only')
+  })
+
+  it('renders reviewer loss-exception workflow without claiming fixed returns', () => {
+    const queryClient = new QueryClient()
+    const workspace = mapApplicationWorkspace(applicationWorkspaceFixture)
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <LossExceptionPanel
+          workspace={workspace}
+          roleCodes={['SHARIAH_REVIEWER']}
+          session={{
+            organizationId: 'org-1',
+            actorUserId: 'reviewer-1',
+          }}
+          onRefresh={async () => undefined}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(html).toContain('Closure blocked')
+    expect(html).toContain('Genuine commercial loss')
+    expect(html).toContain('Start evidence review')
+    expect(html).toContain('does not create a guaranteed or fixed return')
   })
 })

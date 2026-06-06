@@ -17,6 +17,7 @@ import {
 import { ApplicationOverviewPanel } from './ApplicationOverviewPanel'
 import { ApplicationTimeline } from './ApplicationTimeline'
 import { ApplicationWorkspaceTabs } from './ApplicationWorkspaceTabs'
+import { LossExceptionPanel } from './LossExceptionPanel'
 import type {
   ApplicationWorkspace,
   ApplicationWorkspaceRawDto,
@@ -127,6 +128,11 @@ export function ApplicationWorkspacePage({
           workspace={state.data}
           selectedTab={selectedTab}
           roleCodes={roleCodes}
+          session={session}
+          onRefresh={async () => {
+            const workspace = await loadWorkspace()
+            setState({ status: 'ready', data: workspace })
+          }}
         />
       ) : null}
     </>
@@ -137,16 +143,30 @@ function WorkspaceContent({
   workspace,
   selectedTab,
   roleCodes,
+  session,
+  onRefresh,
 }: {
   workspace: ApplicationWorkspace
   selectedTab: WorkspaceTabId
   roleCodes: AppRoleCode[]
+  session: AppSession
+  onRefresh: () => Promise<void>
 }) {
+  const showLossExceptionPanel =
+    selectedTab === 'profit-loss' || selectedTab === 'closure'
+
   return (
     <div className="workspace-layout">
       <ApplicationOverviewPanel workspace={workspace} roleCodes={roleCodes} />
       <ApplicationTimeline status={workspace.status} />
-      {selectedTab === 'overview' ? null : (
+      {showLossExceptionPanel ? (
+        <LossExceptionPanel
+          workspace={workspace}
+          roleCodes={roleCodes}
+          session={session}
+          onRefresh={onRefresh}
+        />
+      ) : selectedTab === 'overview' ? null : (
         <EmptyState title="Workspace section shell ready">
           This tab is route-backed and permission-aware. Its mutation-heavy
           workflow is intentionally deferred to the next Slice 4 sub-slices.

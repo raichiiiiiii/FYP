@@ -10,12 +10,49 @@ import type {
   ApplicationWorkspaceRawDto,
   AuditSummary,
   EvidenceStatus,
+  LossException,
+  LossExceptionClassification,
+  LossExceptionRawDto,
+  LossExceptionStatus,
   ReviewDecision,
   WorkspaceAction,
   WorkspaceRoleProfile,
   WorkspaceTab,
   WorkspaceTabId,
 } from './applicationWorkspace.types'
+
+export const lossExceptionClassifications: readonly LossExceptionClassification[] =
+  [
+    'GENUINE_COMMERCIAL_LOSS',
+    'BREACH',
+    'NEGLIGENCE',
+    'MISCONDUCT',
+    'FRAUD',
+    'INSUFFICIENT_EVIDENCE',
+  ] as const
+
+export const lossExceptionClassificationLabels: Record<
+  LossExceptionClassification,
+  string
+> = {
+  GENUINE_COMMERCIAL_LOSS: 'Genuine commercial loss',
+  BREACH: 'Breach',
+  NEGLIGENCE: 'Negligence',
+  MISCONDUCT: 'Misconduct',
+  FRAUD: 'Fraud',
+  INSUFFICIENT_EVIDENCE: 'Insufficient evidence',
+}
+
+export const lossExceptionStatusLabels: Record<LossExceptionStatus, string> = {
+  OPEN: 'Open',
+  EVIDENCE_REQUESTED: 'Evidence requested',
+  UNDER_REVIEW: 'Under review',
+  CLASSIFIED: 'Classified',
+  REJECTED: 'Rejected',
+  RESOLVED: 'Resolved',
+  REOPENED: 'Reopened',
+  CANCELLED: 'Cancelled',
+}
 
 export const workspaceTabs: readonly WorkspaceTab[] = [
   {
@@ -176,6 +213,7 @@ export function mapApplicationWorkspace(
   const expectedCostAmount =
     estimatedCapital || toNumber(application.requestedCapital)
   const expectedRevenueAmount = expectedCostAmount + expectedProfit
+  const lossExceptions = mapLossExceptions(application)
 
   return {
     id: application.id,
@@ -204,6 +242,10 @@ export function mapApplicationWorkspace(
     financierDecision: mapReviewDecision(application.dueDiligenceReports?.[0]),
     shariahDecision: mapReviewDecision(application.shariahReviews?.[0]),
     auditSummary: buildAuditSummary(application),
+    lossExceptions,
+    closureBlockedByLossException: lossExceptions.some((exception) =>
+      isLossExceptionClosureBlocking(exception.status),
+    ),
   }
 }
 
@@ -320,6 +362,86 @@ function mapEvidenceStatus(status?: string | null): EvidenceStatus {
   }
 
   return 'missing'
+}
+
+export function mapLossExceptions(
+  application: ApplicationWorkspaceRawDto,
+): LossException[] {
+  const direct = application.lossExceptions ?? []
+  const nested =
+    application.profitLossStatements?.flatMap(
+      (statement) => statement.lossExceptions ?? [],
+    ) ?? []
+  const seen = new Set<string>()
+
+  return [...direct, ...nested].flatMap((exception) => {
+    if (seen.has(exception.id)) {
+      return []
+    }
+    seen.add(exception.id)
+    return [mapLossException(exception)]
+  })
+}
+
+export function mapLossException(exception: LossExceptionRawDto): LossException {
+  const rawStatus = exception.status || 'OPEN'
+  const rawClassification = exception.exceptionType || 'GENUINE_COMMERCIAL_LOSS'
+
+  return {
+    id: exception.id,
+    statementId: exception.statementId,
+    classification: normalizeLossExceptionClassification(rawClassification),
+    rawClassification,
+    status: normalizeLossExceptionStatus(rawStatus),
+    rawStatus,
+    amount: toNumber(exception.amount),
+    notes: exception.notes,
+    decision: exception.decision,
+    rationale: exception.rationale,
+    reviewerUserId: exception.reviewerUserId,
+    decidedAt: exception.decidedAt,
+    resolvedAt: exception.resolvedAt,
+    createdAt: exception.createdAt,
+  }
+}
+
+export function normalizeLossExceptionStatus(
+  status?: string | null,
+): LossExceptionStatus {
+  const normalized = (status || '').toUpperCase()
+
+  if (
+    [
+      'OPEN',
+      'EVIDENCE_REQUESTED',
+      'UNDER_REVIEW',
+      'CLASSIFIED',
+      'REJECTED',
+      'RESOLVED',
+      'REOPENED',
+      'CANCELLED',
+    ].includes(normalized)
+  ) {
+    return normalized as LossExceptionStatus
+  }
+
+  return 'OPEN'
+}
+
+export function normalizeLossExceptionClassification(
+  classification?: string | null,
+): LossExceptionClassification {
+  const normalized = (classification || '').toUpperCase()
+
+  if (lossExceptionClassifications.includes(normalized as LossExceptionClassification)) {
+    return normalized as LossExceptionClassification
+  }
+
+  return 'GENUINE_COMMERCIAL_LOSS'
+}
+
+export function isLossExceptionClosureBlocking(status: LossExceptionStatus) {
+  return !['RESOLVED', 'REJECTED'].includes(status)
 }
 
 function mapReviewDecision(review?: {

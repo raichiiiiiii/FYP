@@ -214,6 +214,24 @@ export const endpoints = {
       scopedPath('/profit-loss/statements', organizationId),
     createStatement: '/profit-loss/statements',
   },
+  lossExceptions: {
+    list: (
+      organizationId?: string | null,
+      applicationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery('/loss-exceptions', {
+        organizationId,
+        applicationId,
+        actorUserId,
+      }),
+    detail: (id: string, actorUserId?: string | null) =>
+      withQuery(`/loss-exceptions/${id}`, { actorUserId }),
+    create: '/loss-exceptions',
+    evidence: (id: string) => `/loss-exceptions/${id}/evidence`,
+    decision: (id: string) => `/loss-exceptions/${id}/decision`,
+    close: (id: string) => `/loss-exceptions/${id}/close`,
+  },
   closures: {
     list: (organizationId?: string | null) =>
       scopedPath('/closures', organizationId),

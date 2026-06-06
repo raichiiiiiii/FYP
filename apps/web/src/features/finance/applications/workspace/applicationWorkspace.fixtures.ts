@@ -45,4 +45,15 @@ export const applicationWorkspaceFixture: ApplicationWorkspaceRawDto = {
       createdAt: '2026-06-03T00:00:00.000Z',
     },
   ],
+  lossExceptions: [
+    {
+      id: 'loss-workspace-demo',
+      statementId: 'pl-workspace-demo',
+      exceptionType: 'GENUINE_COMMERCIAL_LOSS',
+      status: 'OPEN',
+      amount: 2500,
+      notes: 'Negative P/L requires reviewer handling before closure.',
+      createdAt: '2026-06-05T00:00:00.000Z',
+    },
+  ],
 }
