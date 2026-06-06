@@ -12,6 +12,7 @@ import { LossExceptionsController } from './loss-exceptions/loss-exceptions.cont
 import { OpportunitiesController } from './opportunities/opportunities.controller';
 import { ProfitLossController } from './profit-loss/profit-loss.controller';
 import { ProjectLedgersController } from './project-ledgers/project-ledgers.controller';
+import { FinanceSummaryController } from './summary/finance-summary.controller';
 
 @Module({
   imports: [DatabaseModule, AuditEventsModule, OutboxModule],
@@ -25,6 +26,7 @@ import { ProjectLedgersController } from './project-ledgers/project-ledgers.cont
     ProfitLossController,
     LossExceptionsController,
     ClosuresController,
+    FinanceSummaryController,
   ],
   providers: [FinanceService],
 })

@@ -34,6 +34,13 @@ quotation, purchase order, receipt, invoice, matching exception, queue,
 blocker, readiness, and requisition status breakdown data. Roles without
 procurement visibility receive `403`.
 
+`GET /api/v1/finance/summary` returns a `FinanceSummaryDto` for
+finance-visible roles. It includes opportunities, applications by lifecycle
+status, evidence gaps, due diligence/Shariah review queues, contract execution,
+disbursement records, profit/loss and closure readiness, unresolved loss
+exceptions, and explicit readiness/blocker objects. Roles without finance
+visibility receive `403`. Summary copy must not imply guaranteed fixed returns.
+
 ## Role Visibility Rules
 
 | Summary | Allowed role codes |

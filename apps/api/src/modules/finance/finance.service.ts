@@ -8,6 +8,15 @@ import { createHash } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { AuditEventsService } from '../../audit-events/audit-events.service';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  buildReviewReadiness,
+  canReadFinanceSummary,
+  summarySeverityForCount,
+  type FinanceSummaryDto,
+  type QueueItemDto,
+  type SummaryMetricDto,
+  type WorkflowBlockerDto,
+} from '../summary/summary-contract';
 import { OutboxService } from '../outbox/outbox.service';
 import {
   numericValue,
@@ -330,6 +339,190 @@ export class FinanceService {
     private readonly auditEvents: AuditEventsService,
     private readonly outbox: OutboxService,
   ) {}
+
+  async getSummary(
+    organizationId?: string,
+    roleCodes: readonly string[] = [],
+  ): Promise<FinanceSummaryDto> {
+    const scopedOrganizationId = requireText(organizationId, 'organizationId');
+
+    if (!canReadFinanceSummary(roleCodes)) {
+      throw new ForbiddenException('User role cannot access finance summary');
+    }
+
+    const [
+      opportunityCount,
+      openOpportunityCount,
+      applicationCount,
+      reviewApplicationCount,
+      applicationStatusGroups,
+      checklistCount,
+      pendingChecklistCount,
+      dueDiligencePendingCount,
+      shariahPendingCount,
+      contractCount,
+      executedContractCount,
+      disbursementCount,
+      profitLossCount,
+      closureCount,
+      unresolvedLossExceptionCount,
+    ] = await Promise.all([
+      this.prisma.procurementOpportunity.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.procurementOpportunity.count({
+        where: { organizationId: scopedOrganizationId, status: 'OPEN' },
+      }),
+      this.prisma.mudarabahApplication.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.mudarabahApplication.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: {
+            in: [
+              'SUBMITTED',
+              'EVIDENCE_PENDING',
+              'DUE_DILIGENCE_IN_REVIEW',
+              'SHARIAH_IN_REVIEW',
+            ],
+          },
+        },
+      }),
+      this.prisma.mudarabahApplication.groupBy({
+        by: ['status'],
+        where: { organizationId: scopedOrganizationId },
+        _count: { _all: true },
+      }),
+      this.prisma.evidenceChecklist.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.evidenceChecklist.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: { not: 'COMPLETED' },
+        },
+      }),
+      this.prisma.mudarabahApplication.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: 'DUE_DILIGENCE_IN_REVIEW',
+        },
+      }),
+      this.prisma.mudarabahApplication.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: 'SHARIAH_IN_REVIEW',
+        },
+      }),
+      this.prisma.mudarabahContract.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.mudarabahContract.count({
+        where: { organizationId: scopedOrganizationId, status: 'EXECUTED' },
+      }),
+      this.prisma.disbursement.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.profitLossStatement.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.closurePack.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.lossException.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: { in: ['OPEN', 'UNDER_REVIEW', 'CLASSIFIED'] },
+        },
+      }),
+    ]);
+
+    const closureReadyCount = Math.max(0, profitLossCount - closureCount);
+    const statusBreakdown = Object.fromEntries(
+      applicationStatusGroups.map((group) => [group.status, group._count._all]),
+    );
+
+    return {
+      organizationId: scopedOrganizationId,
+      generatedAt: new Date().toISOString(),
+      metrics: financeMetrics({
+        opportunityCount,
+        openOpportunityCount,
+        applicationCount,
+        reviewApplicationCount,
+        pendingChecklistCount,
+        dueDiligencePendingCount,
+        shariahPendingCount,
+        contractCount,
+        executedContractCount,
+        disbursementCount,
+        profitLossCount,
+        closureCount,
+        unresolvedLossExceptionCount,
+      }),
+      queue: financeQueue({
+        openOpportunityCount,
+        reviewApplicationCount,
+        pendingChecklistCount,
+        dueDiligencePendingCount,
+        shariahPendingCount,
+        contractPendingCount: Math.max(
+          0,
+          contractCount - executedContractCount,
+        ),
+        closureReadyCount,
+        unresolvedLossExceptionCount,
+      }),
+      blockers: financeBlockers({
+        pendingChecklistCount,
+        unresolvedLossExceptionCount,
+      }),
+      readiness: [
+        buildReviewReadiness({
+          id: 'finance-evidence-readiness',
+          area: 'finance',
+          label: 'Evidence checklist readiness',
+          ready: checklistCount - pendingChecklistCount,
+          total: checklistCount,
+          targetRoute: '/finance/applications',
+        }),
+        buildReviewReadiness({
+          id: 'finance-review-readiness',
+          area: 'finance',
+          label: 'Application review readiness',
+          ready: applicationCount - reviewApplicationCount,
+          total: applicationCount,
+          targetRoute: '/finance/applications',
+        }),
+        buildReviewReadiness({
+          id: 'finance-contract-readiness',
+          area: 'finance',
+          label: 'Contract execution readiness',
+          ready: executedContractCount,
+          total: contractCount,
+          targetRoute: '/contracts',
+        }),
+        buildReviewReadiness({
+          id: 'finance-closure-readiness',
+          area: 'finance',
+          label: 'Closure pack readiness',
+          ready: closureCount,
+          total: profitLossCount,
+          targetRoute: '/finance/closures',
+        }),
+        buildReviewReadiness({
+          id: 'finance-loss-exception-readiness',
+          area: 'finance',
+          label: 'Loss exception resolution',
+          ready: unresolvedLossExceptionCount > 0 ? 0 : 1,
+          total: unresolvedLossExceptionCount > 0 ? 1 : 0,
+          targetRoute: '/finance/applications',
+        }),
+      ],
+      statusBreakdown,
+    };
+  }
 
   async createOpportunity(input: CreateOpportunityInput) {
     const organizationId = requireText(input.organizationId, 'organizationId');
@@ -2225,4 +2418,269 @@ export class FinanceService {
       },
     });
   }
+}
+
+function financeMetrics(counts: {
+  opportunityCount: number;
+  openOpportunityCount: number;
+  applicationCount: number;
+  reviewApplicationCount: number;
+  pendingChecklistCount: number;
+  dueDiligencePendingCount: number;
+  shariahPendingCount: number;
+  contractCount: number;
+  executedContractCount: number;
+  disbursementCount: number;
+  profitLossCount: number;
+  closureCount: number;
+  unresolvedLossExceptionCount: number;
+}): SummaryMetricDto[] {
+  return [
+    {
+      id: 'finance-opportunities',
+      label: 'Finance opportunities',
+      value: counts.opportunityCount,
+      helper: `${counts.openOpportunityCount} opportunity item(s) remain open.`,
+      severity: summarySeverityForCount(counts.openOpportunityCount, {
+        warning: 1,
+        danger: 5,
+      }),
+      targetRoute: '/finance/opportunities',
+    },
+    {
+      id: 'finance-applications',
+      label: 'Applications',
+      value: counts.applicationCount,
+      helper: `${counts.reviewApplicationCount} application(s) need evidence, due diligence, or Shariah review.`,
+      severity: summarySeverityForCount(counts.reviewApplicationCount, {
+        warning: 1,
+        danger: 5,
+      }),
+      targetRoute: '/finance/applications',
+    },
+    {
+      id: 'finance-evidence-gaps',
+      label: 'Evidence gaps',
+      value: counts.pendingChecklistCount,
+      helper: 'Evidence checklists that are not completed.',
+      severity: summarySeverityForCount(counts.pendingChecklistCount, {
+        warning: 1,
+        danger: 4,
+      }),
+      targetRoute: '/finance/applications',
+    },
+    {
+      id: 'finance-review-queues',
+      label: 'Review queues',
+      value: counts.dueDiligencePendingCount + counts.shariahPendingCount,
+      helper: `${counts.dueDiligencePendingCount} due diligence and ${counts.shariahPendingCount} Shariah item(s) pending.`,
+      severity: summarySeverityForCount(
+        counts.dueDiligencePendingCount + counts.shariahPendingCount,
+        { warning: 1, danger: 4 },
+      ),
+      targetRoute: '/finance/applications',
+    },
+    {
+      id: 'finance-contracts',
+      label: 'Contracts',
+      value: counts.contractCount,
+      helper: `${counts.executedContractCount} contract(s) executed.`,
+      severity:
+        counts.contractCount === counts.executedContractCount
+          ? 'success'
+          : 'warning',
+      targetRoute: '/contracts',
+    },
+    {
+      id: 'finance-closure',
+      label: 'P/L and closure',
+      value: counts.profitLossCount + counts.closureCount,
+      helper: `${counts.profitLossCount} profit/loss statement(s), ${counts.closureCount} closure pack(s). No fixed return is implied.`,
+      severity: 'neutral',
+      targetRoute: '/finance/ledger',
+    },
+    {
+      id: 'finance-loss-exceptions',
+      label: 'Loss exceptions',
+      value: counts.unresolvedLossExceptionCount,
+      helper:
+        'Unresolved loss exception reviews block closure until classified and resolved.',
+      severity: summarySeverityForCount(counts.unresolvedLossExceptionCount, {
+        warning: 1,
+        danger: 3,
+      }),
+      targetRoute: '/finance/applications',
+    },
+    {
+      id: 'finance-disbursements',
+      label: 'Disbursements',
+      value: counts.disbursementCount,
+      helper:
+        'Backend-recorded disbursement records; no fake payment success is inferred.',
+      severity: 'neutral',
+      targetRoute: '/finance/applications',
+    },
+  ];
+}
+
+function financeQueue(counts: {
+  openOpportunityCount: number;
+  reviewApplicationCount: number;
+  pendingChecklistCount: number;
+  dueDiligencePendingCount: number;
+  shariahPendingCount: number;
+  contractPendingCount: number;
+  closureReadyCount: number;
+  unresolvedLossExceptionCount: number;
+}): QueueItemDto[] {
+  const queue: QueueItemDto[] = [];
+
+  if (counts.reviewApplicationCount > 0) {
+    queue.push({
+      id: 'finance-application-review-queue',
+      area: 'finance',
+      title: 'Review finance applications',
+      description: `${counts.reviewApplicationCount} application(s) are waiting in evidence or review-sensitive states.`,
+      count: counts.reviewApplicationCount,
+      priority: 'high',
+      status: 'open',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (counts.pendingChecklistCount > 0) {
+    queue.push({
+      id: 'finance-evidence-gap-queue',
+      area: 'finance',
+      title: 'Close evidence gaps',
+      description: `${counts.pendingChecklistCount} checklist(s) are not complete.`,
+      count: counts.pendingChecklistCount,
+      priority: 'high',
+      status: 'blocked',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (counts.dueDiligencePendingCount > 0) {
+    queue.push({
+      id: 'finance-due-diligence-queue',
+      area: 'finance',
+      title: 'Complete due diligence review',
+      description: `${counts.dueDiligencePendingCount} application(s) are in due diligence review.`,
+      count: counts.dueDiligencePendingCount,
+      priority: 'high',
+      status: 'open',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (counts.shariahPendingCount > 0) {
+    queue.push({
+      id: 'finance-shariah-review-queue',
+      area: 'finance',
+      title: 'Complete Shariah review',
+      description: `${counts.shariahPendingCount} application(s) require Shariah reviewer action.`,
+      count: counts.shariahPendingCount,
+      priority: 'high',
+      status: 'open',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (counts.contractPendingCount > 0) {
+    queue.push({
+      id: 'finance-contract-execution-queue',
+      area: 'finance',
+      title: 'Execute pending contracts',
+      description: `${counts.contractPendingCount} contract(s) are not executed.`,
+      count: counts.contractPendingCount,
+      priority: 'medium',
+      status: 'pending_external',
+      targetRoute: '/contracts',
+    });
+  }
+
+  if (counts.closureReadyCount > 0) {
+    queue.push({
+      id: 'finance-closure-ready-queue',
+      area: 'finance',
+      title: 'Prepare closure packs',
+      description: `${counts.closureReadyCount} profit/loss statement(s) do not yet have closure packs.`,
+      count: counts.closureReadyCount,
+      priority: 'medium',
+      status: 'open',
+      targetRoute: '/finance/closures',
+    });
+  }
+
+  if (counts.unresolvedLossExceptionCount > 0) {
+    queue.push({
+      id: 'finance-loss-exception-queue',
+      area: 'finance',
+      title: 'Resolve loss exceptions',
+      description: `${counts.unresolvedLossExceptionCount} loss exception item(s) require reviewer classification or resolution.`,
+      count: counts.unresolvedLossExceptionCount,
+      priority: 'critical',
+      status: 'blocked',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (!queue.length) {
+    queue.push({
+      id: 'finance-empty-queue',
+      area: 'finance',
+      title: 'No urgent finance work',
+      description: counts.openOpportunityCount
+        ? 'Open opportunities exist, but no review blockers are currently visible.'
+        : 'Backend records do not show pending finance action.',
+      count: 0,
+      priority: 'low',
+      status: 'done',
+      targetRoute: counts.openOpportunityCount
+        ? '/finance/opportunities'
+        : '/finance/applications',
+    });
+  }
+
+  return queue;
+}
+
+function financeBlockers(counts: {
+  pendingChecklistCount: number;
+  unresolvedLossExceptionCount: number;
+}): WorkflowBlockerDto[] {
+  const blockers: WorkflowBlockerDto[] = [];
+
+  if (counts.pendingChecklistCount > 0) {
+    blockers.push({
+      id: 'finance-evidence-gaps',
+      area: 'finance',
+      title: 'Evidence checklist gaps',
+      description:
+        'One or more evidence checklists are incomplete; downstream review remains blocked.',
+      count: counts.pendingChecklistCount,
+      severity: 'warning',
+      requiredAction:
+        'Open the application workspace and complete required evidence items.',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  if (counts.unresolvedLossExceptionCount > 0) {
+    blockers.push({
+      id: 'finance-unresolved-loss-exceptions',
+      area: 'finance',
+      title: 'Unresolved loss exceptions',
+      description:
+        'Closure cannot proceed while loss exception records remain open, under review, or classified but unresolved.',
+      count: counts.unresolvedLossExceptionCount,
+      severity: 'danger',
+      requiredAction:
+        'Complete reviewer classification and resolve the exception before closure.',
+      targetRoute: '/finance/applications',
+    });
+  }
+
+  return blockers;
 }
