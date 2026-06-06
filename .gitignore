@@ -38,3 +38,4 @@ chaincode/audit-anchor-go/audit-anchor-go.exe
 chaincode/audit-anchor-go/vendor/
 
 vm-mepn-fyp-key.pem
+start.ps1
