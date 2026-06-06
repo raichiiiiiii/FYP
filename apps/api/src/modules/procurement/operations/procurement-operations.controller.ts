@@ -19,6 +19,17 @@ export class ProcurementOperationsController {
     private readonly procurementOperationsService: ProcurementOperationsService,
   ) {}
 
+  @Get('summary')
+  getSummary(
+    @Query('organizationId') organizationId?: string,
+    @Query('roleCodes') roleCodes?: string,
+  ) {
+    return this.procurementOperationsService.getSummary(
+      organizationId,
+      parseRoleCodes(roleCodes),
+    );
+  }
+
   @Get('approvals')
   listApprovalTasks(
     @Query('organizationId') organizationId?: string,
@@ -54,4 +65,13 @@ export class ProcurementOperationsController {
       organizationId,
     );
   }
+}
+
+function parseRoleCodes(value?: string) {
+  return value
+    ? value
+        .split(',')
+        .map((roleCode) => roleCode.trim())
+        .filter(Boolean)
+    : [];
 }

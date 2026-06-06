@@ -28,6 +28,12 @@ instead of importing Figma/demo fixtures.
 fields (`kpis`, `tasks`, `signals`, `activities`) for frontend compatibility.
 The backend filters the new and legacy arrays according to role visibility.
 
+`GET /api/v1/procurement/summary` returns a `ProcurementSummaryDto` for
+procurement-visible roles. It includes project, supplier, requisition, RFQ,
+quotation, purchase order, receipt, invoice, matching exception, queue,
+blocker, readiness, and requisition status breakdown data. Roles without
+procurement visibility receive `403`.
+
 ## Role Visibility Rules
 
 | Summary | Allowed role codes |

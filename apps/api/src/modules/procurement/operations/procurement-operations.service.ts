@@ -1,10 +1,20 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { AuditEventsService } from '../../../audit-events/audit-events.service';
 import { PrismaService } from '../../../database/prisma.service';
+import {
+  buildReviewReadiness,
+  canReadProcurementSummary,
+  summarySeverityForCount,
+  type ProcurementSummaryDto,
+  type QueueItemDto,
+  type SummaryMetricDto,
+  type WorkflowBlockerDto,
+} from '../../summary/summary-contract';
 import {
   numericValue,
   optionalText,
@@ -30,6 +40,138 @@ export class ProcurementOperationsService {
     private readonly prisma: PrismaService,
     private readonly auditEvents: AuditEventsService,
   ) {}
+
+  async getSummary(
+    organizationId?: string,
+    roleCodes: readonly string[] = [],
+  ): Promise<ProcurementSummaryDto> {
+    const scopedOrganizationId = requireText(organizationId, 'organizationId');
+
+    if (!canReadProcurementSummary(roleCodes)) {
+      throw new ForbiddenException(
+        'User role cannot access procurement summary',
+      );
+    }
+
+    const [
+      projectCount,
+      supplierCount,
+      requisitionCount,
+      pendingApprovalCount,
+      submittedRequisitionCount,
+      rfqCount,
+      openRfqCount,
+      quotationCount,
+      purchaseOrderCount,
+      receiptCount,
+      invoiceCount,
+      statusGroups,
+      matchingRecords,
+    ] = await Promise.all([
+      this.prisma.project.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.supplier.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.requisition.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.approvalRequest.count({
+        where: {
+          status: 'PENDING',
+          requisition: { organizationId: scopedOrganizationId },
+        },
+      }),
+      this.prisma.requisition.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: { in: ['SUBMITTED', 'PENDING'] },
+        },
+      }),
+      this.prisma.rFQ.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.rFQ.count({
+        where: {
+          organizationId: scopedOrganizationId,
+          status: 'PUBLISHED',
+        },
+      }),
+      this.prisma.quotation.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.purchaseOrder.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.receipt.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.invoice.count({
+        where: { organizationId: scopedOrganizationId },
+      }),
+      this.prisma.requisition.groupBy({
+        by: ['status'],
+        where: { organizationId: scopedOrganizationId },
+        _count: { _all: true },
+      }),
+      this.getReceiptInvoiceMatching(scopedOrganizationId),
+    ]);
+
+    const matchingExceptionCount = matchingRecords.filter(
+      (record) => record.matchingStatus !== 'MATCHED',
+    ).length;
+    const statusBreakdown = Object.fromEntries(
+      statusGroups.map((group) => [group.status, group._count._all]),
+    );
+
+    return {
+      organizationId: scopedOrganizationId,
+      generatedAt: new Date().toISOString(),
+      metrics: procurementMetrics({
+        projectCount,
+        supplierCount,
+        requisitionCount,
+        pendingApprovalCount,
+        rfqCount,
+        openRfqCount,
+        quotationCount,
+        purchaseOrderCount,
+        receiptCount,
+        invoiceCount,
+        matchingExceptionCount,
+      }),
+      queue: procurementQueue({
+        pendingApprovalCount,
+        submittedRequisitionCount,
+        openRfqCount,
+        matchingExceptionCount,
+      }),
+      blockers: procurementBlockers({
+        pendingApprovalCount,
+        matchingExceptionCount,
+      }),
+      readiness: [
+        buildReviewReadiness({
+          id: 'procurement-approval-readiness',
+          area: 'procurement',
+          label: 'Approval readiness',
+          ready: requisitionCount - pendingApprovalCount,
+          total: requisitionCount,
+          targetRoute: '/procurement/approvals',
+        }),
+        buildReviewReadiness({
+          id: 'procurement-matching-readiness',
+          area: 'procurement',
+          label: 'Receipt/invoice matching',
+          ready: purchaseOrderCount - matchingExceptionCount,
+          total: purchaseOrderCount,
+          targetRoute: '/procurement/matching',
+        }),
+      ],
+      statusBreakdown,
+    };
+  }
 
   listApprovalTasks(organizationId?: string, actorUserId?: string) {
     const scopedOrganizationId = requireText(organizationId, 'organizationId');
@@ -260,4 +402,192 @@ export class ProcurementOperationsService {
 
     return amountMatches ? 'MATCHED' : 'AMOUNT_MISMATCH';
   }
+}
+
+function procurementMetrics(counts: {
+  projectCount: number;
+  supplierCount: number;
+  requisitionCount: number;
+  pendingApprovalCount: number;
+  rfqCount: number;
+  openRfqCount: number;
+  quotationCount: number;
+  purchaseOrderCount: number;
+  receiptCount: number;
+  invoiceCount: number;
+  matchingExceptionCount: number;
+}): SummaryMetricDto[] {
+  return [
+    {
+      id: 'procurement-projects',
+      label: 'Procurement projects',
+      value: counts.projectCount,
+      helper: 'Projects with procurement records in this organization.',
+      severity: 'neutral',
+      targetRoute: '/procurement/projects',
+    },
+    {
+      id: 'suppliers',
+      label: 'Suppliers',
+      value: counts.supplierCount,
+      helper: 'Active supplier records available to sourcing workflows.',
+      severity: counts.supplierCount > 0 ? 'success' : 'warning',
+      targetRoute: '/procurement/suppliers',
+    },
+    {
+      id: 'requisitions',
+      label: 'Requisitions',
+      value: counts.requisitionCount,
+      helper: `${counts.pendingApprovalCount} approval item(s) pending.`,
+      severity: summarySeverityForCount(counts.pendingApprovalCount, {
+        warning: 1,
+        danger: 5,
+      }),
+      targetRoute: '/procurement/requisitions',
+    },
+    {
+      id: 'sourcing',
+      label: 'RFQs and quotations',
+      value: counts.rfqCount + counts.quotationCount,
+      helper: `${counts.openRfqCount} RFQ(s) published for supplier response.`,
+      severity: summarySeverityForCount(counts.openRfqCount, {
+        warning: 1,
+        danger: 5,
+      }),
+      targetRoute: '/procurement/rfqs',
+    },
+    {
+      id: 'purchase-orders',
+      label: 'Purchase orders',
+      value: counts.purchaseOrderCount,
+      helper: `${counts.receiptCount} receipt(s), ${counts.invoiceCount} invoice(s).`,
+      severity: 'neutral',
+      targetRoute: '/procurement/purchase-orders',
+    },
+    {
+      id: 'matching-exceptions',
+      label: 'Matching exceptions',
+      value: counts.matchingExceptionCount,
+      helper:
+        'Receipt and invoice records that do not yet fully match the purchase order.',
+      severity: summarySeverityForCount(counts.matchingExceptionCount, {
+        warning: 1,
+        danger: 3,
+      }),
+      targetRoute: '/procurement/matching',
+    },
+  ];
+}
+
+function procurementQueue(counts: {
+  pendingApprovalCount: number;
+  submittedRequisitionCount: number;
+  openRfqCount: number;
+  matchingExceptionCount: number;
+}): QueueItemDto[] {
+  const queue: QueueItemDto[] = [];
+
+  if (counts.pendingApprovalCount > 0) {
+    queue.push({
+      id: 'pending-approval-queue',
+      area: 'procurement',
+      title: 'Review pending approvals',
+      description: `${counts.pendingApprovalCount} requisition approval task(s) are waiting.`,
+      count: counts.pendingApprovalCount,
+      priority: 'high',
+      status: 'open',
+      targetRoute: '/procurement/approvals',
+    });
+  }
+
+  if (counts.submittedRequisitionCount > 0) {
+    queue.push({
+      id: 'submitted-requisition-queue',
+      area: 'procurement',
+      title: 'Advance submitted requisitions',
+      description: `${counts.submittedRequisitionCount} submitted requisition(s) need sourcing or approval action.`,
+      count: counts.submittedRequisitionCount,
+      priority: 'medium',
+      status: 'open',
+      targetRoute: '/procurement/requisitions',
+    });
+  }
+
+  if (counts.openRfqCount > 0) {
+    queue.push({
+      id: 'open-rfq-queue',
+      area: 'procurement',
+      title: 'Monitor open RFQs',
+      description: `${counts.openRfqCount} published RFQ(s) are awaiting quotations.`,
+      count: counts.openRfqCount,
+      priority: 'medium',
+      status: 'pending_external',
+      targetRoute: '/procurement/rfqs',
+    });
+  }
+
+  if (counts.matchingExceptionCount > 0) {
+    queue.push({
+      id: 'matching-exception-queue',
+      area: 'procurement',
+      title: 'Resolve matching exceptions',
+      description: `${counts.matchingExceptionCount} purchase order(s) need receipt or invoice matching.`,
+      count: counts.matchingExceptionCount,
+      priority: 'high',
+      status: 'blocked',
+      targetRoute: '/procurement/matching',
+    });
+  }
+
+  if (!queue.length) {
+    queue.push({
+      id: 'procurement-empty-queue',
+      area: 'procurement',
+      title: 'No urgent procurement work',
+      description: 'Backend records do not show pending procurement action.',
+      count: 0,
+      priority: 'low',
+      status: 'done',
+      targetRoute: '/procurement',
+    });
+  }
+
+  return queue;
+}
+
+function procurementBlockers(counts: {
+  pendingApprovalCount: number;
+  matchingExceptionCount: number;
+}): WorkflowBlockerDto[] {
+  const blockers: WorkflowBlockerDto[] = [];
+
+  if (counts.matchingExceptionCount > 0) {
+    blockers.push({
+      id: 'procurement-matching-exceptions',
+      area: 'procurement',
+      title: 'Receipt or invoice mismatch',
+      description:
+        'One or more purchase orders are missing receipts, invoices, or amount agreement.',
+      count: counts.matchingExceptionCount,
+      severity: 'warning',
+      requiredAction:
+        'Open procurement matching and resolve receipt/invoice gaps.',
+      targetRoute: '/procurement/matching',
+    });
+  }
+
+  if (counts.pendingApprovalCount >= 5) {
+    blockers.push({
+      id: 'procurement-approval-backlog',
+      area: 'procurement',
+      title: 'Approval backlog',
+      description: 'Approval queue has reached the dashboard danger threshold.',
+      count: counts.pendingApprovalCount,
+      severity: 'danger',
+      requiredAction: 'Assign approvers or clear pending approval tasks.',
+      targetRoute: '/procurement/approvals',
+    });
+  }
+
+  return blockers;
 }
