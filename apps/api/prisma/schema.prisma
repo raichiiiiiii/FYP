@@ -55,6 +55,7 @@ model Organization {
   reportExportJobs         ReportExportJob[]
   graphSavedViews          GraphSavedView[]
   graphAnnotations         GraphAnnotation[]
+  inboxItems               InboxItem[]
 }
 
 model User {
@@ -62,6 +63,7 @@ model User {
   email        String   @unique
   displayName  String
   passwordHash String?
+  profileImageUrl String?
   status       String   @default("active")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -81,6 +83,8 @@ model User {
   graphSavedViews       GraphSavedView[] @relation("GraphSavedViewOwner")
   createdGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationCreatedBy")
   updatedGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationUpdatedBy")
+  sentInboxItems        InboxItem[] @relation("InboxItemSender")
+  receivedInboxItems    InboxItem[] @relation("InboxItemRecipient")
 }
 
 model Role {
@@ -119,6 +123,34 @@ model Membership {
   @@unique([organizationId, userId])
   @@index([userId])
   @@index([roleId])
+}
+
+model InboxItem {
+  id                String    @id @default(uuid())
+  organizationId    String
+  senderUserId      String
+  recipientUserId   String?
+  recipientRoleCode String?
+  itemType          String
+  subject           String
+  body              String
+  status            String    @default("unread")
+  metadata          Json?
+  readAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  sender       User         @relation("InboxItemSender", fields: [senderUserId], references: [id])
+  recipient    User?        @relation("InboxItemRecipient", fields: [recipientUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([senderUserId])
+  @@index([recipientUserId])
+  @@index([recipientRoleCode])
+  @@index([itemType])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Workspace {
