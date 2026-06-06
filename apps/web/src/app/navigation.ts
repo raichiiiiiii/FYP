@@ -54,6 +54,22 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: true,
   },
   {
+    path: '/account/profile',
+    label: 'Account profile',
+    module: 'Identity & Access',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: false,
+  },
+  {
+    path: '/inbox',
+    label: 'Inbox',
+    module: 'Identity & Access',
+    requiredPermissions: [],
+    requiredOrganizationContext: true,
+    showInSidebar: false,
+  },
+  {
     path: '/org/setup',
     label: 'Organization',
     module: 'Organization',

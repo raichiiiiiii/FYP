@@ -34,6 +34,18 @@ export const endpoints = {
     invitationAccept: (token?: string | null) =>
       withQuery('/auth/invitations/accept', { token }),
   },
+  account: {
+    profile: (organizationId?: string | null, actorUserId?: string | null) =>
+      withQuery('/account/profile', { organizationId, actorUserId }),
+    updateProfile: '/account/profile',
+  },
+  inbox: {
+    list: (organizationId?: string | null, actorUserId?: string | null) =>
+      withQuery('/inbox', { organizationId, actorUserId }),
+    messages: '/inbox/messages',
+    permissionRequests: '/inbox/permission-requests',
+    markRead: (id: string) => `/inbox/${id}/read`,
+  },
   organizations: {
     create: '/orgs',
     detail: (id: string) => `/orgs/${id}`,

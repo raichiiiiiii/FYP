@@ -21,7 +21,7 @@ export function SelectField({
 }: SelectHTMLAttributes<HTMLSelectElement> & {
   label: string
   name: string
-  options?: SelectOption[]
+  options?: readonly SelectOption[]
   error?: string
   hint?: ReactNode
   placeholder?: string

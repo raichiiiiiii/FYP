@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom'
 
 import { useAppSession } from './session'
+import { AccountProfileRoute } from '../features/account/AccountProfileRoute'
 import {
   AuditEntityScreen,
   AuditScreen,
@@ -20,6 +21,7 @@ import { EvidenceRoute } from '../features/evidence/EvidenceRoute'
 import { EvidencePackageRoute } from '../features/evidence-package/EvidencePackageRoute'
 import { FinanceRoute } from '../features/finance/FinanceRoute'
 import { GraphRoute } from '../features/graph/GraphRoute'
+import { InboxRoute } from '../features/inbox/InboxRoute'
 import { RolesAdmin } from '../features/identity/RolesAdmin'
 import { IntegrationsRoute } from '../features/integrations/IntegrationsRoute'
 import { OperationsRoute } from '../features/operations/OperationsRoute'
@@ -120,6 +122,22 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <Dashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/account/profile"
+            element={
+              <RequireAuth>
+                <AccountProfileRoute />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/inbox"
+            element={
+              <RequireAuth>
+                <InboxRoute />
               </RequireAuth>
             }
           />

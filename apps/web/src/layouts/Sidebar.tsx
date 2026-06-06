@@ -43,6 +43,7 @@ import {
   type AppRouteMetadata,
 } from '../app/navigation'
 import { useAppSession } from '../app/session'
+import { AccountMenu } from '../features/account/AccountMenu'
 import {
   getActiveSidebarModule,
   getSidebarModuleId,
@@ -73,8 +74,6 @@ export function Sidebar({
     () => getActiveSidebarModule(visibleRoutes, location.pathname),
     [location.pathname, visibleRoutes],
   )
-  const primaryRole = authorization.roleCodes[0]
-  const roleLabel = primaryRole ? formatRoleLabel(primaryRole) : 'No role loaded'
   const canOpenIntegrations = visibleRoutes.some(
     (route) => route.path === '/integrations',
   )
@@ -134,17 +133,7 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-session" aria-label="Current session">
-        <div className="sidebar-avatar" aria-hidden="true">
-          {getRoleInitials(roleLabel)}
-        </div>
-        <div>
-          <strong>{roleLabel}</strong>
-          <span>
-            {session.organizationId
-              ? `Org ${shortenId(session.organizationId)}`
-              : 'Organization pending'}
-          </span>
-        </div>
+        <AccountMenu />
       </div>
 
       <button
@@ -194,9 +183,6 @@ export function Sidebar({
                 <ModuleIcon className="sidebar-module__icon" aria-hidden="true" />
                 <span className="sidebar-module__label">{module}</span>
                 <small>{routes.length}</small>
-                <span className="sidebar-module__chevron" aria-hidden="true">
-                  v
-                </span>
               </button>
               <div
                 id={sectionId}
@@ -313,28 +299,3 @@ const sidebarRouteIcons: Record<string, LucideIcon> = {
   '/evidence-package': Archive,
 }
 
-function formatRoleLabel(roleCode: string) {
-  return roleCode
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function getRoleInitials(label: string) {
-  return label
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0))
-    .join('')
-    .toUpperCase()
-}
-
-function shortenId(id: string) {
-  if (id.length <= 8) {
-    return id
-  }
-
-  return `${id.slice(0, 4)}...${id.slice(-4)}`
-}

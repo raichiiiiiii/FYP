@@ -81,6 +81,7 @@ export type User = {
   id: string
   email: string
   displayName: string
+  profileImageUrl?: string | null
   status: string
 }
 
@@ -106,6 +107,47 @@ export type Membership = {
   status: string
   user: User
   role: Role
+}
+
+export type AccountProfile = {
+  id: string
+  email: string
+  displayName: string
+  profileImageUrl?: string | null
+  status: string
+  organizationId: string
+  roleCodes: string[]
+  permissionCodes: string[]
+  memberships: Array<{
+    id: string
+    organizationId: string
+    status: string
+    role: Role
+    organization: Pick<Organization, 'id' | 'legalName'>
+  }>
+}
+
+export type InboxItem = {
+  id: string
+  organizationId: string
+  senderUserId: string
+  recipientUserId?: string | null
+  recipientRoleCode?: string | null
+  itemType: 'message' | 'permission_request' | string
+  subject: string
+  body: string
+  status: 'unread' | 'read' | 'closed' | string
+  metadata?: Record<string, unknown> | null
+  readAt?: string | null
+  createdAt: string
+  updatedAt: string
+  sender?: Pick<User, 'id' | 'email' | 'displayName'> | null
+  recipient?: Pick<User, 'id' | 'email' | 'displayName'> | null
+}
+
+export type InboxResponse = {
+  unreadCount: number
+  items: InboxItem[]
 }
 
 export type Workspace = {

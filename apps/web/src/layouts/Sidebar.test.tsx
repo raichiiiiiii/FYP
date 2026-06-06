@@ -37,6 +37,25 @@ vi.mock('../app/session', () => ({
   }),
 }))
 
+vi.mock('../features/auth/useAuth', () => ({
+  useAuth: () => ({
+    authSession: {
+      userId: 'user_123',
+      email: 'admin@example.test',
+      displayName: 'Admin User',
+      organizationId: 'org_123',
+      roleCodes: ['ORG_ADMIN'],
+      permissionCodes: ['users:create'],
+      workspaceScopes: [],
+      expiresAt: '2026-06-07T00:00:00.000Z',
+      authMode: 'dev',
+      devAuthEnabled: true,
+      oidcEnabled: false,
+    },
+    logout: () => undefined,
+  }),
+}))
+
 describe('Sidebar', () => {
   beforeEach(() => {
     mockSessionState.session = {
