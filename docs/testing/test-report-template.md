@@ -42,6 +42,7 @@
 | Shariah review flow | Pass | Role-scoped workspace tabs/actions passed for procurement officer, Shariah reviewer, and auditor. |
 | Audit verification flow | Pass | Evidence pack export, hash verification, mock Fabric anchor visibility, entity timeline, and audit search passed. |
 | Closure/profit-loss flow | Pass | Contract, mock e-signature request, ledger entry, P/L statement, and closure export passed with application status reaching `CLOSED`. |
+| Loss exception workflow | Pass | `tests/e2e/17-loss-exception-workflow.spec.ts` passed, covering negative P/L, reviewer evidence review, genuine commercial loss rationale, closure blocking, and closure-gate clearance without guaranteed fixed return logic. |
 | Graph and integrations | Pass | Project graph role filtering and integrations/outbox status flow passed. |
 | Phase 12 demo/UAT alignment | Pass | UAT seed syntax check passed with `node --check tests/uat/seed-uat-demo.mjs`; docs now distinguish API-backed seed data, frontend fixtures, mock adapters, and unavailable features. |
 | Phase 13 closeout | Pass | Final local verification passed and close-alignment blockers were classified for demo, UAT, backend/API work, product decisions, hardening, and external integrations. |

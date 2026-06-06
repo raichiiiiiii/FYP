@@ -181,18 +181,24 @@ Show:
 - profit-sharing ratio
 - no guaranteed fixed return
 - loss exception state
+- reviewer classification and closure gate
 
 Status:
 
 - The UAT seed records a preliminary revenue/cost outcome for the TechBuild
   scenario.
+- The loss exception UAT path creates a negative profit/loss case through API
+  setup, then shows reviewer evidence review, classification rationale, and
+  closure-gate clearance from the application workspace.
 - The demo must state that this is seeded UAT data and not a real payment or
   production disbursement.
 
 Talking point:
 
 Mudarabah profit distribution is based on actual profit and agreed ratio. The
-system must not calculate guaranteed fixed returns.
+system must not calculate guaranteed fixed returns. Genuine commercial loss is
+handled as a reviewer-classified exception, while breach, negligence,
+misconduct, fraud, and insufficient evidence remain distinct classifications.
 
 ### 6. Audit And Fabric Verification
 

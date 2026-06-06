@@ -76,6 +76,7 @@ for each scenario and attach screenshots where indicated.
 | UAT-SHA-01 | Open Shariah review tab | Shariah review screen is visible | | Screenshot |
 | UAT-SHA-02 | Review eligibility and profit ratio | Profit ratio and loss treatment are understandable | | Screenshot |
 | UAT-SHA-03 | Confirm role gating | Due diligence-only actions are hidden or denied | | Screenshot |
+| UAT-SHA-04 | Classify a loss exception | Negative P/L shows reviewer classification, no guaranteed fixed return, evidence review, rationale, and closure-gate clearance | | `docs/evidence/uat/loss-exception-review-flow.png` |
 
 ## Auditor
 | ID | Scenario | Expected Result | Status | Evidence |
