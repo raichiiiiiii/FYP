@@ -47,4 +47,24 @@ describe('network graph UI', () => {
     expect(html).toContain('Revenue-generating finance opportunity')
     expect(html).toContain('Hash record verifies a source record state')
   })
+
+  it('shows backend risk reasons for the selected node', () => {
+    const graph = filterNetworkGraphForRoles(
+      mapProjectGraphApiToNetworkGraph(projectGraphApiFixture),
+      ['ORG_ADMIN'],
+    )
+    const selectedNode =
+      graph.nodes.find((node) => node.id === 'MudarabahApplication:app-fixture') ??
+      null
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <GraphInspectorPanel graph={graph} selectedNode={selectedNode} />
+      </MemoryRouter>,
+    )
+
+    expect(html).toContain('Risk reason')
+    expect(html).toContain(
+      'Finance evidence checklist still has missing or incomplete items.',
+    )
+  })
 })

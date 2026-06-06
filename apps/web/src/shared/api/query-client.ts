@@ -143,6 +143,13 @@ export const queryKeys = {
       scopedKey('finance', 'closures', organizationId),
   },
   graph: {
+    views: (organizationId?: string | null, actorUserId?: string | null) =>
+      [
+        'graph',
+        'views',
+        organizationId ?? 'global',
+        actorUserId ?? 'anonymous',
+      ] as const,
     project: (
       organizationId?: string | null,
       actorUserId?: string | null,

@@ -277,6 +277,11 @@ export const endpoints = {
       withQuery('/finance/summary', { organizationId, roleCodes }),
   },
   graph: {
+    views: (organizationId?: string | null, actorUserId?: string | null) =>
+      withQuery('/graph/views', { organizationId, actorUserId }),
+    createView: '/graph/views',
+    updateView: (id: string) => `/graph/views/${id}`,
+    deleteView: (id: string) => `/graph/views/${id}`,
     project: (
       projectId: string,
       organizationId?: string | null,

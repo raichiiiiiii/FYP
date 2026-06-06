@@ -8,6 +8,10 @@ import { ErrorState } from '../../shared/components/ErrorState'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { AppRoleCode, AppSession, LoadState } from '../../shared/types'
 import { useProjects } from '../procurement/api/useProjects'
+import {
+  useGraphSavedViews,
+  type GraphSavedView,
+} from './api/useGraphSavedViews'
 import { useProjectGraph } from './api/useProjectGraph'
 import {
   filterNetworkGraphByView,
@@ -178,8 +182,15 @@ export function GraphRoute({
 }) {
   const { listProjects } = useProjects(session)
   const { getProjectGraph } = useProjectGraph(session)
+  const {
+    listSavedViews,
+    createSavedView,
+    updateSavedView,
+    deleteSavedView,
+  } = useGraphSavedViews(session)
   const [searchParams, setSearchParams] = useSearchParams()
   const [projects, setProjects] = useState<Project[]>([])
+  const [savedViews, setSavedViews] = useState<GraphSavedView[]>([])
   const [projectId, setProjectId] = useState(
     () => searchParams.get('projectId') ?? '',
   )
@@ -201,6 +212,9 @@ export function GraphRoute({
   )
   const [zoom, setZoom] = useState(1)
   const [selectedNodeId, setSelectedNodeId] = useState('')
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState('')
+  const [savedViewName, setSavedViewName] = useState('')
+  const [savedViewMessage, setSavedViewMessage] = useState('')
   const [graphState, setGraphState] = useState<LoadState<ProjectGraphApi>>({
     status: 'loading',
   })
@@ -284,6 +298,30 @@ export function GraphRoute({
   }, [loadProjects])
 
   useEffect(() => {
+    let cancelled = false
+
+    listSavedViews()
+      .then((rows) => {
+        if (!cancelled) {
+          setSavedViews(rows)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSavedViewMessage(
+            error instanceof Error
+              ? error.message
+              : 'Unable to load saved graph views',
+          )
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [listSavedViews])
+
+  useEffect(() => {
     if (!projectId) {
       return
     }
@@ -354,6 +392,9 @@ export function GraphRoute({
     graph?.nodes.find((node) => node.id === selectedNodeId) ??
     graph?.nodes[0] ??
     null
+  const selectedSavedView = savedViews.find(
+    (savedView) => savedView.id === selectedSavedViewId,
+  )
 
   const resetView = () => {
     setNodeTypeFilter('all')
@@ -363,6 +404,109 @@ export function GraphRoute({
     setStatusFilter('all')
     setZoom(1)
     setSelectedNodeId('')
+    setSelectedSavedViewId('')
+  }
+
+  const applySavedView = (view: GraphSavedView | undefined) => {
+    if (!view) {
+      return
+    }
+
+    const filters = normalizeSavedViewFilters(view.filters)
+
+    setNodeTypeFilter(filters.nodeType ?? 'all')
+    setRiskFilter(filters.riskLevel ?? 'all')
+    setShowFinance(filters.includeFinance ?? true)
+    setShowAnchors(filters.includeAnchors ?? true)
+    setStatusFilter(filters.status ?? 'all')
+    setZoom(view.layout?.zoom ?? 1)
+    setSelectedSavedViewId(view.id)
+    setSavedViewName(view.name)
+    setSavedViewMessage(`Applied ${view.name}`)
+  }
+
+  const reloadSavedViews = async () => {
+    const rows = await listSavedViews()
+    setSavedViews(rows)
+    return rows
+  }
+
+  const saveCurrentView = async () => {
+    const name = savedViewName.trim()
+
+    if (!name) {
+      setSavedViewMessage('Enter a saved view name before saving.')
+      return
+    }
+
+    try {
+      const created = await createSavedView({
+        name,
+        filters: graphFilters,
+        layout: { zoom },
+        visibility: 'private',
+      })
+
+      await reloadSavedViews()
+      setSelectedSavedViewId(created.id)
+      setSavedViewMessage(`Saved ${created.name}`)
+    } catch (error) {
+      setSavedViewMessage(
+        error instanceof Error ? error.message : 'Unable to save graph view',
+      )
+    }
+  }
+
+  const updateCurrentView = async () => {
+    const view = savedViews.find((savedView) => savedView.id === selectedSavedViewId)
+    const name = (savedViewName || view?.name || '').trim()
+
+    if (!view || !name) {
+      setSavedViewMessage('Select a saved view before updating.')
+      return
+    }
+
+    try {
+      const updated = await updateSavedView(view.id, {
+        name,
+        filters: graphFilters,
+        layout: { zoom },
+        visibility: view.visibility,
+      })
+      const rows = await reloadSavedViews()
+
+      setSelectedSavedViewId(updated.id)
+      setSavedViewName(
+        rows.find((savedView) => savedView.id === updated.id)?.name ??
+          updated.name,
+      )
+      setSavedViewMessage(`Updated ${updated.name}`)
+    } catch (error) {
+      setSavedViewMessage(
+        error instanceof Error ? error.message : 'Unable to update graph view',
+      )
+    }
+  }
+
+  const deleteCurrentView = async () => {
+    const view = savedViews.find((savedView) => savedView.id === selectedSavedViewId)
+
+    if (!view) {
+      setSavedViewMessage('Select a saved view before deleting.')
+      return
+    }
+
+    try {
+      await deleteSavedView(view.id)
+      await reloadSavedViews()
+      setSelectedSavedViewId('')
+      setSavedViewName('')
+      setSavedViewMessage(`Deleted ${view.name}`)
+    } catch (error) {
+      setSavedViewMessage(
+        error instanceof Error ? error.message : 'Unable to delete graph view',
+      )
+    }
   }
 
   return (
@@ -508,6 +652,66 @@ export function GraphRoute({
               </strong>
             </article>
           </div>
+        ) : null}
+      </section>
+      <section className="graph-saved-views" aria-label="Saved graph views">
+        <label className="field">
+          <span>Saved view</span>
+          <select
+            aria-label="Saved view"
+            value={selectedSavedViewId}
+            onChange={(event) => {
+              const view = savedViews.find(
+                (savedView) => savedView.id === event.target.value,
+              )
+
+              if (view) {
+                applySavedView(view)
+              } else {
+                setSelectedSavedViewId('')
+              }
+            }}
+          >
+            <option value="">No saved view</option>
+            {savedViews.map((view) => (
+              <option key={view.id} value={view.id}>
+                {view.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Saved view name</span>
+          <input
+            aria-label="Saved view name"
+            value={savedViewName}
+            onChange={(event) => setSavedViewName(event.target.value)}
+            placeholder="High-risk anchor review"
+          />
+        </label>
+        <Button type="button" variant="secondary" onClick={saveCurrentView}>
+          Save view
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!selectedSavedView}
+          onClick={updateCurrentView}
+        >
+          Update view
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!selectedSavedView}
+          onClick={deleteCurrentView}
+        >
+          Delete view
+        </Button>
+        {savedViewMessage ? (
+          <p className="notice" role="status">
+            {savedViewMessage}
+          </p>
         ) : null}
       </section>
 
@@ -878,4 +1082,28 @@ function isNodeTypeOption(value: string | null): value is NetworkNodeType | 'all
 
 function isRiskOption(value: string | null): value is NetworkRiskLevel | 'all' {
   return Boolean(value && riskOptions.includes(value as NetworkRiskLevel | 'all'))
+}
+
+function normalizeSavedViewFilters(filters: unknown): ProjectGraphFilters {
+  const record = isRecord(filters) ? filters : {}
+
+  return {
+    nodeType: readNodeTypeFilter(readString(record.nodeType)),
+    riskLevel: readRiskFilter(readString(record.riskLevel)),
+    includeFinance: readBoolean(record.includeFinance, true),
+    includeAnchors: readBoolean(record.includeAnchors, true),
+    status: readStatusFilter(readString(record.status)),
+  }
+}
+
+function readString(value: unknown) {
+  return typeof value === 'string' ? value : null
+}
+
+function readBoolean(value: unknown, fallback: boolean) {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

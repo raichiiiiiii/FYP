@@ -3935,6 +3935,30 @@ textarea {
   min-height: 74px;
 }
 
+.graph-saved-views {
+  align-items: end;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(220px, 1.4fr) repeat(
+      3,
+      max-content
+    );
+  margin-bottom: 18px;
+  padding: 16px 20px;
+}
+
+.graph-saved-views .button {
+  min-height: 42px;
+}
+
+.graph-saved-views .notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .graph-workspace {
   align-items: start;
   display: grid;
@@ -4535,6 +4559,7 @@ textarea {
   .graph-hero,
   .graph-toolbar,
   .graph-summary,
+  .graph-saved-views,
   .graph-workspace,
   .finance-ledger-summary,
   .finance-ledger-grid,

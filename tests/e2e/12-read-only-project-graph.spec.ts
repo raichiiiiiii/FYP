@@ -56,6 +56,24 @@ test('SRS-GRAPH-001 read-only project graph opens source records and hides finan
   await page.reload();
   await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
   await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
+  const savedViewName = `Anchor review ${Date.now()}`;
+  await page.getByLabel('Saved view name').fill(savedViewName);
+  await page.getByRole('button', { name: 'Save view' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: `Saved ${savedViewName}` }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Reset view' }).click();
+  await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(2);
+  await page
+    .getByLabel('Saved view', { exact: true })
+    .selectOption({ label: savedViewName });
+  await expect(page).toHaveURL(/nodeType=anchor/);
+  await expect(page.getByTestId('graph-node-anchor')).toHaveCount(2);
+  await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Delete view' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: `Deleted ${savedViewName}` }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Reset view' }).click();
   await expect(page.getByTestId('graph-node-hash_record')).toHaveCount(2);
   await page
