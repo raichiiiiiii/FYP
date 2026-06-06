@@ -1593,7 +1593,7 @@ export class FinanceService {
     return exception;
   }
 
-  async getLossException(id: string) {
+  async getLossException(id: string, actorUserId?: string) {
     const exception = await this.prisma.lossException.findUnique({
       where: { id },
       include: lossExceptionInclude,
@@ -1603,15 +1603,47 @@ export class FinanceService {
       throw new NotFoundException('Loss exception not found');
     }
 
+    if (actorUserId !== undefined) {
+      await this.requireActorRole(
+        exception.organizationId,
+        actorUserId,
+        [
+          'ORG_ADMIN',
+          'FINANCE_ACCOUNTANT',
+          'FINANCIER_USER',
+          'SHARIAH_REVIEWER',
+          'AUDITOR',
+        ],
+        'Loss exception read',
+      );
+    }
+
     return exception;
   }
 
-  listLossExceptions(organizationId?: string, applicationId?: string) {
+  async listLossExceptions(
+    organizationId?: string,
+    applicationId?: string,
+    actorUserId?: string,
+  ) {
     if (!organizationId?.trim()) {
       throw new BadRequestException(
         'organizationId query parameter is required',
       );
     }
+
+    await this.requireActorRole(
+      organizationId,
+      actorUserId,
+      [
+        'ORG_ADMIN',
+        'FINANCE_ACCOUNTANT',
+        'FINANCIER_USER',
+        'SHARIAH_REVIEWER',
+        'AUDITOR',
+      ],
+      'Loss exception list',
+    );
 
     return this.prisma.lossException.findMany({
       where: {

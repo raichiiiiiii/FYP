@@ -8,6 +8,7 @@ import { ContractsController } from './contracts/contracts.controller';
 import { DisbursementsController } from './disbursements/disbursements.controller';
 import { EvidenceChecklistsController } from './evidence-checklists/evidence-checklists.controller';
 import { FinanceService } from './finance.service';
+import { LossExceptionsController } from './loss-exceptions/loss-exceptions.controller';
 import { OpportunitiesController } from './opportunities/opportunities.controller';
 import { ProfitLossController } from './profit-loss/profit-loss.controller';
 import { ProjectLedgersController } from './project-ledgers/project-ledgers.controller';
@@ -22,6 +23,7 @@ import { ProjectLedgersController } from './project-ledgers/project-ledgers.cont
     DisbursementsController,
     ProjectLedgersController,
     ProfitLossController,
+    LossExceptionsController,
     ClosuresController,
   ],
   providers: [FinanceService],

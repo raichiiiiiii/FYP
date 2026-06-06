@@ -408,4 +408,212 @@ describe('Integration: finance', () => {
     expect(persisted.status).toBe('OPEN');
     expect(persisted.resolvedAt).toBeNull();
   });
+
+  it('exposes audited loss exception reviewer lifecycle endpoints', async () => {
+    const fixture = await createProcurementFixture(context.app);
+    const evidencePack = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/evidence-packs')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          projectId: fixture.project.id,
+        })
+        .expect(201)
+    ).body as { id: string };
+    const opportunity = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/opportunities')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          projectId: fixture.project.id,
+          requisitionId: fixture.requisition.id,
+          purchaseOrderId: fixture.purchaseOrder.id,
+          evidencePackId: evidencePack.id,
+          estimatedCapital: 6000,
+          expectedProfit: 1200,
+        })
+        .expect(201)
+    ).body as { id: string };
+    const application = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/applications')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          opportunityId: opportunity.id,
+          requestedCapital: 6000,
+          capitalProviderRatio: 0.6,
+          entrepreneurRatio: 0.4,
+        })
+        .expect(201)
+    ).body as { id: string };
+
+    const auditorRole = await context.prisma.role.upsert({
+      where: { code: 'AUDITOR' },
+      create: { code: 'AUDITOR', name: 'Auditor' },
+      update: {},
+    });
+    const shariahRole = await context.prisma.role.upsert({
+      where: { code: 'SHARIAH_REVIEWER' },
+      create: { code: 'SHARIAH_REVIEWER', name: 'Shariah Reviewer' },
+      update: {},
+    });
+    const unique = Date.now();
+    const auditor = await context.prisma.user.create({
+      data: {
+        email: `loss-auditor-${unique}@example.test`,
+        displayName: 'Loss Auditor',
+      },
+    });
+    const reviewer = await context.prisma.user.create({
+      data: {
+        email: `loss-reviewer-${unique}@example.test`,
+        displayName: 'Loss Reviewer',
+      },
+    });
+    await context.prisma.membership.createMany({
+      data: [
+        {
+          organizationId: fixture.organizationId,
+          userId: auditor.id,
+          roleId: auditorRole.id,
+        },
+        {
+          organizationId: fixture.organizationId,
+          userId: reviewer.id,
+          roleId: shariahRole.id,
+        },
+      ],
+    });
+
+    const created = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/loss-exceptions')
+        .send({
+          organizationId: fixture.organizationId,
+          actorUserId: fixture.actorUserId,
+          applicationId: application.id,
+          classification: 'breach',
+          amount: 1000,
+          notes: 'Potential restricted-use breach for reviewer workflow.',
+        })
+        .expect(201)
+    ).body as { id: string; exceptionType: string; status: string };
+    expect(created).toEqual(
+      expect.objectContaining({
+        exceptionType: 'BREACH',
+        status: 'OPEN',
+      }),
+    );
+
+    const listed = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/loss-exceptions')
+        .query({
+          organizationId: fixture.organizationId,
+          applicationId: application.id,
+          actorUserId: auditor.id,
+        })
+        .expect(200)
+    ).body as Array<{ id: string }>;
+    expect(listed.map((item) => item.id)).toContain(created.id);
+
+    await request(context.app.getHttpServer())
+      .get(`/api/v1/loss-exceptions/${created.id}`)
+      .query({ actorUserId: auditor.id })
+      .expect(200);
+
+    const underReview = (
+      await request(context.app.getHttpServer())
+        .post(`/api/v1/loss-exceptions/${created.id}/evidence`)
+        .send({
+          actorUserId: auditor.id,
+          notes: 'Reviewer evidence references attached.',
+          evidenceRefs: {
+            evidenceItemIds: ['evidence-1'],
+          },
+        })
+        .expect(201)
+    ).body as { status: string };
+    expect(underReview.status).toBe('UNDER_REVIEW');
+
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/loss-exceptions/${created.id}/decision`)
+      .send({
+        actorUserId: auditor.id,
+        reviewerUserId: auditor.id,
+        classification: 'NEGLIGENCE',
+        rationale: 'Auditor can review evidence but cannot classify.',
+      })
+      .expect(403);
+
+    const classified = (
+      await request(context.app.getHttpServer())
+        .post(`/api/v1/loss-exceptions/${created.id}/decision`)
+        .send({
+          actorUserId: reviewer.id,
+          reviewerUserId: reviewer.id,
+          classification: 'NEGLIGENCE',
+          decision: 'CLASSIFIED_FOR_REMEDY',
+          rationale: 'Evidence indicates process negligence, not fixed return.',
+        })
+        .expect(201)
+    ).body as {
+      exceptionType: string;
+      status: string;
+      reviewerUserId: string;
+    };
+    expect(classified).toEqual(
+      expect.objectContaining({
+        exceptionType: 'NEGLIGENCE',
+        status: 'CLASSIFIED',
+        reviewerUserId: reviewer.id,
+      }),
+    );
+
+    const resolved = (
+      await request(context.app.getHttpServer())
+        .post(`/api/v1/loss-exceptions/${created.id}/close`)
+        .send({
+          actorUserId: reviewer.id,
+          notes: 'Reviewer decision recorded for closure-gate evaluation.',
+        })
+        .expect(201)
+    ).body as { status: string; resolvedAt: string | null };
+    expect(resolved.status).toBe('RESOLVED');
+    expect(resolved.resolvedAt).toBeTruthy();
+
+    const auditEvents = await context.prisma.auditEvent.findMany({
+      where: {
+        entityType: 'LossException',
+        entityId: created.id,
+        eventType: {
+          in: [
+            'LOSS_EXCEPTION_CREATED',
+            'LOSS_EXCEPTION_EVIDENCE_ATTACHED',
+            'LOSS_EXCEPTION_CLASSIFIED',
+            'LOSS_EXCEPTION_RESOLVED',
+          ],
+        },
+      },
+    });
+    const outboxEvents = await context.prisma.outboxEvent.findMany({
+      where: {
+        aggregateType: 'LossException',
+        aggregateId: created.id,
+        eventType: {
+          in: [
+            'LOSS_EXCEPTION_CREATED',
+            'LOSS_EXCEPTION_EVIDENCE_ATTACHED',
+            'LOSS_EXCEPTION_CLASSIFIED',
+            'LOSS_EXCEPTION_RESOLVED',
+          ],
+        },
+      },
+    });
+    expect(auditEvents).toHaveLength(4);
+    expect(outboxEvents).toHaveLength(4);
+  });
 });
