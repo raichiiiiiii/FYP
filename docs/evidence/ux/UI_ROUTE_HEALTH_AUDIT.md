@@ -1,35 +1,34 @@
 # UI Route Health Audit
 
 Date: 2026-06-06
-Agent: Agent B - UI/HCI Baseline + Route Health Evidence
-Worktree: `C:\Users\User\dev\FYP-ui-hci-baseline`
-Branch: `feature/ui-hci-recovery-baseline`
 
 ## Scope
 
-This audit records the current UI route health baseline before product fixes. It does not modify product code and does not touch graph API or service files.
+This audit records UI route health for the reviewer-delighter sprint and the UI/HCI recovery workstream.
 
-Routes under audit:
+Audited routes:
 
-| Route | Evidence screenshot |
-| --- | --- |
-| `/dashboard` | `docs/evidence/ux/screenshots/before-dashboard-error.png` |
-| `/finance/opportunities` | `docs/evidence/ux/screenshots/before-finance-opportunities-error.png` |
-| `/finance/applications` | `docs/evidence/ux/screenshots/before-finance-applications-error.png` |
-| `/finance/contracts` | `docs/evidence/ux/screenshots/before-finance-contracts-error.png` |
-| `/graph/projects` | `docs/evidence/ux/screenshots/before-graph-projects-error.png` |
-| `/operations` | `docs/evidence/ux/screenshots/before-operations-error.png` |
+| Route | Baseline result | After evidence |
+| --- | --- | --- |
+| `/dashboard` | Pass | `docs/evidence/ux/screenshots/after-dashboard.png` |
+| `/finance/opportunities` | Pass | `docs/evidence/ux/screenshots/after-finance-opportunities.png` |
+| `/finance/applications` | Pass; layout overflow reproduced in assigned-route interaction check | `docs/evidence/ux/screenshots/after-finance-applications.png` |
+| `/finance/contracts` | Pass | `docs/evidence/ux/screenshots/after-finance-contracts.png` |
+| `/graph/projects` | Pass | Pending Agent D merge |
+| `/operations` | Pass | Pending Agent D merge |
+
+No `before-...-error.png` screenshots were produced by Agent B because all six reported routes passed the baseline route-health failure criteria. The route-health spec will create those screenshots automatically if a future route run detects an unhealthy route.
 
 ## Source Of Truth Notes
 
 - SRS: dashboard, finance, graph/canvas, and operations surfaces support evidence-driven procurement-finance workflows, role-aware visibility, and observability.
 - SDD: web application covers procurement, finance, canvas, and audit UI; Graph/Canvas must remain authorization-aware; operations must surface runtime and integration health without exposing secrets.
 - UI contract: route visibility and screen contracts cover `/dashboard`, `/finance/opportunities`, `/finance/applications`, `/finance/contracts`, `/graph/projects`, and `/operations`.
-- Figma Make references used only as visual/interaction references: `DashboardView.tsx`, `OpportunitiesView.tsx`, `ApplicationsList.tsx`, `ApplicationWorkspace.tsx`, `NetworkCanvas.tsx`, and `OperationsView.tsx`.
+- Figma Make references were used only as visual/interaction references; authorization, workflow state, API contracts, audit behavior, Fabric anchoring, ledger calculations, and deployment behavior remain governed by source-of-truth docs and production code.
 
 ## Baseline Method
 
-The Playwright spec `tests/e2e/00-route-health.spec.ts`:
+Agent B added `tests/e2e/00-route-health.spec.ts` as a route smoke regression. The spec:
 
 - creates a fresh E2E organization and ORG_ADMIN session for each route;
 - opens each route through the production router;
@@ -37,17 +36,15 @@ The Playwright spec `tests/e2e/00-route-health.spec.ts`:
 - records sanitized console warnings/errors, page errors, failed requests, and HTTP 5xx responses;
 - captures a `before-...-error.png` screenshot only when a route is unhealthy.
 
-## Results
-
-Command run:
+Baseline command:
 
 ```powershell
 corepack pnpm test:e2e -- tests/e2e/00-route-health.spec.ts
 ```
 
-Result: passed on 2026-06-06.
+Baseline result: passed on 2026-06-06.
 
-| Route | Result | Rendered forbidden text | Runtime/network finding | Screenshot |
+| Route | Result | Rendered forbidden text | Runtime/network finding | Baseline screenshot |
 | --- | --- | --- | --- | --- |
 | `/dashboard` | Pass | None found | None failing | Not captured; route healthy |
 | `/finance/opportunities` | Pass | None found | None failing | Not captured; route healthy |
@@ -56,34 +53,60 @@ Result: passed on 2026-06-06.
 | `/graph/projects` | Pass | None found | None failing | Not captured; route healthy |
 | `/operations` | Pass | None found | None failing | Not captured; route healthy |
 
+## Dashboard And Finance Findings
+
+Agent C verified `/dashboard`, `/finance/opportunities`, `/finance/applications`, and `/finance/contracts` with route-specific content checks and one lightweight interaction per route.
+
+Browser plugin note: the in-app browser backend returned `Browser is not available: iab`, so verification and screenshots used the repo Playwright path.
+
+| Route | Result | Root-cause classification | Evidence |
+| --- | --- | --- | --- |
+| `/dashboard` | Pass | Not reproduced / healthy under local route-health criteria. | `docs/evidence/ux/screenshots/after-dashboard.png` |
+| `/finance/opportunities` | Pass | Not reproduced / healthy under local route-health criteria. | `docs/evidence/ux/screenshots/after-finance-opportunities.png` |
+| `/finance/applications` | Pass after fix | Reproduced CSS layout overflow: the application pipeline card grid exceeded the content shell at the Playwright desktop viewport, clipping the `Open workspace` action. Fixed by wrapping the card grid into two rows before overflow. | `docs/evidence/ux/screenshots/after-finance-applications.png` |
+| `/finance/contracts` | Pass | Not reproduced / healthy under local route-health criteria. | `docs/evidence/ux/screenshots/after-finance-contracts.png` |
+
 ## Sanitized Diagnostics
 
 - Dependency install: `corepack pnpm install --frozen-lockfile` completed successfully and generated Prisma client. During install, the optional native `pkcs11js` rebuild reported a missing Windows Visual Studio C++ toolset, but pnpm exited 0 and the E2E run completed.
-- Local services: `docker compose -f infra/docker-compose.yml ps` showed `mepn-postgres`, `mepn-redis`, and `mepn-minio` running before E2E.
-- E2E setup: `tests/e2e/setup-e2e.mjs` started Docker Compose dependencies, recreated `mepn_e2e`, and applied 9 Prisma migrations.
-- Route health: the Playwright spec did not find the requested rendered error strings and did not fail on page errors, failed requests, or HTTP 5xx responses for the audited routes.
+- Local services: E2E setup started Docker Compose dependencies, recreated `mepn_e2e`, and applied Prisma migrations.
+- Route health: Playwright did not find the requested rendered error strings and did not fail on page errors, failed requests, or HTTP 5xx responses for the audited routes.
 - Secret handling: diagnostics captured by the spec redact bearer tokens, `sk-` keys, and query-string credentials before attachment or failure output.
 
-## Screenshots
+## Validation Notes
 
-No `before-...-error.png` screenshots were produced because all audited routes passed the unhealthy-route criteria. The spec will create screenshots under `docs/evidence/ux/screenshots/` if a future run detects a failure.
+Agent B:
 
-## Blockers
-
-No route-health blocker was observed in this baseline run.
-
-Residual environment note: the install log includes the optional `pkcs11js` native rebuild warning described above. It did not block this UI/HCI evidence slice.
-
-Additional validation notes:
-
+- `corepack pnpm install --frozen-lockfile` passed.
+- `corepack pnpm test:e2e -- tests/e2e/00-route-health.spec.ts` passed.
 - `corepack pnpm lint` passed.
 - `corepack pnpm typecheck` passed.
 - `corepack pnpm test:unit` passed.
-- `corepack pnpm test:integration` passed. Existing integration flow emitted repeated `pg@9` deprecation warnings about concurrent `client.query()` usage.
-- `corepack pnpm build` passed. Vite emitted a large chunk warning for the web bundle.
+- `corepack pnpm test:integration` passed.
+- `corepack pnpm build` passed.
+
+Agent C:
+
+- `corepack pnpm install --frozen-lockfile` passed.
+- `corepack pnpm lint` passed.
+- `corepack pnpm typecheck` passed.
+- `corepack pnpm test:unit` passed.
+- `corepack pnpm test:integration` passed.
+- `corepack pnpm test:e2e -- tests/e2e/00-route-health.spec.ts` passed.
+- `corepack pnpm build` passed.
+
+Known non-blocking warnings:
+
+- Optional `pkcs11js` native rebuild warning due missing VC++ toolset during install on Windows.
+- Existing `pg@9` deprecation warning in integration tests.
+- Existing Vite large chunk warning during web build.
+
+## Blockers
+
+No route-health blocker was observed for baseline, dashboard, or finance routes.
 
 ## Recommended Next Steps
 
-- Keep `tests/e2e/00-route-health.spec.ts` as the first route smoke regression before UI recovery fixes.
-- If a future run creates screenshots, update this audit with the route-specific screenshot filenames and the sanitized console/network finding.
-- Continue fixes in vertical slices, using the UI contract and production route metadata as behavioral authority.
+- Keep `tests/e2e/00-route-health.spec.ts` as the first route smoke regression before UI/HCI work.
+- Preserve route-specific interaction checks for finance routes because they caught a layout overflow that the broad error-string smoke check did not.
+- If a future run creates `before-...-error.png` screenshots, update this audit with the route-specific screenshot filenames and sanitized console/network findings.
