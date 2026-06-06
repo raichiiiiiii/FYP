@@ -18,6 +18,7 @@ import {
 import {
   assertLossExceptionTransition,
   getNextLossExceptionStatuses,
+  isLossExceptionClosureBlocking,
   type LossExceptionStatus,
   normalizeLossExceptionClassification,
   normalizeLossExceptionStatus,
@@ -1835,6 +1836,26 @@ export class FinanceService {
       throw new BadRequestException(
         'Closure requires a calculated profit/loss statement',
       );
+    }
+
+    const unresolvedLossExceptions = application.lossExceptions.filter(
+      (exception) => isLossExceptionClosureBlocking(exception.status),
+    );
+    if (unresolvedLossExceptions.length > 0) {
+      throw new BadRequestException({
+        code: 'WORKFLOW_RULE_VIOLATION',
+        message:
+          'Closure is blocked while loss exceptions are unresolved or unreviewed',
+        requiredState: 'All loss exceptions must be RESOLVED or REJECTED',
+        actualState: unresolvedLossExceptions
+          .map((exception) => `${exception.id}:${exception.status}`)
+          .join(', '),
+        nextAllowedActions: [
+          'POST /api/v1/loss-exceptions/:id/evidence',
+          'POST /api/v1/loss-exceptions/:id/decision',
+          'POST /api/v1/loss-exceptions/:id/close',
+        ],
+      });
     }
 
     const evidencePackId =

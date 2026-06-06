@@ -407,6 +407,58 @@ describe('Integration: finance', () => {
     expect(persisted.exceptionType).toBe('GENUINE_COMMERCIAL_LOSS');
     expect(persisted.status).toBe('OPEN');
     expect(persisted.resolvedAt).toBeNull();
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/closures')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        applicationId: application.id,
+      })
+      .expect(400)
+      .expect((response) => {
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            code: 'WORKFLOW_RULE_VIOLATION',
+            requiredState: 'All loss exceptions must be RESOLVED or REJECTED',
+          }),
+        );
+      });
+
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/loss-exceptions/${persisted.id}/evidence`)
+      .send({
+        actorUserId: fixture.actorUserId,
+        evidenceRefs: {
+          statementId: statement.id,
+        },
+      })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/loss-exceptions/${persisted.id}/decision`)
+      .send({
+        actorUserId: fixture.actorUserId,
+        reviewerUserId: fixture.actorUserId,
+        classification: 'GENUINE_COMMERCIAL_LOSS',
+        rationale: 'Negative P/L is accepted as genuine commercial loss.',
+      })
+      .expect(201);
+    await request(context.app.getHttpServer())
+      .post(`/api/v1/loss-exceptions/${persisted.id}/close`)
+      .send({
+        actorUserId: fixture.actorUserId,
+        notes: 'Resolved for closure gate.',
+      })
+      .expect(201);
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/closures')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        applicationId: application.id,
+      })
+      .expect(201);
   });
 
   it('exposes audited loss exception reviewer lifecycle endpoints', async () => {

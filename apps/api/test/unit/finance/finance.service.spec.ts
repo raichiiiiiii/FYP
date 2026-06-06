@@ -16,6 +16,9 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
       profitLossStatement: {
         create: jest.fn(),
       },
+      closurePack: {
+        create: jest.fn(),
+      },
     };
     const prisma = {
       membership: {
@@ -38,6 +41,9 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn(),
+      },
+      auditEvent: {
+        findMany: jest.fn(),
       },
       $transaction: jest.fn((callback) => callback(tx)),
     };
@@ -371,6 +377,35 @@ describe('FR-28/FR-31/FR-38 Mudarabah finance unit rules', () => {
         eventType: 'LOSS_EXCEPTION_CREATED',
       }),
     );
+  });
+
+  it('blocks closure while a loss exception remains unresolved', async () => {
+    const { service, prisma } = createService();
+    prisma.mudarabahApplication.findUnique.mockResolvedValue(
+      application({
+        status: 'PROFIT_LOSS_CALCULATED',
+        lossExceptions: [
+          {
+            id: 'loss-1',
+            status: 'OPEN',
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      service.createClosure({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        applicationId: 'app-1',
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'WORKFLOW_RULE_VIOLATION',
+        actualState: 'loss-1:OPEN',
+      }),
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('rejects profit share ratios that are not positive', async () => {
