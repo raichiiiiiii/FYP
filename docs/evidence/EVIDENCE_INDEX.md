@@ -1,0 +1,75 @@
+# MEPN Evidence Index
+
+## Purpose
+
+This index is the reviewer entry point for implementation, deployment, UAT, and
+known-limitation evidence. It links only to sanitized evidence; secret values,
+PEM blocks, private keys, tokens, generated env files, and VM credentials must
+not be stored in this directory.
+
+## Deployment Evidence
+
+| Evidence | Purpose | Status |
+|---|---|---|
+| `docs/evidence/deployment/VM_DEPLOYMENT_EVIDENCE.md` | Azure Student VM deployment checklist, health checks, and Fabric Gateway deployment status. | Complete for latest recorded VM deployment. |
+| `docs/evidence/deployment/latest-vm-deployment-evidence.txt` | Sanitized collected VM output from the deployment evidence script. | Complete; safe to quote with normal review caution. |
+| `docs/evidence/deployment/FABRIC_SECRET_MAPPING_AUDIT.md` | Confirms configured GitHub secret names, VM file layout, and read-only container mount contract. | Complete. |
+| `docs/evidence/deployment/FABRIC_SECRET_VALIDATION_EVIDENCE.md` | Records safe validation behavior for Fabric cert/key/TLS/profile material without printing contents. | Complete. |
+| `docs/evidence/deployment/BACKUP_RESTORE_EVIDENCE.md` | PostgreSQL backup, restore, and restore-smoke proof for the FYP scope. | Complete for PostgreSQL; MinIO automation remains hardening. |
+
+## Fabric And Hash Evidence
+
+| Evidence | Purpose | Status |
+|---|---|---|
+| `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md` | Reviewer proof package for real Gateway anchoring and API-side `ReadAnchor` verification. | Complete for VM-local FYP/UAT Fabric proof. |
+| `docs/evidence/canonical-hash-verification.md` | Canonical hashing behavior and verification reference. | Source-of-truth support document. |
+| `docs/evidence/uat/fabric-gateway-hash-record-verification.png` | Reviewer screenshot of the hash-record verification page. | Captured. |
+| `docs/evidence/uat/fabric-gateway-proof-panel.png` | Reviewer screenshot of Gateway proof panel. | Captured. |
+
+## QA / UAT Evidence
+
+| Evidence | Purpose | Status |
+|---|---|---|
+| `docs/evidence/qa/AUTH_OIDC_INVITATION_UAT_EVIDENCE.md` | Auth mode, dev-login guard, OIDC test-provider, and invite acceptance evidence. | Partial; real provider UAT remains hardening. |
+| `docs/evidence/qa/REPORT_EXPORT_EVIDENCE.md` | Backend report DTO and audited JSON export evidence. | Complete for JSON FYP scope. |
+| `docs/evidence/qa/LOSS_EXCEPTION_WORKFLOW_EVIDENCE.md` | Loss exception classification, reviewer UI, closure gate, and no-guaranteed-return evidence. | Complete for FYP scope. |
+| `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md` | Accessibility helper, axe/focus checks, and critical-route evidence. | Complete for automated FYP scope. |
+| `docs/evidence/qa/SUMMARY_DTO_EVIDENCE.md` | Dashboard/procurement/finance summary DTO and UI evidence. | Complete for FYP scope. |
+| `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` | Graph anchor overlay, backend risk metadata, saved views, URL filters, and no-leak E2E evidence. | Complete for FYP scope. |
+
+## Screenshot Evidence
+
+| Screenshot | Scenario |
+|---|---|
+| `docs/evidence/uat/auth-login-dev-mode.png` | Demo/dev login mode. |
+| `docs/evidence/uat/auth-invitation-acceptance.png` | Invitation acceptance UI. |
+| `docs/evidence/uat/reports-json-export-flow.png` | JSON report export flow. |
+| `docs/evidence/uat/loss-exception-review-flow.png` | Loss exception reviewer workflow. |
+| `docs/evidence/uat/summary-procurement-hub.png` | Procurement Hub summary DTO UI. |
+| `docs/evidence/uat/summary-finance-panel.png` | Finance summary DTO UI. |
+| `docs/evidence/uat/graph-anchor-overlay-auditor.png` | Admin/auditor graph with hash/anchor overlay. |
+| `docs/evidence/uat/graph-anchor-overlay-procurement-filtered.png` | Procurement role graph with finance context hidden. |
+| `docs/evidence/uat/graph-risk-saved-view.png` | Saved graph view restoring an anchor-only filtered view. |
+
+## Resolved Blockers
+
+| Blocker | Resolution |
+|---|---|
+| `docs/evidence/blockers/2026-06-06-phase-1-slice-1-4-blocker.md` | Resolved. Azure VM deployment workflow completed and sanitized evidence was collected. |
+| `docs/evidence/blockers/2026-06-06-phase-2-slice-2-2-blocker.md` | Resolved. VM-local Fabric runtime produced real Gateway proof and reviewer screenshots. |
+
+## Remaining Evidence Gaps
+
+| Gap | Classification | Next action |
+|---|---|---|
+| Real production OIDC provider UAT | Production hardening | Configure agreed provider, run callback/invite UAT, and update auth evidence. |
+| PDF/spreadsheet report packs | Product hardening | Implement export formats and capture downloadable artifacts. |
+| MinIO/object backup automation | Operations hardening | Extend backup/restore scripts beyond PostgreSQL. |
+| External ERP/e-sign/payment provider integrations | External integration hardening | Implement real adapters and collect sanitized provider evidence. |
+| Manual screen-reader/mobile accessibility review | QA hardening | Run manual review and add notes/screenshots. |
+
+## Safety Rule
+
+Evidence may include public route names, non-secret test IDs, commit SHAs, and
+sanitized command output. Evidence must not include secret contents, PEM blocks,
+private keys, tokens, passwords, generated secret env files, or VM credentials.
