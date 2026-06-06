@@ -5,12 +5,17 @@ export type ApiEnv = {
   databaseUrl: string;
   redisUrl: string;
   webOrigin: string;
+  webOrigins: string[];
   nodeEnv: string;
   fabric: FabricEnv;
 };
 
-function readNumber(name: string, fallback: number): number {
-  const raw = process.env[name];
+function readNumber(
+  source: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+): number {
+  const raw = source[name];
 
   if (!raw) {
     return fallback;
@@ -25,20 +30,54 @@ function readNumber(name: string, fallback: number): number {
   return value;
 }
 
-function readString(name: string, fallback: string): string {
-  return process.env[name] || fallback;
+function readString(
+  source: NodeJS.ProcessEnv,
+  name: string,
+  fallback: string,
+): string {
+  return source[name] || fallback;
 }
 
-export function readApiEnv(): ApiEnv {
+function readWebOrigins(source: NodeJS.ProcessEnv, nodeEnv: string) {
+  const configuredOrigins = [source.WEB_ORIGINS, source.WEB_ORIGIN]
+    .filter(Boolean)
+    .flatMap((value) => value?.split(',') ?? [])
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins.length > 0) {
+    return [...new Set(configuredOrigins)];
+  }
+
+  if (nodeEnv !== 'production') {
+    return [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+      'http://127.0.0.1:5175',
+    ];
+  }
+
+  return ['http://localhost:5173'];
+}
+
+export function readApiEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
+  const nodeEnv = readString(source, 'NODE_ENV', 'development');
+  const webOrigins = readWebOrigins(source, nodeEnv);
+
   return {
-    apiPort: readNumber('API_PORT', 3000),
+    apiPort: readNumber(source, 'API_PORT', 3000),
     databaseUrl: readString(
+      source,
       'DATABASE_URL',
       'postgresql://mepn:mepn@localhost:5432/mepn',
     ),
-    redisUrl: readString('REDIS_URL', 'redis://localhost:6379'),
-    webOrigin: readString('WEB_ORIGIN', 'http://localhost:5173'),
-    nodeEnv: readString('NODE_ENV', 'development'),
-    fabric: readFabricEnv(),
+    redisUrl: readString(source, 'REDIS_URL', 'redis://localhost:6379'),
+    webOrigin: webOrigins[0],
+    webOrigins,
+    nodeEnv,
+    fabric: readFabricEnv(source),
   };
 }
