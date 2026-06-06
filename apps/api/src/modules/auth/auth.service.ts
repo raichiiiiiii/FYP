@@ -28,7 +28,7 @@ export type AuthSession = {
   permissionCodes: Permission[];
   workspaceScopes: string[];
   expiresAt: string;
-  authMode: 'dev';
+  authMode: 'dev' | 'oidc';
   devAuthEnabled: boolean;
   oidcEnabled: boolean;
 };
@@ -138,10 +138,64 @@ export class AuthService {
     });
   }
 
+  async oidcLogin(input: { email: string; organizationId?: string }) {
+    const email = input.email.trim().toLowerCase();
+
+    if (!email) {
+      throw new BadRequestException('email is required');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      include: {
+        memberships: {
+          where: {
+            status: 'active',
+            organizationId: input.organizationId || undefined,
+          },
+          include: {
+            role: {
+              include: {
+                permissions: true,
+              },
+            },
+            organization: {
+              include: {
+                workspaces: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('OIDC user is not provisioned');
+    }
+
+    const membership = user.memberships[0];
+
+    if (!membership) {
+      throw new NotFoundException('Active organization membership not found');
+    }
+
+    return this.buildSession({
+      user,
+      organizationId: membership.organizationId,
+      authMode: 'oidc',
+    });
+  }
+
   private async buildSession(input: {
     user?: Awaited<ReturnType<AuthService['findUserWithMemberships']>>;
     userId?: string;
     organizationId: string;
+    authMode?: AuthSession['authMode'];
   }): Promise<AuthSession> {
     const user =
       input.user ??
@@ -194,7 +248,7 @@ export class AuthService {
       permissionCodes: [...permissionCodes],
       workspaceScopes: [...workspaceScopes],
       expiresAt: new Date(Date.now() + sessionDurationMs).toISOString(),
-      authMode: 'dev',
+      authMode: input.authMode ?? 'dev',
       devAuthEnabled: authConfig.devAuthEnabled,
       oidcEnabled: authConfig.oidcEnabled,
     };

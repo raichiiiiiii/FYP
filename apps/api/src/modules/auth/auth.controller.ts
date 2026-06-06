@@ -7,12 +7,15 @@ import type {
   RevokeInvitationInput,
 } from './invitations/invitations.service';
 import { InvitationsService } from './invitations/invitations.service';
+import type { OidcCallbackInput } from './oidc.strategy';
+import { OidcStrategy } from './oidc.strategy';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly invitationsService: InvitationsService,
+    private readonly oidcStrategy: OidcStrategy,
   ) {}
 
   @Post('dev-login')
@@ -26,6 +29,16 @@ export class AuthController {
     @Query('organizationId') organizationId: string,
   ) {
     return this.authService.getSession({ userId, organizationId });
+  }
+
+  @Get('oidc/start')
+  startOidc(@Query('returnTo') returnTo?: string) {
+    return this.oidcStrategy.start(returnTo);
+  }
+
+  @Post('oidc/callback')
+  oidcCallback(@Body() body: OidcCallbackInput) {
+    return this.oidcStrategy.callback(body);
   }
 
   @Post('invitations')

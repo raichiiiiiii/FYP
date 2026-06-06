@@ -12,7 +12,7 @@ export type AuthSession = {
   permissionCodes: AppPermission[]
   workspaceScopes: string[]
   expiresAt: string
-  authMode: 'dev'
+  authMode: 'dev' | 'oidc'
   devAuthEnabled: boolean
   oidcEnabled: boolean
 }

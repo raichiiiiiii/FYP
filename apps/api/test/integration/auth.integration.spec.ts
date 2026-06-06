@@ -12,7 +12,16 @@ import {
 } from './helpers/integration-test-context';
 
 describe('Integration: auth', () => {
-  const originalDevAuthEnabled = process.env.DEV_AUTH_ENABLED;
+  const originalEnv = {
+    DEV_AUTH_ENABLED: process.env.DEV_AUTH_ENABLED,
+    OIDC_ENABLED: process.env.OIDC_ENABLED,
+    OIDC_TEST_MODE: process.env.OIDC_TEST_MODE,
+    OIDC_ISSUER: process.env.OIDC_ISSUER,
+    OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
+    OIDC_CALLBACK_URL: process.env.OIDC_CALLBACK_URL,
+    OIDC_SCOPES: process.env.OIDC_SCOPES,
+    OIDC_STATE_SECRET: process.env.OIDC_STATE_SECRET,
+  };
   let context: IntegrationAppContext | undefined;
 
   afterEach(async () => {
@@ -21,11 +30,7 @@ describe('Integration: auth', () => {
       context = undefined;
     }
 
-    if (originalDevAuthEnabled === undefined) {
-      delete process.env.DEV_AUTH_ENABLED;
-    } else {
-      process.env.DEV_AUTH_ENABLED = originalDevAuthEnabled;
-    }
+    restoreEnv(originalEnv);
   });
 
   it('allows local dev login when explicitly enabled', async () => {
@@ -297,4 +302,150 @@ describe('Integration: auth', () => {
       })
       .expect(400);
   });
+
+  it('creates an OIDC test-provider session for a provisioned user', async () => {
+    setOidcTestEnv();
+    context = await createIntegrationApp();
+    const setup = await createOrganizationFixture(context.app);
+    const start = await request(context.app.getHttpServer())
+      .get('/api/v1/auth/oidc/start')
+      .query({
+        returnTo: '/dashboard',
+      })
+      .expect(200);
+
+    expect(start.body.authorizationUrl).toContain(
+      'https://issuer.example.test/authorize',
+    );
+    expect(start.body.testMode).toBe(true);
+
+    const idToken = createUnsignedTestIdToken({
+      iss: 'https://issuer.example.test',
+      aud: 'mepn-test-client',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nonce: start.body.nonce as string,
+      email: setup.adminUser.email,
+    });
+
+    const callback = await request(context.app.getHttpServer())
+      .post('/api/v1/auth/oidc/callback')
+      .send({
+        state: start.body.state,
+        nonce: start.body.nonce,
+        idToken,
+        organizationId: setup.organization.id,
+      })
+      .expect(201);
+
+    expect(callback.body).toEqual(
+      expect.objectContaining({
+        userId: setup.adminUser.id,
+        organizationId: setup.organization.id,
+        authMode: 'oidc',
+        oidcEnabled: true,
+      }),
+    );
+
+    const auditEvent = await context.prisma.auditEvent.findFirstOrThrow({
+      where: {
+        eventType: 'OIDC_LOGIN_SUCCEEDED',
+        entityId: setup.adminUser.id,
+      },
+    });
+
+    expect(auditEvent.metadata).toEqual(
+      expect.objectContaining({
+        issuer: 'https://issuer.example.test',
+        audience: 'mepn-test-client',
+        testMode: true,
+      }),
+    );
+  });
+
+  it.each([
+    ['issuer', { iss: 'https://wrong-issuer.example.test' }],
+    ['audience', { aud: 'wrong-client' }],
+    ['expiry', { exp: Math.floor(Date.now() / 1000) - 60 }],
+  ])('rejects invalid OIDC %s claims', async (_caseName, overrides) => {
+    setOidcTestEnv();
+    context = await createIntegrationApp();
+    const setup = await createOrganizationFixture(context.app);
+    const start = await request(context.app.getHttpServer())
+      .get('/api/v1/auth/oidc/start')
+      .expect(200);
+
+    const idToken = createUnsignedTestIdToken({
+      iss: 'https://issuer.example.test',
+      aud: 'mepn-test-client',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nonce: start.body.nonce as string,
+      email: setup.adminUser.email,
+      ...overrides,
+    });
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/auth/oidc/callback')
+      .send({
+        state: start.body.state,
+        nonce: start.body.nonce,
+        idToken,
+        organizationId: setup.organization.id,
+      })
+      .expect(401);
+  });
+
+  it('rejects OIDC login when the identity has no active membership', async () => {
+    setOidcTestEnv();
+    context = await createIntegrationApp();
+    const start = await request(context.app.getHttpServer())
+      .get('/api/v1/auth/oidc/start')
+      .expect(200);
+
+    const idToken = createUnsignedTestIdToken({
+      iss: 'https://issuer.example.test',
+      aud: 'mepn-test-client',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nonce: start.body.nonce as string,
+      email: 'missing-oidc-user@example.test',
+    });
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/auth/oidc/callback')
+      .send({
+        state: start.body.state,
+        nonce: start.body.nonce,
+        idToken,
+      })
+      .expect(404);
+  });
 });
+
+function setOidcTestEnv() {
+  process.env.OIDC_ENABLED = 'true';
+  process.env.OIDC_TEST_MODE = 'true';
+  process.env.OIDC_ISSUER = 'https://issuer.example.test';
+  process.env.OIDC_CLIENT_ID = 'mepn-test-client';
+  process.env.OIDC_CALLBACK_URL = 'https://app.example.test/auth/callback';
+  process.env.OIDC_SCOPES = 'openid email profile';
+  process.env.OIDC_STATE_SECRET = 'test-state-secret';
+}
+
+function createUnsignedTestIdToken(payload: Record<string, unknown>) {
+  return [
+    Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString(
+      'base64url',
+    ),
+    Buffer.from(JSON.stringify(payload)).toString('base64url'),
+    '',
+  ].join('.');
+}
+
+function restoreEnv(originalEnv: Record<string, string | undefined>) {
+  for (const [key, value] of Object.entries(originalEnv)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+}
