@@ -11,15 +11,15 @@ required runtime is actually available.
 
 | Command | Purpose | Coverage | Latest result | Evidence / notes |
 |---|---|---|---|---|
-| `corepack pnpm lint` | Static lint and workspace TypeScript checks for non-web packages. | All apps/packages; formatting via ESLint `--fix` where configured. | Passed in Phase 10.2 and 10.3 docs slices. | Required for every slice. |
-| `corepack pnpm typecheck` | Web TypeScript project build check. | Frontend routes, shared types, API client type use. | Passed in Phase 10.2 and 10.3 docs slices. | Root script currently runs `apps/web` typecheck. |
-| `corepack pnpm test:unit` | Workspace unit tests. | API services/helpers, worker adapters, frontend component/model tests. | Pending final full pass in Slice 10.4. | Targeted graph/API/web tests passed during Phase 9. |
-| `corepack pnpm test:integration` | API and worker integration tests. | Prisma-backed workflow/API behavior, worker integrations. | Pending final full pass in Slice 10.4. | Targeted graph integration passed in Phase 9. |
-| `corepack pnpm test:e2e` | Full Playwright UAT/regression suite. | Login, dashboard, procurement, evidence/audit, finance, graph, reports, accessibility-gated flows. | Pending final full pass in Slice 10.4. | Targeted graph E2E passed in Phase 9.6. |
-| `corepack pnpm test:a11y` | Accessibility smoke route. | Axe/focus helper and login smoke route. | Pending final full pass in Slice 10.4. | Full critical-route spec has separate command below. |
-| `corepack pnpm build` | Production builds. | Web Vite build, API Nest build, worker Nest build. | Passed in Phase 9.5. | Vite chunk-size warning is non-blocking. |
-| `corepack pnpm test:ci` | CI-equivalent regression command. | Lint, unit, integration, E2E. | Pending final full pass in Slice 10.4. | May be long-running; record blockers if environment fails. |
-| `corepack pnpm verify` | Local verify command. | Lint, typecheck, workspace tests, build. | Pending final full pass in Slice 10.4. | Does not replace `test:e2e` unless command definition changes. |
+| `corepack pnpm lint` | Static lint and workspace TypeScript checks for non-web packages. | All apps/packages; formatting via ESLint `--fix` where configured. | Passed in Phase 10.4 final regression pass. | Also passed inside `test:ci` and `verify`. |
+| `corepack pnpm typecheck` | Web TypeScript project build check. | Frontend routes, shared types, API client type use. | Passed in Phase 10.4 final regression pass. | Root script currently runs `apps/web` typecheck. |
+| `corepack pnpm test:unit` | Workspace unit tests. | API services/helpers, worker adapters, frontend component/model tests. | Passed in Phase 10.4 final regression pass. | API: 24 suites / 103 tests; web: 18 files / 92 tests; worker: 8 suites / 23 tests. |
+| `corepack pnpm test:integration` | API and worker integration tests. | Prisma-backed workflow/API behavior, worker integrations. | Passed in Phase 10.4 final regression pass. | API: 14 suites / 35 tests; worker: 4 suites passed and 1 real-Fabric gated suite skipped. |
+| `corepack pnpm test:e2e` | Full Playwright UAT/regression suite. | Login, dashboard, procurement, evidence/audit, finance, graph, reports, accessibility-gated flows. | Passed in Phase 10.4 final regression pass. | 32 passed, 1 intentionally skipped real-Gateway UAT proof spec because local live UAT env vars were not set; Phase 2 records the real Gateway screenshot evidence separately. |
+| `corepack pnpm test:a11y` | Accessibility smoke route. | Axe/focus helper and login smoke route. | Passed in Phase 10.4 final regression pass. | Critical-route accessibility specs also passed inside full E2E. |
+| `corepack pnpm build` | Production builds. | Web Vite build, API Nest build, worker Nest build. | Passed in Phase 10.4 final regression pass. | Vite chunk-size warning is non-blocking. |
+| `corepack pnpm test:ci` | CI-equivalent regression command. | Lint, unit, integration, E2E. | Passed in Phase 10.4 final regression pass. | Re-ran lint, unit, integration, and full E2E successfully. |
+| `corepack pnpm verify` | Local verify command. | Lint, typecheck, workspace tests, build. | Passed in Phase 10.4 final regression pass. | `verify` does not run E2E; E2E remains recorded separately above. |
 
 ## Targeted Feature Checks
 
