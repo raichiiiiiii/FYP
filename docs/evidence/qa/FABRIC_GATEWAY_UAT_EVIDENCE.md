@@ -3,123 +3,112 @@
 ## Purpose
 
 This file records reviewer-facing evidence for real Fabric Gateway hash-record
-verification. It must not be used for mock anchor evidence.
+verification. It is not mock-anchor evidence.
 
 ## Environment
 
-- Date/time: Pending live Gateway screenshot run
-- Commit SHA: Pending live Gateway screenshot run
-- Environment: Azure VM or local Fabric test network
+- Date/time: 2026-06-06T00:18Z
+- Public VM: `http://20.244.24.76`
+- App runtime commit on VM: `4266b3d`
+- Screenshot artifact commit: `220737b`
+- Fabric runtime: VM-local Hyperledger Fabric test network for FYP/UAT proof
 - Fabric mode: `BLOCKCHAIN_ANCHOR_ADAPTER=fabric`, `FABRIC_MODE=gateway`
-- Channel: Configured at runtime; do not paste secrets or generated env files
-- Chaincode: Configured at runtime; do not paste secrets or generated env files
-- MSP ID: Configured at runtime; do not paste secrets or generated env files
+- Channel: `mepn-audit`
+- Chaincode: `audit-anchor`
+- MSP ID: `Org1MSP`
+- Identity label: `appUser`
+- Peer endpoint from worker container: `peer0.org1.example.com:7051`
+- Gateway URL: `grpcs://peer0.org1.example.com:7051`
 
-## Readiness Status
+No PEM blocks, private keys, TLS CA contents, generated env files, tokens, VM
+credentials, or secret values are included in this evidence.
 
-The API and UI are ready for a real Gateway screenshot run:
+## Verified Hash Record
 
-- `GET /api/v1/hash-records/:id/fabric-verification` exists.
-- The endpoint requires `organizationId` and `actorUserId` query context for an
-  active actor with audit-read capability.
-- The API returns `verified=true` only after a successful chaincode `ReadAnchor`
-  query and matching local, stored-anchor, and on-chain hashes.
-- The web hash detail page calls the endpoint with the current session actor
-  context.
-- The proof panel renders Gateway mode, channel, chaincode, MSP ID, identity,
-  endpoint, transaction ID, block number if present, local hash, stored anchor
-  hash, on-chain hash, mismatch/unavailable reason, and mock/pending/failed
-  states.
-- The gated Playwright proof spec now skips unless the live hash record id,
-  organization id, and user id are all provided.
-
-Latest readiness validation:
-
-```bash
-corepack pnpm --dir apps/api test -- hash-records
-corepack pnpm --dir apps/api test:integration -- evidence
-corepack pnpm --dir apps/web test
-corepack pnpm typecheck
-corepack pnpm lint
-```
+| Field | Value |
+|---|---|
+| Organization id | `dd36d97b-fded-4047-9550-dcf2528a8efc` |
+| Actor user id | `61177dbf-0b0a-4edc-91a3-643dd779c5b3` |
+| Hash record id | `34c5a7e7-5bf3-4246-89ae-b51a2e765ef4` |
+| Entity type | `FabricGatewayUatProof` |
+| Entity id | `fabric-vm-uat-20260606001704` |
+| Canonical hash | `0000f960085212868b52937c0a0e5cfbf2e268eb7b28163b7fd347f5219527db` |
+| Transaction id | `1b92ddeb54734197ae5cf5e9e0d0cf5ab45d81cd809a5b80301bf06485be20c7` |
+| Block number | `6` |
+| Verification status | `verified` |
+| On-chain verified | `true` |
 
 ## Commands
 
+VM-local verification:
+
 ```bash
-corepack pnpm test:e2e -- tests/e2e/15-fabric-gateway-uat-proof.spec.ts
+curl -fsS \
+  "http://localhost/api/v1/hash-records/34c5a7e7-5bf3-4246-89ae-b51a2e765ef4/fabric-verification?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc&actorUserId=61177dbf-0b0a-4edc-91a3-643dd779c5b3"
 ```
 
-Required environment values:
+Screenshot capture from the local workstation against the VM:
+
+```powershell
+$env:E2E_WEB_BASE_URL='http://20.244.24.76'
+$env:E2E_API_BASE_URL='http://20.244.24.76/api/v1'
+$env:FABRIC_GATEWAY_UAT_HASH_RECORD_ID='34c5a7e7-5bf3-4246-89ae-b51a2e765ef4'
+$env:FABRIC_GATEWAY_UAT_ORGANIZATION_ID='dd36d97b-fded-4047-9550-dcf2528a8efc'
+$env:FABRIC_GATEWAY_UAT_USER_ID='61177dbf-0b0a-4edc-91a3-643dd779c5b3'
+$env:FABRIC_GATEWAY_UAT_ORGANIZATION_NAME='Fabric Gateway VM UAT Organization'
+$env:FABRIC_GATEWAY_UAT_USER_EMAIL='fabric-vm-uat@mepn.local'
+corepack pnpm exec playwright test tests/e2e/15-fabric-gateway-uat-proof.spec.ts
+```
+
+Result:
 
 ```text
-FABRIC_GATEWAY_UAT_HASH_RECORD_ID
-FABRIC_GATEWAY_UAT_ORGANIZATION_ID
-FABRIC_GATEWAY_UAT_USER_ID
+1 passed
 ```
-
-The provided organization/user must exist in the backend and the user must have
-audit-read capability in that organization. Placeholder ids are not accepted for
-real proof screenshots.
 
 ## Screenshot Evidence
 
-| Screenshot path | Source | Expected result |
-| --- | --- | --- |
-| `docs/evidence/uat/fabric-gateway-hash-record-verification.png` | Pending Playwright gated UAT flow | Hash detail page shows Gateway mode and on-chain verification panel. |
-| `docs/evidence/uat/fabric-gateway-proof-panel.png` | Pending Playwright gated UAT flow | Proof panel shows `On-chain verified: Yes`, transaction metadata, hashes, channel, chaincode, MSP ID, and no mock labels. |
-
+| Screenshot path | Source | Result |
+|---|---|---|
+| `docs/evidence/uat/fabric-gateway-hash-record-verification.png` | Playwright against Azure VM | Hash detail page shows Gateway mode and on-chain verification panel. |
+| `docs/evidence/uat/fabric-gateway-proof-panel.png` | Playwright against Azure VM | Proof panel shows `On-chain verified: Yes`, transaction metadata, matching hashes, channel, chaincode, MSP ID, and no mock labels. |
 
 ## Verification Result
 
-- Latest readiness status: API/UI proof path is implemented and protected by
-  actor context, but live Gateway proof is blocked.
-- Latest live attempt date: 2026-06-06.
-- Latest live attempt environment: Azure VM at `20.244.24.76`.
-- Latest live attempt hash record id:
-  `4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3`.
-- Local canonical hash matches stored HashRecord: Not verified in screenshot
-  flow because the live Gateway proof precondition failed.
-- Stored AuditAnchor hash matches local canonical hash: Not verified; no real
-  transaction metadata was produced for the live attempt.
-- `ReadAnchor` returned the same canonical hash: Not verified; API returned
-  `status=unavailable`.
-- Real transaction ID present: No.
-- Block number present if available: No.
-- Mock labels absent: Pending screenshot run.
-
-Latest live endpoint result:
+The API returned:
 
 ```json
 {
-  "status": "unavailable",
-  "verificationStatus": "FABRIC_UNAVAILABLE",
-  "verified": false,
-  "transactionIdPresent": false,
-  "onChainHashPresent": false,
-  "reviewerSummary": "The anchor request reached the integration boundary, but Fabric was unavailable."
+  "hashRecordId": "34c5a7e7-5bf3-4246-89ae-b51a2e765ef4",
+  "mode": "fabric-gateway",
+  "verified": true,
+  "status": "verified",
+  "localCanonicalHash": "0000f960085212868b52937c0a0e5cfbf2e268eb7b28163b7fd347f5219527db",
+  "storedAnchorHash": "0000f960085212868b52937c0a0e5cfbf2e268eb7b28163b7fd347f5219527db",
+  "onChainAnchorHash": "0000f960085212868b52937c0a0e5cfbf2e268eb7b28163b7fd347f5219527db",
+  "transactionId": "1b92ddeb54734197ae5cf5e9e0d0cf5ab45d81cd809a5b80301bf06485be20c7",
+  "blockNumber": "6",
+  "channelName": "mepn-audit",
+  "chaincodeName": "audit-anchor",
+  "mspId": "Org1MSP",
+  "identity": "appUser"
 }
 ```
 
-Blocker record:
+This proves:
 
-```text
-docs/evidence/blockers/2026-06-06-phase-2-slice-2-2-blocker.md
-```
+- local canonical hash matched the stored HashRecord hash;
+- stored `AuditAnchor.rootHash` matched the local canonical hash;
+- API-side Fabric Gateway `ReadAnchor` returned the same on-chain hash;
+- the worker stored real transaction metadata;
+- the outbox event completed in one attempt;
+- the UI proof panel did not show mock labels.
 
-## Notes
+## Limitations
 
-- `verified=true` is valid only when the API returned a successful chaincode
-  `ReadAnchor` result and all compared hashes matched.
-- Do not paste certificate, private key, TLS CA, or generated env-file contents
-  into this document.
-- If the Gateway runtime is unavailable, record the failure as unavailable
-  rather than substituting mock proof.
-
-## Remaining Limitations
-
-- A reviewer-facing real Gateway screenshot requires a live hash record that was
-  anchored through Fabric Gateway mode and returns `verified=true` from
-  `ReadAnchor`. The latest Azure VM attempt returned `FABRIC_UNAVAILABLE`, so
-  the screenshot flow must not run yet.
-- Seeded/mock Fabric states remain valid for UI behavior coverage only and must
-  not be presented as proof of real on-chain anchoring.
+- The Fabric runtime is a VM-local test network for FYP/UAT evidence, not a
+  regulated production consortium topology.
+- This evidence proves one real Gateway hash-record anchor and chaincode
+  verification path. Broader production hardening remains tracked separately.
+- Do not reuse the VM-local generated identity material as production
+  consortium credentials.

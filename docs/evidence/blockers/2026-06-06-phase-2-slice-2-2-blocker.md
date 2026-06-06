@@ -17,6 +17,39 @@ Create or locate a live Gateway-anchored hash record that can return
 GET /api/v1/hash-records/:id/fabric-verification
 ```
 
+## Resolution Status
+
+Resolved on 2026-06-06.
+
+Resolution used a VM-local Hyperledger Fabric test network for FYP/UAT proof.
+The worker no longer used `127.0.0.1:7051`; API and worker containers were
+connected to the Fabric Docker network and reached:
+
+```text
+peer0.org1.example.com:7051
+```
+
+A new hash record was anchored through the real worker Gateway adapter and
+verified by API-side chaincode `ReadAnchor`:
+
+```text
+hashRecordId: 34c5a7e7-5bf3-4246-89ae-b51a2e765ef4
+entityType: FabricGatewayUatProof
+entityId: fabric-vm-uat-20260606001704
+canonicalHash: 0000f960085212868b52937c0a0e5cfbf2e268eb7b28163b7fd347f5219527db
+transactionId: 1b92ddeb54734197ae5cf5e9e0d0cf5ab45d81cd809a5b80301bf06485be20c7
+blockNumber: 6
+status: verified
+verified: true
+```
+
+Screenshot evidence was captured:
+
+```text
+docs/evidence/uat/fabric-gateway-hash-record-verification.png
+docs/evidence/uat/fabric-gateway-proof-panel.png
+```
+
 ## Command Attempted
 
 The Azure VM was first redeployed to the current `main` commit:
@@ -193,74 +226,55 @@ Operational constraints for the resume:
 
 ## Remaining Work
 
-- Update the deployed Fabric endpoint configuration so the worker does not use
-  loopback (`127.0.0.1:7051`) unless a real Fabric peer/gateway is actually
-  running inside the same worker container.
-- Confirm the VM/container can reach the configured Fabric Gateway peer
-  endpoint.
-- Confirm the mounted cert/key/TLS material matches the peer/channel/chaincode
-  runtime.
-- Confirm `audit-anchor` chaincode is deployed and reachable by the configured
-  identity.
-- Reprocess or recreate the hash anchor request after Gateway reachability is
-  fixed.
-- Re-run the Fabric verification endpoint until it returns `verified=true` from
-  a successful `ReadAnchor`.
-- Only then run the gated Playwright screenshot flow in Slice 2.3.
+None for Phase 2 Slice 2.2.
 
-## Exact Resume Steps
+The original failed hash record remains useful historical evidence of the
+unreachable loopback configuration. The resolved proof uses a new hash record:
 
-1. Inspect worker logs on the VM without printing secret files:
+```text
+34c5a7e7-5bf3-4246-89ae-b51a2e765ef4
+```
+
+## Rebuild / Resume Steps If The VM Is Recreated
+
+1. Run the VM-local Fabric runtime runbook:
 
    ```bash
-   cd /opt/mepn
+   bash infra/fabric/vm/check-vm-fabric-prereqs.sh
+   bash infra/fabric/vm/install-vm-fabric-prereqs.sh
+   bash infra/fabric/vm/start-vm-local-fabric.sh
+   bash infra/fabric/vm/deploy-audit-anchor-chaincode.sh
+   bash infra/fabric/vm/export-app-fabric-secrets.sh
+   bash scripts/validate-fabric-secrets.sh /run/secrets/fabric
+   ```
+
+2. Restart the app stack with generated Fabric env:
+
+   ```bash
    docker compose \
      -f docker-compose.prod.yml \
      --env-file .env.production \
      --env-file /run/secrets/fabric/env.generated \
-     logs --tail=200 worker
+     up -d --build
    ```
 
-2. Inspect the outbox/reconciliation state for the UAT hash record through
-   safe API/database queries. Do not print `.env.production` or Fabric secret
-   files.
-
-3. Fix the deployed Fabric endpoint configuration. The previous worker attempt
-   failed with `ECONNREFUSED 127.0.0.1:7051`, so `FABRIC_PEER_ENDPOINT` must
-   point to a reachable Fabric peer/gateway from inside the worker container.
-
-4. If using the smoke script, include actor context:
+3. Connect the app containers to the Fabric Docker network:
 
    ```bash
-   APP_BASE_URL=http://localhost \
-   HASH_RECORD_ID=4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3 \
-   HASH_RECORD_ORGANIZATION_ID=dd36d97b-fded-4047-9550-dcf2528a8efc \
-   HASH_RECORD_ACTOR_USER_ID=61177dbf-0b0a-4edc-91a3-643dd779c5b3 \
-     bash scripts/smoke/fabric-gateway-smoke.sh
+   bash infra/fabric/vm/connect-app-to-fabric-network.sh
    ```
 
-5. After resolving the Fabric runtime issue, retry:
+4. Create a new hash record and wait for the worker to process the outbox
+   event.
 
-   ```bash
-   curl "http://20.244.24.76/api/v1/hash-records/4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3/fabric-verification?organizationId=dd36d97b-fded-4047-9550-dcf2528a8efc&actorUserId=61177dbf-0b0a-4edc-91a3-643dd779c5b3"
-   ```
-
-6. Continue only if the response contains:
+5. Run `/fabric-verification` with organization and actor context. Continue to
+   UAT screenshots only if the response contains:
 
    ```json
    {
      "verified": true,
      "status": "verified"
    }
-   ```
-
-7. Run the gated screenshot spec with the live ids:
-
-   ```powershell
-   $env:FABRIC_GATEWAY_UAT_HASH_RECORD_ID="4b82c6b9-4ba0-4915-8d2b-b35331d0f4d3"
-   $env:FABRIC_GATEWAY_UAT_ORGANIZATION_ID="dd36d97b-fded-4047-9550-dcf2528a8efc"
-   $env:FABRIC_GATEWAY_UAT_USER_ID="61177dbf-0b0a-4edc-91a3-643dd779c5b3"
-   corepack pnpm test:e2e -- tests/e2e/15-fabric-gateway-uat-proof.spec.ts
    ```
 
 ## Validation After Follow-Up Diagnosis
