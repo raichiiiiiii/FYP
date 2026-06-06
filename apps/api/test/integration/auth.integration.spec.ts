@@ -1,4 +1,9 @@
 import request from 'supertest';
+import {
+  calculateInvitationExpiry,
+  createInvitationToken,
+  hashInvitationToken,
+} from '../../src/modules/auth/invitations/invitation-token';
 import { createOrganizationFixture } from './helpers/api-workflow-fixtures';
 import {
   closeIntegrationApp,
@@ -62,5 +67,39 @@ describe('Integration: auth', () => {
           'Development login is disabled for this environment',
         );
       });
+  });
+
+  it('persists invitations with token hashes only', async () => {
+    process.env.DEV_AUTH_ENABLED = 'true';
+    context = await createIntegrationApp();
+    const setup = await createOrganizationFixture(context.app);
+    const rawToken = createInvitationToken();
+    const tokenHash = hashInvitationToken(rawToken);
+
+    const invitation = await context.prisma.invitation.create({
+      data: {
+        organizationId: setup.organization.id,
+        email: 'invitee@example.test',
+        roleCode: 'PROCUREMENT_OFFICER',
+        tokenHash,
+        expiresAt: calculateInvitationExpiry(
+          new Date('2026-06-06T00:00:00.000Z'),
+          3600,
+        ),
+        invitedById: setup.adminUser.id,
+      },
+    });
+
+    expect(invitation.tokenHash).toBe(tokenHash);
+    expect(invitation.tokenHash).not.toBe(rawToken);
+
+    const storedInvitation = await context.prisma.invitation.findUniqueOrThrow({
+      where: {
+        tokenHash,
+      },
+    });
+
+    expect(storedInvitation.email).toBe('invitee@example.test');
+    expect(storedInvitation.status).toBe('pending');
   });
 });

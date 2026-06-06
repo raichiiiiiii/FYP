@@ -131,12 +131,13 @@ model Invitation {
   workspaceId    String?
   email          String
   roleCode       String?
-  token          String   @unique @default(uuid())
+  tokenHash      String   @unique
   status         String   @default("pending")
   invitedById    String?
   acceptedById   String?
   expiresAt      DateTime?
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   acceptedAt     DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id])
@@ -147,6 +148,8 @@ model Invitation {
   @@index([organizationId])
   @@index([workspaceId])
   @@index([email])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model AuditEvent {
