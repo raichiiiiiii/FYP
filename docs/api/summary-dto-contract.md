@@ -23,6 +23,11 @@ instead of importing Figma/demo fixtures.
 | `ProcurementSummaryDto` | `GET /api/v1/procurement/summary` |
 | `FinanceSummaryDto` | `GET /api/v1/finance/summary` |
 
+`GET /api/v1/dashboard/summary` currently returns the new contract fields
+(`metrics`, `queue`, `blockers`, `readiness`) while preserving legacy dashboard
+fields (`kpis`, `tasks`, `signals`, `activities`) for frontend compatibility.
+The backend filters the new and legacy arrays according to role visibility.
+
 ## Role Visibility Rules
 
 | Summary | Allowed role codes |
