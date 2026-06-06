@@ -1,0 +1,54 @@
+{
+  "product": "MEPN",
+  "worktree": "C:\\Users\\User\\dev\\FYP-ui-hci-docs",
+  "branch": "feature/ui-hci-evaluation-docs",
+  "status": "placeholder-with-instrumentation",
+  "scoringGate": {
+    "routeHealthRequired": true,
+    "currentAssessment": "The Agent E Playwright route-health checks passed for the instrumented routes. Final human HCI scoring remains unmeasured.",
+    "doNotInferFromTemplates": true
+  },
+  "metrics": [
+    {
+      "name": "Task Completion Rate",
+      "status": "instrumented evidence generated; final value not recorded",
+      "source": "Playwright-instrumented task completion only when measured",
+      "allowedEvidence": [
+        "tests/e2e/20-hci-walkthrough.spec.ts",
+        "tests/e2e/21-hci-screenshot-capture.spec.ts",
+        "docs/evidence/ux/hci-walkthrough-instrumentation.json",
+        "docs/evidence/ux/screenshots/"
+      ],
+      "notes": "Do not finalize pass/fail values unless route health is green and scripted tasks complete without blocked routes."
+    },
+    {
+      "name": "Error Frequency Rate",
+      "status": "instrumented evidence generated; final value not recorded",
+      "source": "Playwright-instrumented UI, API, page, and console errors only when measured",
+      "allowedEvidence": [
+        "Playwright test output",
+        "Playwright pageerror/console instrumentation",
+        "docs/evidence/ux/agent-notes/agent-e-hci-evaluation-docs.md"
+      ],
+      "notes": "Count only observed errors during defined HCI tasks. Do not infer from known backlog items or template placeholders."
+    },
+    {
+      "name": "Time-on-Task",
+      "status": "instrumented evidence generated; final value not recorded",
+      "source": "Playwright-instrumented timing only when measured",
+      "allowedEvidence": [
+        "Scripted elapsed milliseconds from HCI Playwright specs"
+      ],
+      "notes": "Automation timing may support regression tracking, but it is not a human participant timing result."
+    },
+    {
+      "name": "System Usability Scale",
+      "status": "not measured",
+      "source": "Participant survey required",
+      "allowedEvidence": [
+        "Approved SUS participant survey responses"
+      ],
+      "notes": "SUS must remain not measured until real participant responses are collected. Do not fabricate participant metrics."
+    }
+  ]
+}
