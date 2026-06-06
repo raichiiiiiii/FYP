@@ -103,10 +103,20 @@ needed by the containers. It is runtime material and must not be committed.
 
 9. Restart the app stack with both `.env.production` and
    `/run/secrets/fabric/env.generated`.
-10. Confirm worker container name resolution and TCP reachability to the peer
+10. Connect the app containers to the Fabric Docker network:
+
+    ```bash
+    bash infra/fabric/vm/connect-app-to-fabric-network.sh
+    ```
+
+    This is intentionally runtime-only instead of a static Compose external
+    network so mock/default deployments do not fail when the Fabric test network
+    is absent.
+
+11. Confirm worker container name resolution and TCP reachability to the peer
     alias.
-11. Create or retry a hash-record anchor request.
-12. Continue only when:
+12. Create or retry a hash-record anchor request.
+13. Continue only when:
 
     ```json
     {
