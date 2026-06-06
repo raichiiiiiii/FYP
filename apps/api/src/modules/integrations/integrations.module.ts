@@ -10,6 +10,8 @@ import { EsignPackageService } from './esign/esign-package.service';
 import { MockEsignAdapter } from './esign/mock-esign.adapter';
 import { FabricAnchorController } from './fabric/fabric-anchor.controller';
 import { FabricAnchorService } from './fabric/fabric-anchor.service';
+import { FabricGovernanceController } from './fabric-governance/fabric-governance.controller';
+import { FabricGovernanceService } from './fabric-governance/fabric-governance.service';
 import { MockFabricAnchorAdapter } from './fabric/mock-fabric-anchor.adapter';
 import { FinanceApiNotificationController } from './finance-api/finance-api-notification.controller';
 import { FinanceApiNotificationService } from './finance-api/finance-api-notification.service';
@@ -26,6 +28,7 @@ import { WebhooksController } from './webhooks/webhooks.controller';
   controllers: [
     ErpSyncController,
     FabricAnchorController,
+    FabricGovernanceController,
     FinanceApiNotificationController,
     EsignPackageController,
     WebhooksController,
@@ -37,6 +40,7 @@ import { WebhooksController } from './webhooks/webhooks.controller';
     ErpSyncService,
     MockErpAdapter,
     FabricAnchorService,
+    FabricGovernanceService,
     MockFabricAnchorAdapter,
     FinanceApiNotificationService,
     MockFinanceApiAdapter,
@@ -48,6 +52,7 @@ import { WebhooksController } from './webhooks/webhooks.controller';
   exports: [
     ErpSyncService,
     FabricAnchorService,
+    FabricGovernanceService,
     FinanceApiNotificationService,
     EsignPackageService,
     WebhookSubscriptionService,

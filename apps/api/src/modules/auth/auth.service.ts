@@ -46,7 +46,9 @@ type KnownRole =
   | 'APPROVER'
   | 'FINANCIER_USER'
   | 'SHARIAH_REVIEWER'
-  | 'AUDITOR';
+  | 'AUDITOR'
+  | 'FABRIC_GOVERNANCE_ADMIN'
+  | 'PLATFORM_OPERATOR';
 
 const rolePermissionDefaults: Record<KnownRole, Permission[]> = {
   ORG_ADMIN: [
@@ -56,12 +58,15 @@ const rolePermissionDefaults: Record<KnownRole, Permission[]> = {
     'finance:review',
     'shariah:review',
     'audit:read',
+    'fabric:governance',
   ],
   PROCUREMENT_OFFICER: ['procurement:create', 'audit:read'],
   APPROVER: ['procurement:approve', 'audit:read'],
   FINANCIER_USER: ['finance:review', 'audit:read'],
   SHARIAH_REVIEWER: ['shariah:review', 'audit:read'],
   AUDITOR: ['audit:read'],
+  FABRIC_GOVERNANCE_ADMIN: ['audit:read', 'fabric:governance'],
+  PLATFORM_OPERATOR: ['audit:read', 'fabric:operate'],
 };
 
 const legacyPermissionMap: Record<string, Permission> = {
@@ -72,6 +77,8 @@ const legacyPermissionMap: Record<string, Permission> = {
   FINANCE_REVIEW: 'finance:review',
   SHARIAH_REVIEW: 'shariah:review',
   AUDIT_READ: 'audit:read',
+  FABRIC_GOVERNANCE: 'fabric:governance',
+  FABRIC_OPERATE: 'fabric:operate',
 };
 
 const sessionDurationMs = 8 * 60 * 60 * 1000;

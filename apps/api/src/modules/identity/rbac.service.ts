@@ -6,7 +6,9 @@ export type ActorRole =
   | 'APPROVER'
   | 'FINANCIER_USER'
   | 'SHARIAH_REVIEWER'
-  | 'AUDITOR';
+  | 'AUDITOR'
+  | 'FABRIC_GOVERNANCE_ADMIN'
+  | 'PLATFORM_OPERATOR';
 
 export type Permission =
   | 'users:create'
@@ -14,7 +16,9 @@ export type Permission =
   | 'procurement:approve'
   | 'finance:review'
   | 'shariah:review'
-  | 'audit:read';
+  | 'audit:read'
+  | 'fabric:governance'
+  | 'fabric:operate';
 
 export type ActorContext = {
   userId: string;
@@ -35,12 +39,15 @@ const rolePermissions: Record<ActorRole, Permission[]> = {
     'finance:review',
     'shariah:review',
     'audit:read',
+    'fabric:governance',
   ],
   PROCUREMENT_OFFICER: ['procurement:create', 'audit:read'],
   APPROVER: ['procurement:approve', 'audit:read'],
   FINANCIER_USER: ['finance:review', 'audit:read'],
   SHARIAH_REVIEWER: ['shariah:review', 'audit:read'],
   AUDITOR: ['audit:read'],
+  FABRIC_GOVERNANCE_ADMIN: ['audit:read', 'fabric:governance'],
+  PLATFORM_OPERATOR: ['audit:read', 'fabric:operate'],
 };
 
 @Injectable()

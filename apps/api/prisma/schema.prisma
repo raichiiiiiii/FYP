@@ -56,6 +56,12 @@ model Organization {
   graphSavedViews          GraphSavedView[]
   graphAnnotations         GraphAnnotation[]
   inboxItems               InboxItem[]
+  operatedFabricNetworks   FabricNetwork[] @relation("FabricNetworkOperatorOrganization")
+  createdFabricChannels    FabricChannel[] @relation("FabricChannelCreatedByOrganization")
+  fabricChannelMemberships FabricChannelMembership[]
+  sentFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationCreatedByOrganization")
+  receivedFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationInvitedOrganization")
+  fabricGovernanceApprovals FabricGovernanceApproval[]
 }
 
 model User {
@@ -85,6 +91,12 @@ model User {
   updatedGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationUpdatedBy")
   sentInboxItems        InboxItem[] @relation("InboxItemSender")
   receivedInboxItems    InboxItem[] @relation("InboxItemRecipient")
+  createdFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationCreatedByUser")
+  acceptedFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationAcceptedByUser")
+  createdFabricChannelProposals FabricChannelProposal[] @relation("FabricChannelProposalCreatedByUser")
+  operatedFabricChannelProposals FabricChannelProposal[] @relation("FabricChannelProposalOperatorUser")
+  fabricGovernanceApprovals FabricGovernanceApproval[] @relation("FabricGovernanceApprovalActor")
+  fabricGovernanceEvidence FabricGovernanceEvidence[] @relation("FabricGovernanceEvidenceCreatedByUser")
 }
 
 model Role {
@@ -151,6 +163,168 @@ model InboxItem {
   @@index([itemType])
   @@index([status])
   @@index([createdAt])
+}
+
+model FabricNetwork {
+  id                     String   @id @default(uuid())
+  name                   String
+  environment            String   @default("local")
+  governanceModel        String   @default("operator_assisted")
+  operatorOrganizationId String?
+  status                 String   @default("draft")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  operatorOrganization Organization? @relation("FabricNetworkOperatorOrganization", fields: [operatorOrganizationId], references: [id])
+  channels             FabricChannel[]
+
+  @@index([operatorOrganizationId])
+  @@index([environment])
+  @@index([status])
+}
+
+model FabricChannel {
+  id                      String    @id @default(uuid())
+  fabricNetworkId          String
+  channelName              String
+  chaincodeName            String?
+  status                   String    @default("proposed")
+  createdByOrganizationId  String
+  operatorVerifiedAt       DateTime?
+  readinessStatus          String    @default("operator_pending")
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  network               FabricNetwork @relation(fields: [fabricNetworkId], references: [id])
+  createdByOrganization Organization  @relation("FabricChannelCreatedByOrganization", fields: [createdByOrganizationId], references: [id])
+  memberships           FabricChannelMembership[]
+  invitations           FabricChannelInvitation[]
+  proposals             FabricChannelProposal[]
+
+  @@unique([fabricNetworkId, channelName])
+  @@index([createdByOrganizationId])
+  @@index([status])
+  @@index([readinessStatus])
+}
+
+model FabricChannelMembership {
+  id                       String    @id @default(uuid())
+  fabricChannelId           String
+  organizationId            String
+  mspId                     String?
+  membershipStatus          String    @default("invited")
+  certificateFingerprint    String?
+  certificateIssuer         String?
+  certificateExpiresAt      DateTime?
+  joinedAt                  DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  channel      FabricChannel @relation(fields: [fabricChannelId], references: [id])
+  organization Organization  @relation(fields: [organizationId], references: [id])
+
+  @@unique([fabricChannelId, organizationId])
+  @@index([organizationId])
+  @@index([membershipStatus])
+}
+
+model FabricChannelInvitation {
+  id                        String    @id @default(uuid())
+  fabricChannelId            String
+  createdByOrganizationId    String
+  invitedOrganizationId      String?
+  invitedEmail               String?
+  invitedMspId               String?
+  status                     String    @default("pending")
+  expiresAt                  DateTime?
+  acceptedAt                 DateTime?
+  createdByUserId            String?
+  acceptedByUserId           String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  channel               FabricChannel @relation(fields: [fabricChannelId], references: [id])
+  createdByOrganization Organization  @relation("FabricChannelInvitationCreatedByOrganization", fields: [createdByOrganizationId], references: [id])
+  invitedOrganization   Organization? @relation("FabricChannelInvitationInvitedOrganization", fields: [invitedOrganizationId], references: [id])
+  createdByUser         User?         @relation("FabricChannelInvitationCreatedByUser", fields: [createdByUserId], references: [id])
+  acceptedByUser        User?         @relation("FabricChannelInvitationAcceptedByUser", fields: [acceptedByUserId], references: [id])
+
+  @@index([fabricChannelId])
+  @@index([createdByOrganizationId])
+  @@index([invitedOrganizationId])
+  @@index([invitedEmail])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model FabricChannelProposal {
+  id                   String    @id @default(uuid())
+  fabricChannelId       String
+  proposalType          String
+  revision              Int       @default(1)
+  status                String    @default("pending_approval")
+  proposalPayload       Json
+  proposalDigest        String
+  requiredApprovals     Int       @default(2)
+  createdByUserId       String
+  operatorUserId        String?
+  executedAt            DateTime?
+  failureReason         String?
+  supersededByProposalId String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  channel       FabricChannel @relation(fields: [fabricChannelId], references: [id])
+  createdByUser User          @relation("FabricChannelProposalCreatedByUser", fields: [createdByUserId], references: [id])
+  operatorUser  User?         @relation("FabricChannelProposalOperatorUser", fields: [operatorUserId], references: [id])
+  approvals     FabricGovernanceApproval[]
+  evidence      FabricGovernanceEvidence[]
+
+  @@index([fabricChannelId])
+  @@index([proposalType])
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([operatorUserId])
+  @@index([proposalDigest])
+}
+
+model FabricGovernanceApproval {
+  id             String   @id @default(uuid())
+  proposalId     String
+  organizationId String
+  actorUserId    String
+  roleCode       String
+  decision       String
+  rationale      String?
+  createdAt      DateTime @default(now())
+
+  proposal     FabricChannelProposal @relation(fields: [proposalId], references: [id])
+  organization Organization          @relation(fields: [organizationId], references: [id])
+  actorUser    User                  @relation("FabricGovernanceApprovalActor", fields: [actorUserId], references: [id])
+
+  @@unique([proposalId, organizationId, actorUserId])
+  @@index([organizationId])
+  @@index([actorUserId])
+  @@index([decision])
+}
+
+model FabricGovernanceEvidence {
+  id              String   @id @default(uuid())
+  proposalId      String
+  evidenceType    String
+  storageUri      String?
+  contentHash     String?
+  metadata        Json?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  proposal      FabricChannelProposal @relation(fields: [proposalId], references: [id])
+  createdByUser User                  @relation("FabricGovernanceEvidenceCreatedByUser", fields: [createdByUserId], references: [id])
+
+  @@index([proposalId])
+  @@index([evidenceType])
+  @@index([createdByUserId])
+  @@index([contentHash])
 }
 
 model Workspace {
