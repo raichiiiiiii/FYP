@@ -39,12 +39,23 @@ clone_fabric_samples() {
 }
 
 install_fabric_binaries_and_images() {
-  require_file "$FABRIC_SAMPLES_DIR/install-fabric.sh" "Fabric samples installer"
+  local installer="$FABRIC_SAMPLES_DIR/install-fabric.sh"
+
+  if [[ ! -s "$installer" ]]; then
+    installer="$FABRIC_VM_ROOT/install-fabric.sh"
+    if [[ ! -s "$installer" ]]; then
+      log "Fabric samples installer not found in checkout; downloading official installer script."
+      curl -fsSL "$FABRIC_INSTALL_SCRIPT_URL" -o "$installer"
+      chmod 0755 "$installer"
+    fi
+  fi
+
+  require_file "$installer" "Fabric installer"
 
   log "Installing Fabric binaries and Docker images: Fabric $FABRIC_VERSION, Fabric CA $FABRIC_CA_VERSION"
   (
-    cd "$FABRIC_SAMPLES_DIR"
-    bash ./install-fabric.sh \
+    cd "$FABRIC_VM_ROOT"
+    bash "$installer" \
       --fabric-version "$FABRIC_VERSION" \
       --ca-version "$FABRIC_CA_VERSION" \
       binary docker

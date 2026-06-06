@@ -18,6 +18,7 @@ FABRIC_SECRET_DIR="${FABRIC_SECRET_DIR:-/run/secrets/fabric}"
 FABRIC_DOCKER_NETWORK="${FABRIC_DOCKER_NETWORK:-fabric_test}"
 FABRIC_VERSION="${FABRIC_VERSION:-2.5.15}"
 FABRIC_CA_VERSION="${FABRIC_CA_VERSION:-1.5.17}"
+FABRIC_INSTALL_SCRIPT_URL="${FABRIC_INSTALL_SCRIPT_URL:-https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh}"
 
 log() {
   printf '[fabric-vm] %s\n' "$*"
