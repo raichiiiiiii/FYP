@@ -111,14 +111,20 @@
 
 .sidebar-module {
   align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
   color: rgba(255, 255, 255, 0.58);
   display: flex;
   font-size: 11px;
   font-weight: 800;
+  justify-content: flex-start;
   letter-spacing: 0;
   min-height: 26px;
   padding: 0 8px;
+  text-align: left;
   text-transform: uppercase;
+  width: 100%;
 }
 
 .sidebar-module small {
@@ -133,6 +139,39 @@
   margin-left: auto;
   min-width: 18px;
   padding: 0 6px;
+}
+
+.sidebar-module:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.sidebar-module__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-module__chevron {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 900;
+  margin-left: 6px;
+  transition: transform 160ms ease;
+}
+
+.sidebar-section--collapsed .sidebar-module__chevron {
+  transform: rotate(-90deg);
+}
+
+.sidebar-section-links {
+  display: grid;
+  gap: 6px;
+}
+
+.sidebar-section-links[hidden] {
+  display: none;
 }
 
 .sidebar-empty {
@@ -703,6 +742,7 @@ a:focus-visible,
 
 .nav-item:focus-visible,
 .module-tab:focus-visible,
+.sidebar-module:focus-visible,
 .sidebar-status-widget a:focus-visible {
   border-color: rgba(79, 140, 255, 0.78);
 }

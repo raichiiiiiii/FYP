@@ -1,15 +1,31 @@
-import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 
 import { getVisibleSidebarRoutes } from '../app/authorization'
-import { routeMetadata } from '../app/navigation'
+import { routeMetadata, type AppModule } from '../app/navigation'
 import { useAppSession } from '../app/session'
+import {
+  getActiveSidebarModule,
+  getSidebarModuleId,
+  groupSidebarRoutesByModule,
+} from './sidebarNavigation'
 
 export function Sidebar() {
+  const location = useLocation()
   const { authorization, session } = useAppSession()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsedModules, setCollapsedModules] = useState<Set<AppModule>>(
+    () => new Set(),
+  )
   const visibleRoutes = getVisibleSidebarRoutes(routeMetadata, session, authorization)
-  const modules = [...new Set(visibleRoutes.map((route) => route.module))]
+  const groupedModules = useMemo(
+    () => groupSidebarRoutesByModule(visibleRoutes),
+    [visibleRoutes],
+  )
+  const activeModule = useMemo(
+    () => getActiveSidebarModule(visibleRoutes, location.pathname),
+    [location.pathname, visibleRoutes],
+  )
   const primaryRole = authorization.roleCodes[0]
   const roleLabel = primaryRole ? formatRoleLabel(primaryRole) : 'No role loaded'
   const canOpenIntegrations = visibleRoutes.some(
@@ -21,6 +37,20 @@ export function Sidebar() {
     : canOpenAudit
       ? '/audit/search'
       : '/dashboard'
+
+  function toggleModule(module: AppModule) {
+    setCollapsedModules((current) => {
+      const next = new Set(current)
+
+      if (next.has(module)) {
+        next.delete(module)
+      } else {
+        next.add(module)
+      }
+
+      return next
+    })
+  }
 
   return (
     <aside className={mobileOpen ? 'sidebar sidebar--mobile-open' : 'sidebar'}>
@@ -67,34 +97,54 @@ export function Sidebar() {
         }
         aria-label="Main navigation"
       >
-        {modules.map((module) => (
-          <section key={module} className="sidebar-section">
-            <span className="sidebar-module">
-              {module}
-              <small>
-                {
-                  visibleRoutes.filter((route) => route.module === module)
-                    .length
-                }
-              </small>
-            </span>
-            {visibleRoutes
-              .filter((route) => route.module === module)
-              .map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    isActive ? 'nav-item active' : 'nav-item'
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-          </section>
-        ))}
-        {modules.length === 0 ? (
+        {groupedModules.map(({ module, routes }) => {
+          const collapsed = collapsedModules.has(module) && activeModule !== module
+          const sectionId = `sidebar-section-${getSidebarModuleId(module)}`
+
+          return (
+            <section
+              key={module}
+              className={
+                collapsed
+                  ? 'sidebar-section sidebar-section--collapsed'
+                  : 'sidebar-section'
+              }
+            >
+              <button
+                type="button"
+                className="sidebar-module"
+                aria-controls={sectionId}
+                aria-expanded={!collapsed}
+                onClick={() => toggleModule(module)}
+              >
+                <span className="sidebar-module__label">{module}</span>
+                <small>{routes.length}</small>
+                <span className="sidebar-module__chevron" aria-hidden="true">
+                  v
+                </span>
+              </button>
+              <div
+                id={sectionId}
+                className="sidebar-section-links"
+                hidden={collapsed}
+              >
+                {routes.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      isActive ? 'nav-item active' : 'nav-item'
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </section>
+          )
+        })}
+        {groupedModules.length === 0 ? (
           <p className="sidebar-empty">Sign in to load route access.</p>
         ) : null}
       </nav>
