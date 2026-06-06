@@ -31,6 +31,7 @@ not be stored in this directory.
 | Evidence | Purpose | Status |
 |---|---|---|
 | `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md` | Reviewer proof package for real Gateway anchoring and API-side `ReadAnchor` verification. | Complete for VM-local FYP/UAT Fabric proof. |
+| `docs/evidence/qa/FABRIC_CONSORTIUM_GOVERNANCE_EVIDENCE.md` | Operator-assisted Fabric consortium governance metadata, proposal, invitation, approval, readiness, and sanitized evidence workflow. | Complete for metadata/operator-assisted FYP scope; direct Fabric topology automation remains hardening. |
 | `docs/evidence/canonical-hash-verification.md` | Canonical hashing behavior and verification reference. | Source-of-truth support document. |
 | `docs/evidence/uat/fabric-gateway-hash-record-verification.png` | Reviewer screenshot of the hash-record verification page. | Captured. |
 | `docs/evidence/uat/fabric-gateway-proof-panel.png` | Reviewer screenshot of Gateway proof panel. | Captured. |
