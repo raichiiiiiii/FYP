@@ -2,8 +2,8 @@
 
 ## Status
 
-Phase 7.3 PostgreSQL backup and restore scripts are implemented. Restore-smoke
-scripts are added in later Phase 7 slices.
+Phase 7.4 PostgreSQL backup, restore, and restore-smoke scripts are
+implemented. Evidence template is added in the final Phase 7 docs slice.
 
 ## Runtime Data Inventory
 
@@ -100,6 +100,41 @@ scripts/backup/restore-postgres.sh \
 Use the active-database command only after stopping app processes that may hold
 database connections, and only after confirming the target environment.
 
+## Restore Smoke Check
+
+After restoring into a disposable database, run:
+
+```bash
+scripts/backup/smoke-restore.sh \
+  --compose-file docker-compose.prod.yml \
+  --env-file .env.production \
+  --database mepn_restore
+```
+
+Require non-zero demo/review data counts:
+
+```bash
+scripts/backup/smoke-restore.sh \
+  --compose-file docker-compose.prod.yml \
+  --env-file .env.production \
+  --database mepn_restore \
+  --require-demo-data
+```
+
+Optional API health check:
+
+```bash
+scripts/backup/smoke-restore.sh \
+  --compose-file docker-compose.prod.yml \
+  --env-file .env.production \
+  --database mepn_restore \
+  --app-base-url http://localhost
+```
+
+The script checks expected MEPN tables and prints sanitized record counts for
+organizations, projects, suppliers, requisitions, applications, and audit
+events. It does not print row contents or secret values.
+
 ## Exclusions And Safety Rules
 
 - Do not print, commit, or archive PEM files, private keys, tokens, or VM SSH
@@ -113,6 +148,5 @@ database connections, and only after confirming the target environment.
 
 ## Known Gaps Before Later Phase 7 Slices
 
-- `scripts/backup/smoke-restore.sh` is not yet implemented.
 - MinIO/object-storage backup automation remains a later enhancement; the first
   executable slice focuses on PostgreSQL proof.
