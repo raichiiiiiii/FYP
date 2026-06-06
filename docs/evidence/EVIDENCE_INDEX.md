@@ -40,6 +40,7 @@ not be stored in this directory.
 |---|---|---|
 | `docs/evidence/qa/AUTH_OIDC_INVITATION_UAT_EVIDENCE.md` | Auth mode, dev-login guard, OIDC test-provider, and invite acceptance evidence. | Partial; real provider UAT remains hardening. |
 | `docs/evidence/qa/GUIDED_DEMO_MODE_EVIDENCE.md` | In-app guided reviewer checklist for the FYP demo path. | Complete after latest guided demo E2E screenshot capture. |
+| `docs/evidence/qa/EVIDENCE_PACKAGE_BROWSER_EVIDENCE.md` | Read-only in-app reviewer evidence package browser. | Complete after latest evidence browser E2E screenshot capture. |
 | `docs/evidence/qa/REPORT_EXPORT_EVIDENCE.md` | Backend report DTO and audited JSON export evidence. | Complete for JSON FYP scope. |
 | `docs/evidence/qa/LOSS_EXCEPTION_WORKFLOW_EVIDENCE.md` | Loss exception classification, reviewer UI, closure gate, and no-guaranteed-return evidence. | Complete for FYP scope. |
 | `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md` | Accessibility helper, axe/focus checks, and critical-route evidence. | Complete for automated FYP scope. |
@@ -53,6 +54,7 @@ not be stored in this directory.
 | `docs/evidence/uat/auth-login-dev-mode.png` | Demo/dev login mode. |
 | `docs/evidence/uat/auth-invitation-acceptance.png` | Invitation acceptance UI. |
 | `docs/evidence/uat/guided-demo-mode.png` | Guided Demo Mode checklist overlay. |
+| `docs/evidence/uat/evidence-package-browser.png` | Evidence Package Browser reviewer page. |
 | `docs/evidence/uat/reports-json-export-flow.png` | JSON report export flow. |
 | `docs/evidence/uat/loss-exception-review-flow.png` | Loss exception reviewer workflow. |
 | `docs/evidence/uat/summary-procurement-hub.png` | Procurement Hub summary DTO UI. |

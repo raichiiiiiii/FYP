@@ -163,9 +163,9 @@ export function EvidencePackageRoute() {
       <section className="evidence-package-safety">
         <h2>Evidence safety rule</h2>
         <p>
-          Do not paste secret contents, PEM blocks, private keys, tokens,
-          passwords, generated env files, VM credentials, or raw provider logs
-          into docs, screenshots, tests, or chat.
+          Do not paste raw secret material, generated runtime files, provider
+          credentials, VM credentials, or raw provider logs into docs,
+          screenshots, tests, or chat.
         </p>
       </section>
     </section>

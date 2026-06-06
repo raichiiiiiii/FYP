@@ -210,8 +210,8 @@ export const demoGuideSteps: readonly DemoGuideStep[] = [
     title: 'Evidence index and reviewer package',
     shortDescription:
       'Use the evidence index and final validation matrix as the source for screenshots, commands, blockers, and limitations.',
-    route: '/reports',
-    expectedVisibleText: 'Reports',
+    route: '/evidence-package',
+    expectedVisibleText: 'Evidence Package Browser',
     featureArea: 'review-package',
     riskLevel: 'low',
     evidenceLinks: [

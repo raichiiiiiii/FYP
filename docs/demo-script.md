@@ -71,6 +71,7 @@ Network canvas:         /graph/projects
 Integrations:           /integrations
 Operations:             /operations
 Reports:                /reports
+Evidence package:       /evidence-package
 ```
 
 Guided reviewer aid:
@@ -81,6 +82,8 @@ Guided reviewer aid:
   procurement, finance, Fabric, audit, or ledger state.
 - The Fabric proof step is environment-gated and must be assessed from the
   committed Fabric UAT evidence or a live Gateway run.
+- Open `/evidence-package` when reviewers ask for one screen that links the
+  roadmap, validation matrix, UAT screenshots, blockers, and known limitations.
 
 Data-source rule:
 

@@ -295,11 +295,11 @@ export const evidencePackageItems: readonly EvidencePackageItem[] = [
     id: 'evidence-safety-rule',
     title: 'Evidence safety rule',
     description:
-      'Evidence must not include secret contents, PEM blocks, private keys, tokens, passwords, generated env files, or VM credentials.',
+      'Evidence must exclude raw secret material, generated runtime files, provider credentials, and VM credentials.',
     path: 'docs/evidence/EVIDENCE_INDEX.md#safety-rule',
     status: 'complete',
     category: 'safety',
-    riskNote: 'Use curated evidence links only; do not paste raw secret files.',
+    riskNote: 'Use curated evidence links only; do not paste raw credential files.',
     safeToQuote: true,
   },
 ]
