@@ -25,6 +25,23 @@ export class IntegrationStatusController {
     return this.integrationStatus.listWorkerHeartbeats();
   }
 
+  @Get('timeline')
+  listTimeline(
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+    @Query('category') category?: string,
+    @Query('severity') severity?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.integrationStatus.listTimeline({
+      organizationId,
+      actorUserId,
+      category,
+      severity,
+      limit,
+    });
+  }
+
   @Get('fabric/status')
   getFabricStatus() {
     return this.integrationStatus.getFabricStatus();

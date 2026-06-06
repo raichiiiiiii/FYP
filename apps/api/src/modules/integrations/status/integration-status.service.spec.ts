@@ -107,6 +107,116 @@ describe('IntegrationStatusService Fabric status', () => {
       },
     ]);
   });
+
+  it('builds a sanitized operations timeline with filters', async () => {
+    const service = new IntegrationStatusService({
+      membership: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'membership-1' }),
+      },
+      workerHeartbeat: {
+        findMany: jest.fn().mockResolvedValue([
+          workerHeartbeat({
+            id: 'worker-1',
+            status: 'idle',
+            lastSeenAt: new Date('2026-06-06T00:00:00.000Z'),
+          }),
+        ]),
+      },
+      outboxEvent: {
+        findMany: jest.fn().mockResolvedValue([
+          outboxEvent({
+            id: 'outbox-1',
+            payload: {
+              hidden: `${'token'}=not-allowed`,
+            },
+            attempts: 1,
+            lastError: 'Provider timeout',
+            status: 'PENDING',
+            reconciliationRecord: null,
+            updatedAt: new Date('2026-06-06T00:01:00.000Z'),
+          }),
+        ]),
+      },
+      integrationReconciliationRecord: {
+        findMany: jest.fn().mockResolvedValue([
+          reconciliationRecord({
+            id: 'reconciliation-1',
+            status: 'FAILED',
+            outboxEvent: null,
+            updatedAt: new Date('2026-06-06T00:02:00.000Z'),
+          }),
+        ]),
+      },
+      auditAnchor: {
+        findMany: jest.fn().mockResolvedValue([
+          auditAnchor({
+            id: 'anchor-1',
+            status: 'VERIFIED',
+            anchoredAt: new Date('2026-06-06T00:03:00.000Z'),
+            rootHash: 'do-not-render-root-hash',
+          }),
+        ]),
+      },
+      reportExportJob: {
+        findMany: jest.fn().mockResolvedValue([
+          reportExportJob({
+            id: 'report-1',
+            status: 'completed',
+            format: 'csv',
+            updatedAt: new Date('2026-06-06T00:04:00.000Z'),
+            metadata: {
+              secret: 'not allowed',
+            },
+          }),
+        ]),
+      },
+    } as never);
+
+    const timeline = await service.listTimeline({
+      organizationId: 'org-1',
+      actorUserId: 'user-1',
+      limit: '10',
+    });
+
+    expect(timeline.map((item) => item.category)).toEqual([
+      'report',
+      'fabric',
+      'reconciliation',
+      'outbox',
+      'worker',
+    ]);
+    expect(JSON.stringify(timeline)).not.toContain('not-allowed');
+    expect(JSON.stringify(timeline)).not.toContain('do-not-render-root-hash');
+    expect(JSON.stringify(timeline)).not.toContain('secret');
+
+    await expect(
+      service.listTimeline({
+        organizationId: 'org-1',
+        actorUserId: 'user-1',
+        category: 'outbox',
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        category: 'outbox',
+        severity: 'warning',
+      }),
+    ]);
+  });
+
+  it('requires active membership for scoped timeline reads', async () => {
+    const service = new IntegrationStatusService({
+      membership: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    } as never);
+
+    await expect(
+      service.listTimeline({
+        organizationId: 'org-1',
+        actorUserId: 'outsider',
+      }),
+    ).rejects.toThrow('Active organization membership required');
+  });
 });
 
 function workerHeartbeat(overrides: Record<string, unknown> = {}) {
@@ -119,6 +229,92 @@ function workerHeartbeat(overrides: Record<string, unknown> = {}) {
     processedCount: 2,
     failedCount: 1,
     metadata: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function outboxEvent(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'outbox-1',
+    organizationId: 'org-1',
+    eventType: 'FABRIC_ANCHOR_REQUESTED',
+    aggregateType: 'PurchaseOrder',
+    aggregateId: 'po-1',
+    payload: {},
+    status: 'PENDING',
+    attempts: 0,
+    nextRunAt: new Date(),
+    availableAt: null,
+    lastError: null,
+    idempotencyKey: null,
+    processedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    reconciliationRecord: null,
+    ...overrides,
+  };
+}
+
+function reconciliationRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'reconciliation-1',
+    organizationId: 'org-1',
+    outboxEventId: null,
+    integrationType: 'FABRIC',
+    aggregateType: 'PurchaseOrder',
+    aggregateId: 'po-1',
+    externalReference: null,
+    status: 'PENDING',
+    requestPayload: {},
+    responsePayload: null,
+    lastError: null,
+    attempts: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    outboxEvent: null,
+    ...overrides,
+  };
+}
+
+function auditAnchor(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'anchor-1',
+    organizationId: 'org-1',
+    anchorType: 'FABRIC',
+    status: 'PENDING',
+    fromAuditEventId: null,
+    toAuditEventId: null,
+    rootHash: 'hash',
+    metadata: {},
+    anchoredAt: null,
+    fabricTransactionId: null,
+    fabricBlockNumber: null,
+    fabricChannel: null,
+    fabricChaincode: null,
+    fabricCommitStatus: null,
+    fabricEndorsementStatus: null,
+    fabricVerifiedAt: null,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
+
+function reportExportJob(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'report-1',
+    organizationId: 'org-1',
+    reportType: 'procurement',
+    format: 'json',
+    status: 'queued',
+    requestedByUserId: 'user-1',
+    filePath: null,
+    objectKey: null,
+    errorMessage: null,
+    metadata: {},
+    expiresAt: null,
+    completedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

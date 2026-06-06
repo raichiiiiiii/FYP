@@ -134,6 +134,55 @@ describe('Integration: outbox and Redis queue', () => {
       ]),
     );
 
+    const timeline = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/integrations/timeline')
+        .query({
+          organizationId: setup.organization.id,
+          actorUserId: setup.adminUser.id,
+          limit: 10,
+        })
+        .expect(200)
+    ).body as Array<{
+      category: string;
+      severity: string;
+      entityId: string;
+      summary: string;
+    }>;
+    expect(timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: 'outbox',
+          severity: 'warning',
+          entityId: created.id,
+        }),
+        expect.objectContaining({
+          category: 'reconciliation',
+          severity: 'error',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(timeline)).not.toContain('canonicalHash');
+    expect(JSON.stringify(timeline)).not.toContain('abc123integration');
+
+    const outboxTimeline = (
+      await request(context.app.getHttpServer())
+        .get('/api/v1/integrations/timeline')
+        .query({
+          organizationId: setup.organization.id,
+          actorUserId: setup.adminUser.id,
+          category: 'outbox',
+          severity: 'warning',
+        })
+        .expect(200)
+    ).body as Array<{ category: string; severity: string }>;
+    expect(outboxTimeline).toEqual([
+      expect.objectContaining({
+        category: 'outbox',
+        severity: 'warning',
+      }),
+    ]);
+
     await context.redisQueue.enqueue('integration', {
       outboxEventId: created.id,
     });
