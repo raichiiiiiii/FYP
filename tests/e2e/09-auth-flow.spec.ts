@@ -12,6 +12,11 @@ test('SRS-AUTH-001 local dev login creates an authenticated application session'
   const session = await createOrganizationViaApi(request, 'E2E Auth SME');
 
   await page.goto('/login');
+  await expect(page.getByLabel('Email')).toBeVisible();
+  await page.screenshot({
+    path: 'docs/evidence/uat/auth-login-dev-mode.png',
+    fullPage: true,
+  });
   await page.getByLabel('Email').fill(session.email);
   await page.getByLabel('Organization ID').fill(session.organizationId);
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -60,8 +65,14 @@ test('SRS-AUTH-002 invitation acceptance creates membership and local UAT sessio
   await page.goto(
     `/auth/invitations/accept?token=${encodeURIComponent(invitationBody.token)}`,
   );
-  await expect(page.getByRole('heading', { name: 'Accept MEPN access' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Accept MEPN access' }),
+  ).toBeVisible();
   await expect(page.getByText(invitationBody.invitation.email)).toBeVisible();
+  await page.screenshot({
+    path: 'docs/evidence/uat/auth-invitation-acceptance.png',
+    fullPage: true,
+  });
 
   await page.getByLabel('Display name').fill('Invite Accepted');
   await page.getByRole('button', { name: 'Accept invitation' }).click();
