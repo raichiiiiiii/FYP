@@ -9,6 +9,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { GraphModule } from './modules/graph/graph.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     RolesModule,
     MembershipsModule,
     ProcurementModule,
+    ReportsModule,
     EvidenceModule,
     FinanceModule,
     GraphModule,
