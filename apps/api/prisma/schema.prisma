@@ -52,6 +52,7 @@ model Organization {
   procurementApprovalRules ProcurementApprovalRule[]
   reportExportJobs         ReportExportJob[]
   graphSavedViews          GraphSavedView[]
+  graphAnnotations         GraphAnnotation[]
 }
 
 model User {
@@ -76,6 +77,8 @@ model User {
   reportExportJobs      ReportExportJob[] @relation("ReportExportRequestedBy")
   reviewedLossExceptions LossException[] @relation("LossExceptionReviewer")
   graphSavedViews       GraphSavedView[] @relation("GraphSavedViewOwner")
+  createdGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationCreatedBy")
+  updatedGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationUpdatedBy")
 }
 
 model Role {
@@ -1035,10 +1038,37 @@ model GraphSavedView {
 
   organization Organization @relation(fields: [organizationId], references: [id])
   owner        User         @relation("GraphSavedViewOwner", fields: [ownerUserId], references: [id])
+  annotations  GraphAnnotation[]
 
   @@unique([organizationId, ownerUserId, name])
   @@index([organizationId])
   @@index([ownerUserId])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+model GraphAnnotation {
+  id              String   @id @default(uuid())
+  organizationId  String
+  viewId          String?
+  nodeEntityType  String?
+  nodeEntityId    String?
+  body            String
+  visibility      String   @default("private")
+  createdByUserId String
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  view         GraphSavedView? @relation(fields: [viewId], references: [id])
+  createdBy   User            @relation("GraphAnnotationCreatedBy", fields: [createdByUserId], references: [id])
+  updatedBy   User?           @relation("GraphAnnotationUpdatedBy", fields: [updatedByUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([viewId])
+  @@index([nodeEntityType, nodeEntityId])
+  @@index([createdByUserId])
   @@index([visibility])
   @@index([createdAt])
 }
