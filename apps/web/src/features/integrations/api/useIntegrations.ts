@@ -89,6 +89,39 @@ export type WorkerHeartbeatView = {
   updatedAt: string
 }
 
+export type OperationsTimelineCategory =
+  | 'health'
+  | 'worker'
+  | 'outbox'
+  | 'reconciliation'
+  | 'fabric'
+  | 'report'
+  | 'backup'
+  | 'deployment'
+
+export type OperationsTimelineSeverity = 'info' | 'success' | 'warning' | 'error'
+
+export type OperationsTimelineItem = {
+  id: string
+  timestamp: string
+  category: OperationsTimelineCategory
+  severity: OperationsTimelineSeverity
+  title: string
+  summary: string
+  entityType?: string
+  entityId?: string
+  sourcePath?: string
+  evidencePath?: string
+  status?: string
+  metadataSummary?: Record<string, string | number | boolean | null>
+}
+
+export type OperationsTimelineFilters = {
+  category?: OperationsTimelineCategory | 'all'
+  severity?: OperationsTimelineSeverity | 'all'
+  limit?: number
+}
+
 type RequestBody = Record<string, unknown>
 
 export function useIntegrations(session: AppSession) {
@@ -157,6 +190,33 @@ export function useIntegrations(session: AppSession) {
         endpoints.integrations.workers,
       ),
     [fetchQuery],
+  )
+
+  const listTimeline = useCallback(
+    <T = OperationsTimelineItem[]>(filters: OperationsTimelineFilters = {}) => {
+      requireSession(organizationId)
+      requireActor(actorUserId)
+
+      const normalizedFilters = {
+        category: filters.category === 'all' ? undefined : filters.category,
+        severity: filters.severity === 'all' ? undefined : filters.severity,
+        limit: filters.limit ?? 50,
+      }
+
+      return fetchQuery<T>(
+        queryKeys.integrations.timeline(
+          organizationId,
+          actorUserId,
+          normalizedFilters,
+        ),
+        endpoints.integrations.timeline(
+          organizationId,
+          actorUserId,
+          normalizedFilters,
+        ),
+      )
+    },
+    [actorUserId, fetchQuery, organizationId],
   )
 
   const queueFabricAnchor = useCallback(
@@ -231,6 +291,7 @@ export function useIntegrations(session: AppSession) {
     listWebhookSubscriptions,
     getFabricStatus,
     listWorkerHeartbeats,
+    listTimeline,
     queueFabricAnchor,
     queueEsignPackage,
     queueErpSync,
@@ -255,5 +316,11 @@ function scopedBody(
 function requireSession(organizationId?: string | null) {
   if (!organizationId) {
     throw new Error('Active organization session required')
+  }
+}
+
+function requireActor(actorUserId?: string | null) {
+  if (!actorUserId) {
+    throw new Error('Active user session required')
   }
 }

@@ -178,6 +178,24 @@ export const queryKeys = {
   integrations: {
     fabricStatus: ['integrations', 'fabric-status'] as const,
     workers: ['integrations', 'workers'] as const,
+    timeline: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+      filters?: {
+        category?: string | null
+        severity?: string | null
+        limit?: number | string | null
+      },
+    ) =>
+      [
+        'integrations',
+        'timeline',
+        organizationId ?? 'global',
+        actorUserId ?? 'anonymous',
+        filters?.category ?? 'all',
+        filters?.severity ?? 'all',
+        filters?.limit ?? 'default',
+      ] as const,
     outbox: (organizationId?: string | null) =>
       scopedKey('integrations', 'outbox', organizationId),
     reconciliation: (organizationId?: string | null) =>

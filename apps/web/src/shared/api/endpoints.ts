@@ -317,6 +317,22 @@ export const endpoints = {
     reconciliation: (organizationId?: string | null) =>
       scopedPath('/integrations/reconciliation', organizationId),
     workers: '/integrations/workers',
+    timeline: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+      filters?: {
+        category?: string | null
+        severity?: string | null
+        limit?: number | string | null
+      },
+    ) =>
+      withQuery('/integrations/timeline', {
+        organizationId,
+        actorUserId,
+        category: filters?.category,
+        severity: filters?.severity,
+        limit: filters?.limit,
+      }),
     fabricStatus: '/integrations/fabric/status',
     fabricAnchor: '/integrations/fabric/anchors',
     esignPackage: '/integrations/esign/packages',

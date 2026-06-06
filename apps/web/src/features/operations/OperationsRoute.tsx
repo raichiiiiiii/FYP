@@ -9,6 +9,7 @@ import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { AppSession, HealthResponse, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
 import {
+  type OperationsTimelineItem,
   type OutboxEventView,
   type ReconciliationRecord,
   type WebhookSubscription,
@@ -22,6 +23,8 @@ import {
   integrationHealthLabel,
   summarizeOperationalHealth,
 } from '../integrations/status/integrationStatus.model'
+import { OperationsTimeline } from './OperationsTimeline'
+import type { OperationsTimelineFilter } from './OperationsTimeline.model'
 
 const deploymentRunbookUrl =
   'https://github.com/raichiiiiiii/FYP/blob/main/docs/deployment/azure-student-vm-deployment.md'
@@ -33,6 +36,7 @@ type OperationsData = {
   reconciliation: ReconciliationRecord[]
   subscriptions: WebhookSubscription[]
   workerHeartbeats: WorkerHeartbeatView[]
+  timeline: OperationsTimelineItem[]
   warnings: string[]
 }
 
@@ -42,10 +46,13 @@ export function OperationsRoute({ session }: { session: AppSession }) {
     listReconciliation,
     listWebhookSubscriptions,
     listWorkerHeartbeats,
+    listTimeline,
   } = useIntegrations(session)
   const [dataState, setDataState] = useState<LoadState<OperationsData>>({
     status: 'loading',
   })
+  const [timelineFilter, setTimelineFilter] =
+    useState<OperationsTimelineFilter>('all')
 
   const loadOperations = useCallback(async () => {
     setDataState({ status: 'loading' })
@@ -56,12 +63,14 @@ export function OperationsRoute({ session }: { session: AppSession }) {
       reconciliationResult,
       subscriptionsResult,
       workerHeartbeatsResult,
+      timelineResult,
     ] = await Promise.allSettled([
         apiRequest<HealthResponse>('/health'),
         listOutbox(),
         listReconciliation(),
         listWebhookSubscriptions(),
         listWorkerHeartbeats(),
+        listTimeline({ limit: 50 }),
       ])
 
     const health =
@@ -77,12 +86,15 @@ export function OperationsRoute({ session }: { session: AppSession }) {
       workerHeartbeatsResult.status === 'fulfilled'
         ? workerHeartbeatsResult.value
         : []
+    const timeline =
+      timelineResult.status === 'fulfilled' ? timelineResult.value : []
     const warnings = [
       resultWarning('API health', healthResult),
       resultWarning('Outbox', outboxResult),
       resultWarning('Reconciliation', reconciliationResult),
       resultWarning('Webhook subscriptions', subscriptionsResult),
       resultWarning('Worker heartbeat', workerHeartbeatsResult),
+      resultWarning('Operations timeline', timelineResult),
     ].filter((warning): warning is string => Boolean(warning))
 
     if (!health && outboxResult.status === 'rejected') {
@@ -107,12 +119,14 @@ export function OperationsRoute({ session }: { session: AppSession }) {
         reconciliation,
         subscriptions,
         workerHeartbeats,
+        timeline,
         warnings,
       },
     })
   }, [
     listOutbox,
     listReconciliation,
+    listTimeline,
     listWebhookSubscriptions,
     listWorkerHeartbeats,
   ])
@@ -351,6 +365,12 @@ export function OperationsRoute({ session }: { session: AppSession }) {
           <IntegrationStatusCards
             title="Adapter and outbox visibility"
             statuses={integrationStatuses}
+          />
+
+          <OperationsTimeline
+            items={data.timeline}
+            activeFilter={timelineFilter}
+            onFilterChange={setTimelineFilter}
           />
 
           <section className="table-section">

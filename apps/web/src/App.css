@@ -2598,6 +2598,148 @@ textarea {
   margin: 0;
 }
 
+.operations-timeline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.operations-timeline-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.operations-timeline-filter {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.operations-timeline-filter--active,
+.operations-timeline-filter[aria-pressed='true'] {
+  background: var(--text-strong);
+  border-color: var(--text-strong);
+  color: #ffffff;
+}
+
+.operations-timeline-list {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.operations-timeline-item {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 14px minmax(0, 1fr);
+}
+
+.operations-timeline-marker {
+  background: var(--border);
+  border-radius: 999px;
+  height: 14px;
+  margin-top: 8px;
+  width: 14px;
+}
+
+.operations-timeline-item--success .operations-timeline-marker {
+  background: #2d7b5f;
+}
+
+.operations-timeline-item--warning .operations-timeline-marker {
+  background: #9a6b13;
+}
+
+.operations-timeline-item--error .operations-timeline-marker {
+  background: #a63a3a;
+}
+
+.operations-timeline-item article {
+  background: #fbfcfd;
+  border: 1px solid rgba(150, 168, 180, 0.38);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.operations-timeline-item__header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.operations-timeline-item__header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.operations-timeline-item__header h3 {
+  color: var(--text-strong);
+  font-size: 16px;
+  margin: 4px 0 0;
+}
+
+.operations-timeline-item p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.operations-timeline-meta,
+.operations-timeline-metadata {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.operations-timeline-meta div,
+.operations-timeline-metadata div {
+  min-width: 0;
+}
+
+.operations-timeline-meta dt,
+.operations-timeline-metadata dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.operations-timeline-meta dd,
+.operations-timeline-metadata dd {
+  color: var(--text-strong);
+  font-weight: 800;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.operations-timeline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.operations-timeline-links a {
+  color: #215c54;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .operations-hero {
   background:
     linear-gradient(135deg, rgba(64, 111, 159, 0.1), rgba(33, 92, 84, 0.08)),
@@ -4907,6 +5049,8 @@ textarea {
   .status-card-grid,
   .status-card-grid--operations,
   .operations-readiness,
+  .operations-timeline-meta,
+  .operations-timeline-metadata,
   .procurement-summary,
   .dashboard-intro,
   .dashboard-kpi-grid,
