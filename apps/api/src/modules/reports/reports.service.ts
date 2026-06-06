@@ -9,12 +9,14 @@ import { AuditEventsService } from '../../audit-events/audit-events.service';
 import { PrismaService } from '../../database/prisma.service';
 import { ObjectStorageService } from '../evidence/object-storage/object-storage.service';
 import {
+  type ReportExportFormat,
   assertReportExportTransition,
   normalizeReportExportFormat,
   normalizeReportExportStatus,
   normalizeReportType,
   type ReportType,
 } from './report-export-lifecycle';
+import { serializeReportDtoToCsv } from './report-csv.serializer';
 
 type ReportInput = {
   organizationId?: string;
@@ -237,26 +239,23 @@ export class ReportsService {
         actorUserId: exportJob.requestedByUserId ?? undefined,
         reportType,
       });
-      const content = JSON.stringify(
-        {
-          exportJob: {
-            id: exportJob.id,
-            organizationId: exportJob.organizationId,
-            reportType,
-            format,
-            requestedByUserId: exportJob.requestedByUserId,
-            generatedAt: new Date().toISOString(),
-          },
-          report,
-        },
-        null,
-        2,
+      const content = serializeReportExportContent({
+        exportJobId: exportJob.id,
+        organizationId: exportJob.organizationId,
+        reportType,
+        format,
+        requestedByUserId: exportJob.requestedByUserId,
+        report,
+      });
+      const objectName = reportExportObjectName(
+        exportJob.id,
+        reportType,
+        format,
       );
-      const objectName = reportExportObjectName(exportJob.id, reportType);
       const stored = await this.objectStorage.putObject({
         objectName,
         content,
-        contentType: 'application/json',
+        contentType: reportExportContentType(format),
       });
       const completed = await this.transitionExportJob({
         organizationId: exportJob.organizationId,
@@ -387,8 +386,14 @@ export class ReportsService {
     return {
       exportJob,
       content,
-      contentType: 'application/json',
-      fileName: `${exportJob.reportType}-report-${exportJob.id}.json`,
+      contentType: reportExportContentType(
+        normalizeReportExportFormat(exportJob.format),
+      ),
+      fileName: reportExportFileName(
+        exportJob.id,
+        normalizeReportType(exportJob.reportType),
+        normalizeReportExportFormat(exportJob.format),
+      ),
     };
   }
 
@@ -776,6 +781,55 @@ function reportExportBucket() {
   return process.env.MINIO_BUCKET || 'mepn-evidence';
 }
 
-function reportExportObjectName(exportJobId: string, reportType: ReportType) {
-  return `reports/${reportType}/${exportJobId}.json`;
+function serializeReportExportContent(input: {
+  exportJobId: string;
+  organizationId: string;
+  reportType: ReportType;
+  format: ReportExportFormat;
+  requestedByUserId: string | null;
+  report: unknown;
+}) {
+  if (input.format === 'csv') {
+    return serializeReportDtoToCsv(input.reportType, input.report);
+  }
+
+  return JSON.stringify(
+    {
+      exportJob: {
+        id: input.exportJobId,
+        organizationId: input.organizationId,
+        reportType: input.reportType,
+        format: input.format,
+        requestedByUserId: input.requestedByUserId,
+        generatedAt: new Date().toISOString(),
+      },
+      report: input.report,
+    },
+    null,
+    2,
+  );
+}
+
+function reportExportContentType(format: ReportExportFormat) {
+  return format === 'csv' ? 'text/csv' : 'application/json';
+}
+
+function reportExportExtension(format: ReportExportFormat) {
+  return format === 'csv' ? 'csv' : 'json';
+}
+
+function reportExportFileName(
+  exportJobId: string,
+  reportType: ReportType,
+  format: ReportExportFormat,
+) {
+  return `${reportType}-report-${exportJobId}.${reportExportExtension(format)}`;
+}
+
+function reportExportObjectName(
+  exportJobId: string,
+  reportType: ReportType,
+  format: ReportExportFormat,
+) {
+  return `reports/${reportType}/${exportJobId}.${reportExportExtension(format)}`;
 }

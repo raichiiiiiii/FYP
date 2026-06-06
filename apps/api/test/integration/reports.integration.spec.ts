@@ -215,6 +215,77 @@ describe('Integration: reports', () => {
     );
   });
 
+  it('generates downloadable audited CSV report exports', async () => {
+    const fixture = await createProcurementFixture(context.app);
+
+    const created = await request(context.app.getHttpServer())
+      .post('/api/v1/reports/exports')
+      .send({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+        reportType: 'procurement',
+        format: 'csv',
+      })
+      .expect(201);
+
+    expect(created.body).toEqual(
+      expect.objectContaining({
+        organizationId: fixture.organizationId,
+        requestedByUserId: fixture.actorUserId,
+        reportType: 'procurement',
+        format: 'csv',
+        status: 'completed',
+      }),
+    );
+    expect(created.body.objectKey).toMatch(
+      new RegExp(`^reports/procurement/${created.body.id}\\.csv$`),
+    );
+
+    const download = await request(context.app.getHttpServer())
+      .get(`/api/v1/reports/exports/${created.body.id}/download`)
+      .query({
+        organizationId: fixture.organizationId,
+        actorUserId: fixture.actorUserId,
+      })
+      .expect(200)
+      .expect('Content-Type', /text\/csv/)
+      .expect(
+        'Content-Disposition',
+        new RegExp(`procurement-report-${created.body.id}\\.csv`),
+      );
+
+    expect(download.text.split('\n')[0]).toBe('section,metric,value');
+    expect(download.text).toContain('report,type,procurement');
+    expect(download.text).toContain('counts,purchaseOrders,1');
+    expect(download.text).toContain('counts,invoices,1');
+
+    const events = await context.prisma.auditEvent.findMany({
+      where: {
+        organizationId: fixture.organizationId,
+        entityType: 'ReportExportJob',
+        entityId: created.body.id,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    expect(events.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining([
+        'REPORT_EXPORT_REQUESTED',
+        'REPORT_EXPORT_COMPLETED',
+        'REPORT_EXPORT_DOWNLOADED',
+      ]),
+    );
+    expect(events.map((event) => event.metadata)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          format: 'csv',
+        }),
+      ]),
+    );
+  });
+
   it('hides finance reports from procurement-only actors', async () => {
     const setup = await createOrganizationFixture(context.app);
     const role = await context.prisma.role.create({
@@ -271,6 +342,15 @@ describe('Integration: reports', () => {
         actorUserId: user.id,
         reportType: 'finance',
         format: 'json',
+      }),
+    ).rejects.toThrow('Finance report access denied');
+
+    await expect(
+      reports.createExportJob({
+        organizationId: setup.organization.id,
+        actorUserId: user.id,
+        reportType: 'finance',
+        format: 'csv',
       }),
     ).rejects.toThrow('Finance report access denied');
   });
