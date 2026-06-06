@@ -42,6 +42,7 @@ not be stored in this directory.
 | `docs/evidence/qa/GUIDED_DEMO_MODE_EVIDENCE.md` | In-app guided reviewer checklist for the FYP demo path. | Complete after latest guided demo E2E screenshot capture. |
 | `docs/evidence/qa/EVIDENCE_PACKAGE_BROWSER_EVIDENCE.md` | Read-only in-app reviewer evidence package browser. | Complete after latest evidence browser E2E screenshot capture. |
 | `docs/evidence/qa/REPORT_EXPORT_EVIDENCE.md` | Backend report DTO and audited JSON/CSV export evidence. | Complete for JSON and CSV FYP scope. |
+| `docs/evidence/qa/OPERATIONS_TIMELINE_EVIDENCE.md` | Backend-backed operations timeline for outbox, reconciliation, Fabric, reports, and worker events. | Complete after latest operations timeline E2E screenshot capture. |
 | `docs/evidence/qa/LOSS_EXCEPTION_WORKFLOW_EVIDENCE.md` | Loss exception classification, reviewer UI, closure gate, and no-guaranteed-return evidence. | Complete for FYP scope. |
 | `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md` | Accessibility helper, axe/focus checks, and critical-route evidence. | Complete for automated FYP scope. |
 | `docs/evidence/qa/SUMMARY_DTO_EVIDENCE.md` | Dashboard/procurement/finance summary DTO and UI evidence. | Complete for FYP scope. |
@@ -57,6 +58,7 @@ not be stored in this directory.
 | `docs/evidence/uat/evidence-package-browser.png` | Evidence Package Browser reviewer page. |
 | `docs/evidence/uat/reports-json-export-flow.png` | JSON report export flow. |
 | `docs/evidence/uat/reports-csv-export-flow.png` | CSV report export flow. |
+| `docs/evidence/uat/operations-timeline.png` | Operations Timeline reviewer view. |
 | `docs/evidence/uat/loss-exception-review-flow.png` | Loss exception reviewer workflow. |
 | `docs/evidence/uat/summary-procurement-hub.png` | Procurement Hub summary DTO UI. |
 | `docs/evidence/uat/summary-finance-panel.png` | Finance summary DTO UI. |

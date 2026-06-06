@@ -90,6 +90,7 @@ state. The classifications are intentionally conservative:
 | Graph/canvas | Read-only project graph with role-filtered procurement, finance, hash-record, anchor overlay, backend risk metadata, URL filters, saved views, and no-leak E2E evidence. | `apps/api/src/modules/graph/`, `apps/web/src/features/graph/`, `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` |
 | Integrations | Integration status cards, Fabric runtime mode display, outbox visibility, retry/degraded/unavailable states. | `apps/api/src/modules/integrations/`, `apps/web/src/features/integrations/` |
 | Operations | Worker heartbeat model/API/UI for queue and worker liveness visibility. | `apps/api/prisma/schema.prisma`, `apps/api/src/modules/integrations/`, `apps/web/src/features/operations/` |
+| Operations Timeline | Backend-backed reviewer timeline for worker, outbox, reconciliation, Fabric anchor, and report export events with sanitized summaries and E2E evidence. | `apps/api/src/modules/integrations/status/operations-timeline.dto.ts`, `apps/web/src/features/operations/OperationsTimeline.tsx`, `tests/e2e/24-operations-timeline.spec.ts`, `docs/evidence/qa/OPERATIONS_TIMELINE_EVIDENCE.md` |
 | Admin and identity | Organization setup, role/user membership management, admin demo surfaces. | `apps/api/src/organizations/`, `apps/api/src/users/`, `apps/web/src/features/identity/` |
 | Reports demo surface | Reports landing/demo cards with audited JSON/CSV export actions and honest unsupported-format limitations. | `apps/web/src/features/reports/` |
 | CI | GitHub Actions CI for install, lint, typecheck, tests, and build. | `.github/workflows/ci.yml` |
@@ -312,7 +313,7 @@ demo, and product polish.
 | Audit story timeline | Shows procurement event -> evidence hash -> Fabric anchor -> finance review -> closure. | Use backend audit/hash/anchor data, not Figma mock records. |
 | Graph-to-workflow drilldown | Lets reviewers click graph nodes/edges and open exact source records. | Use central entity-route registry and permission checks. |
 | Reviewer evidence export pack | Bundles screenshots, hashes, Fabric proof, UAT notes, and limitations. | Generate from API-backed records and sanitized evidence scripts. |
-| Operations readiness score | Summarizes API, DB, Redis, worker heartbeat, outbox backlog, Fabric mode, and VM deployment. | Use health/status endpoints only; do not infer external provider health. |
+| Operations readiness score | Summarizes API, DB, Redis, worker heartbeat, outbox backlog, Fabric mode, and VM deployment. | Use health/status endpoints only; do not infer external provider health. Current operations timeline provides event history, not a production readiness score. |
 | Demo-only role preview switcher | Speeds walkthroughs across roles. | Feature-flag as demo-only and never use as production auth. |
 | Mudarabah compliance explainer | Helps reviewers understand no guaranteed fixed return and loss exception handling. | Keep copy aligned with SRS and Shariah/legal review. |
 | First-run deployment checklist UI | Shows operator what remains to configure for a self-hosted SME node. | Pull from real config/readiness endpoints; label unavailable items honestly. |

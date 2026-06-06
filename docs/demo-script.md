@@ -260,26 +260,29 @@ Show:
 - ERP integration status
 - Fabric adapter status
 - webhook/outbox state
+- operations timeline
 - deployment health
 - degraded/unavailable states
 
 Status:
 
 - Operational visibility is implemented with clear status states.
+- Worker heartbeat and timeline summaries are API-backed for reviewer
+  visibility.
 - External integrations remain adapter/mock based unless configured later.
-- Worker health is not yet backed by a dedicated heartbeat endpoint.
 
 Talking point:
 
 External systems are unreliable by default, so integration work goes through
-adapters and outbox status instead of being hidden inside core workflows.
+adapters, worker heartbeat, timeline summaries, and outbox status instead of
+being hidden inside core workflows.
 
 ## Known Limitations
 
 - Backend APIs may still be incomplete for some advanced screen actions.
 - Some frontend views use typed fixtures or local/demo state.
-- Reports use current API list data and intentionally disabled export actions
-  until dedicated report export endpoints exist.
+- Reports use backend DTOs and audited JSON/CSV exports. PDF/spreadsheet report
+  packs remain hardening.
 - Fabric anchoring may be mocked, pending, unavailable, or externally integrated
   depending on environment.
 - Payment, disbursement, ERP, e-signature, and finance provider integrations are
