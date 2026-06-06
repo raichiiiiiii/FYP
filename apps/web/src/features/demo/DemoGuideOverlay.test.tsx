@@ -18,9 +18,24 @@ describe('DemoGuideOverlay UI pieces', () => {
     )
 
     expect(html).toContain('aria-controls="demo-guide-panel"')
+    expect(html).toContain('aria-label="Open guided demo checklist"')
     expect(html).toContain('aria-expanded="false"')
     expect(html).toContain('Demo guide')
     expect(html).toContain('2/11 reviewed')
+  })
+
+  it('labels the expanded toggle as a close action', () => {
+    const html = renderToStaticMarkup(
+      <DemoGuideToggle
+        expanded
+        reviewedCount={4}
+        totalCount={11}
+        onToggle={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('aria-label="Close guided demo checklist"')
+    expect(html).toContain('aria-expanded="true"')
   })
 
   it('renders route links, evidence links, and manual review checkboxes', () => {

@@ -37,7 +37,14 @@ export function DemoGuideOverlay() {
   const expanded = !progress.collapsed
 
   return (
-    <aside className="demo-guide" aria-label="Guided demo checklist">
+    <aside
+      className={
+        expanded
+          ? 'demo-guide demo-guide--expanded'
+          : 'demo-guide demo-guide--collapsed'
+      }
+      aria-label="Guided demo checklist"
+    >
       <DemoGuideToggle
         expanded={expanded}
         reviewedCount={reviewedCount}

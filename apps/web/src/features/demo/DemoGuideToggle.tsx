@@ -15,6 +15,9 @@ export function DemoGuideToggle({
     <button
       type="button"
       className="demo-guide-toggle"
+      aria-label={
+        expanded ? 'Close guided demo checklist' : 'Open guided demo checklist'
+      }
       aria-controls="demo-guide-panel"
       aria-expanded={expanded}
       onClick={onToggle}
