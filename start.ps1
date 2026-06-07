@@ -34,6 +34,31 @@ function Write-Warn {
   Write-Host "[mepn-multinode] WARNING: $Message" -ForegroundColor Yellow
 }
 
+function Invoke-NativeCommandOutput {
+  param(
+    [scriptblock]$Command,
+    [switch]$PrintOutput
+  )
+
+  $oldErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    $output = @(& $Command 2>&1 | ForEach-Object { "$_" })
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $oldErrorActionPreference
+  }
+
+  if ($PrintOutput) {
+    $output | ForEach-Object { Write-Host $_ }
+  }
+
+  return [pscustomobject]@{
+    ExitCode = $exitCode
+    Output = $output
+  }
+}
+
 function Read-NodeEnv {
   param([string]$NodeKey)
 
@@ -80,6 +105,39 @@ function Stop-ProcessTree {
   Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
 }
 
+function Test-IsDockerOwnedProcess {
+  param([int]$ProcessId)
+
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
+  if (-not $process) {
+    return $false
+  }
+
+  $text = @(
+    $process.Name,
+    $process.ExecutablePath,
+    $process.CommandLine
+  ) -join ' '
+  $lower = $text.ToLowerInvariant()
+  $dockerMarkers = @(
+    'docker',
+    'com.docker',
+    'dockerd',
+    'containerd',
+    'vpnkit',
+    'wslhost',
+    'vmmem'
+  )
+
+  foreach ($marker in $dockerMarkers) {
+    if ($lower.Contains($marker)) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
 function Stop-ProcessesOnPorts {
   param([int[]]$Ports)
 
@@ -89,6 +147,11 @@ function Stop-ProcessesOnPorts {
 
     foreach ($processId in $pids) {
       if ($processId -and $processId -ne 0) {
+        if (Test-IsDockerOwnedProcess -ProcessId ([int]$processId)) {
+          Write-Warn "Skipping Docker-owned process $processId listening on port $port; docker compose down will manage it."
+          continue
+        }
+
         Write-Step "Stopping process $processId listening on port $port."
         Stop-ProcessTree -ProcessId ([int]$processId)
       }
@@ -117,6 +180,41 @@ function Stop-RepoNodeProcesses {
   }
 }
 
+function Stop-LegacyLocalDockerStack {
+  $legacyComposeFile = Join-Path $RepoRoot 'docker-compose.local.yml'
+
+  if (Test-Path -LiteralPath $legacyComposeFile) {
+    Write-Step 'Stopping existing single-node local Docker stack.'
+    $composeResult = Invoke-NativeCommandOutput -Command {
+      docker compose -p fyp -f $legacyComposeFile down --remove-orphans
+    } -PrintOutput
+
+    if ($composeResult.ExitCode -ne 0) {
+      throw 'Stopping the single-node local Docker stack failed.'
+    }
+  }
+
+  $containerListResult = Invoke-NativeCommandOutput -Command {
+    docker ps -a --filter 'name=^/mepn_local_' --format '{{.Names}}'
+  }
+
+  if ($containerListResult.ExitCode -ne 0) {
+    throw 'Listing legacy single-node MEPN containers failed.'
+  }
+
+  $legacyContainers = @($containerListResult.Output | Where-Object { $_ })
+  if ($legacyContainers.Count -gt 0) {
+    Write-Step "Removing legacy single-node MEPN containers: $($legacyContainers -join ', ')."
+    $removeResult = Invoke-NativeCommandOutput -Command {
+      docker rm -f @legacyContainers
+    } -PrintOutput
+
+    if ($removeResult.ExitCode -ne 0) {
+      throw 'Removing legacy single-node MEPN containers failed.'
+    }
+  }
+}
+
 function Invoke-NodeCompose {
   param(
     [hashtable]$Node,
@@ -125,11 +223,17 @@ function Invoke-NodeCompose {
 
   Push-Location $RepoRoot
   try {
-    & docker compose `
-      -p $Node.COMPOSE_PROJECT_NAME `
-      -f $ComposeFile `
-      --env-file $Node.ENV_FILE `
-      @Arguments
+    $composeResult = Invoke-NativeCommandOutput -Command {
+      docker compose `
+        -p $Node.COMPOSE_PROJECT_NAME `
+        -f $ComposeFile `
+        --env-file $Node.ENV_FILE `
+        @Arguments
+    } -PrintOutput
+
+    if ($composeResult.ExitCode -ne 0) {
+      throw "Docker compose command failed for $($Node.MEPN_NODE_KEY): $($Arguments -join ' ')"
+    }
   } finally {
     Pop-Location
   }
@@ -179,19 +283,23 @@ function Invoke-NodeMigrationAndSeed {
 
     Push-Location $RepoRoot
     try {
-      $migrationOutput = & corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma 2>&1
-      if ($LASTEXITCODE -ne 0) {
-        $migrationOutput | ForEach-Object { Write-Host $_ }
+      $migrationResult = Invoke-NativeCommandOutput -Command {
+        corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
+      }
+      if ($migrationResult.ExitCode -ne 0) {
+        $migrationResult.Output | ForEach-Object { Write-Host $_ }
         throw "Prisma migration failed for $($Node.MEPN_NODE_KEY)."
       }
 
-      $seedOutput = & node tests/uat/seed-uat-demo.mjs --node $Node.MEPN_NODE_KEY 2>&1
-      if ($LASTEXITCODE -ne 0) {
-        $seedOutput | ForEach-Object { Write-Host $_ }
+      $seedResult = Invoke-NativeCommandOutput -Command {
+        node tests/uat/seed-uat-demo.mjs --node $Node.MEPN_NODE_KEY
+      }
+      if ($seedResult.ExitCode -ne 0) {
+        $seedResult.Output | ForEach-Object { Write-Host $_ }
         throw "UAT seed failed for $($Node.MEPN_NODE_KEY)."
       }
 
-      $summary = Convert-SeedSummaryOutput -OutputLines $seedOutput
+      $summary = Convert-SeedSummaryOutput -OutputLines $seedResult.Output
       Write-Step "Seeded $($Node.MEPN_NODE_KEY) organization $($summary.organization.legalName)."
       return $summary
     } finally {
@@ -227,8 +335,10 @@ function Invoke-SimulatedChannelBootstrap {
 
   Push-Location $RepoRoot
   try {
-    & node tests/uat/bootstrap-local-node-federation.mjs
-    if ($LASTEXITCODE -ne 0) {
+    $bootstrapResult = Invoke-NativeCommandOutput -Command {
+      node tests/uat/bootstrap-local-node-federation.mjs
+    } -PrintOutput
+    if ($bootstrapResult.ExitCode -ne 0) {
       throw 'Local simulated federation channel bootstrap failed.'
     }
   } finally {
@@ -259,19 +369,31 @@ foreach ($node in $Nodes) {
 }
 
 Stop-RepoNodeProcesses
+Stop-LegacyLocalDockerStack
 Stop-ProcessesOnPorts -Ports ($ports | Select-Object -Unique)
 
 Write-Step 'Enabling Corepack and installing workspace dependencies.'
-& corepack enable
-& corepack pnpm install --frozen-lockfile
+$corepackResult = Invoke-NativeCommandOutput -Command { corepack enable } -PrintOutput
+if ($corepackResult.ExitCode -ne 0) {
+  throw 'Corepack enable failed.'
+}
 
-foreach ($node in $Nodes) {
-  if ($ResetAll) {
-    Write-Step "Resetting Docker volumes for $($node.MEPN_NODE_KEY)."
-    Invoke-NodeCompose -Node $node -Arguments @('down', '-v', '--remove-orphans')
-  } else {
-    Write-Step "Stopping existing containers for $($node.MEPN_NODE_KEY)."
-    Invoke-NodeCompose -Node $node -Arguments @('down', '--remove-orphans')
+$installResult = Invoke-NativeCommandOutput -Command { corepack pnpm install --frozen-lockfile } -PrintOutput
+if ($installResult.ExitCode -ne 0) {
+  throw 'Workspace dependency install failed.'
+}
+
+if ($SeedOnly) {
+  Write-Warn 'SeedOnly was requested; existing containers will not be stopped or started.'
+} else {
+  foreach ($node in $Nodes) {
+    if ($ResetAll) {
+      Write-Step "Resetting Docker volumes for $($node.MEPN_NODE_KEY)."
+      Invoke-NodeCompose -Node $node -Arguments @('down', '-v', '--remove-orphans')
+    } else {
+      Write-Step "Stopping existing containers for $($node.MEPN_NODE_KEY)."
+      Invoke-NodeCompose -Node $node -Arguments @('down', '--remove-orphans')
+    }
   }
 }
 
@@ -323,8 +445,10 @@ if (-not $SkipUat) {
 
     Push-Location $RepoRoot
     try {
-      & corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
-      if ($LASTEXITCODE -ne 0) {
+      $uatResult = Invoke-NativeCommandOutput -Command {
+        corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+      } -PrintOutput
+      if ($uatResult.ExitCode -ne 0) {
         throw 'Multi-node federation UAT failed.'
       }
     } finally {

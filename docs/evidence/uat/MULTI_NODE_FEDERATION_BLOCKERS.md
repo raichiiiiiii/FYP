@@ -7,16 +7,17 @@ Last updated: 2026-06-07
 None for the isolated node seed, Docker/start scaffolding, backend
 node-federation API, preconfigured channel bootstrap, graph route federation
 panel, local password update, organization-admin identity hardening, sidebar
-visibility override, or multi-node UAT spec slices.
+visibility override, or multi-node UAT/runtime evidence slices.
 
 ## Open Implementation Items
 
-These are not blockers for the current slice, but remain required for the full
-multi-node federation objective:
+These are not blockers for the local/UAT simulated multi-node federation slice,
+but remain product-hardening or accepted Fabric-boundary items:
 
-- Execute `.\start.ps1 -ResetAll` without `-SkipUat` to run
-  `tests/e2e/multi-node-federation-uat.spec.ts` against the 10 local nodes and
-  capture screenshots from every relevant local port.
+- Real Fabric channel creation/join/MSP onboarding remains outside the MEPN app
+  runtime under UAT-B-003.
+- Real Fabric proof remains gated by backend Gateway `ReadAnchor` verification
+  under UAT-B-004.
 
 ## Resolved Items
 
@@ -48,17 +49,23 @@ multi-node federation objective:
 - `start.ps1` now runs the multi-node UAT spec when `-SkipUat` is not supplied.
 - `tests/e2e/setup-e2e.mjs` skips single-node E2E database preparation when
   `MEPN_MULTI_NODE_UAT=true`.
+- `start.ps1` now stops the legacy single-node local Docker stack before
+  multi-node startup, preserves Docker-owned port proxy processes, checks
+  Docker Compose/native command exit codes, and supports `-SeedOnly` without
+  stopping running containers.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -ResetAll
+  -NoBuild` completed successfully and ran the multi-node UAT spec with
+  6 passing tests.
+- Multi-node screenshots were captured under
+  `docs/evidence/uat/screenshots/multi-node/`.
 
 ## Validation Limitations
 
 2026-06-07:
 
-- Rendered browser screenshot capture for the graph panel was attempted through
-  the available Browser plugin, but no in-app browser backend was available in
-  this session. `agent.browsers.list()` returned an empty list.
-- Code-level graph validation passed through focused web tests, lint,
-  typecheck, and build. Multi-node screenshot evidence remains pending until
-  the 10-node Docker stack is run with Playwright using the new UAT spec.
+- Browser-plugin screenshot capture was previously unavailable in this session.
+  This limitation is resolved for local UAT evidence by Playwright screenshot
+  capture through `tests/e2e/multi-node-federation-uat.spec.ts`.
 
 ## Boundary Notes
 

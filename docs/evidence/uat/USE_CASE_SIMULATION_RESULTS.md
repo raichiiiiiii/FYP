@@ -154,3 +154,22 @@ Notes:
 - The route continues to offer governance proposals, invitations, approvals, and
   sanitized operator evidence only; it does not expose a direct Fabric topology
   execution action.
+
+2026-06-07 local multi-node runtime evidence:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -ResetAll -NoBuild
+passed
+
+MEPN_MULTI_NODE_UAT=true corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+6 passed
+```
+
+Notes:
+
+- The local run created 10 isolated self-hosted node stacks and 9 simulated
+  federation channels.
+- Screenshot evidence was captured under
+  `docs/evidence/uat/screenshots/multi-node/`.
+- This is local simulated federation evidence only. It does not change the
+  UAT-B-003 direct Fabric topology boundary or the UAT-B-004 live-proof gate.

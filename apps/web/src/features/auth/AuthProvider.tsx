@@ -10,6 +10,7 @@ import type {
   PasswordLoginInput,
 } from '../../shared/types'
 import {
+  canHydrateStoredSessionLocally,
   clearStoredSession,
   loadStoredSession,
   saveStoredSession,
@@ -67,23 +68,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persistSession],
   )
 
-  const refreshSession = useCallback(async () => {
+  const loadCurrentSession = useCallback(async () => {
     const storedSession = loadStoredSession()
 
     if (!storedSession) {
+      return null
+    }
+
+    if (canHydrateStoredSessionLocally(storedSession)) {
+      return storedSession
+    }
+
+    return apiRequest<AuthSession>(
+      `/auth/session?userId=${encodeURIComponent(
+        storedSession.userId,
+      )}&organizationId=${encodeURIComponent(storedSession.organizationId)}`,
+    )
+  }, [])
+
+  const refreshSession = useCallback(async () => {
+    const nextSession = await loadCurrentSession()
+
+    if (!nextSession) {
       setAuthSession(null)
       setStatus('anonymous')
       return
     }
 
-    const nextSession = await apiRequest<AuthSession>(
-      `/auth/session?userId=${encodeURIComponent(
-        storedSession.userId,
-      )}&organizationId=${encodeURIComponent(storedSession.organizationId)}`,
-    )
-
     persistSession(nextSession)
-  }, [persistSession])
+  }, [loadCurrentSession, persistSession])
 
   const logout = useCallback(() => {
     clearStoredSession()
@@ -106,17 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
         }
 
-        const storedSession = loadStoredSession()
-
-        if (!storedSession) {
-          return null
-        }
-
-        return apiRequest<AuthSession>(
-          `/auth/session?userId=${encodeURIComponent(
-            storedSession.userId,
-          )}&organizationId=${encodeURIComponent(storedSession.organizationId)}`,
-        )
+        return loadCurrentSession()
       })
       .then((nextSession) => {
         if (cancelled) {
@@ -144,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [persistSession])
+  }, [loadCurrentSession, persistSession])
 
   const authorization = useMemo(
     (): AuthorizationState => {

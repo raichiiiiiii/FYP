@@ -134,3 +134,17 @@ the corresponding UI/API path exists and is exercised by the test.
   `GET /api/v1/fabric/automation/readiness`.
 - The UI now shows the boundary to reviewers without adding unsafe Fabric
   execution actions or weakening proof truth rules.
+
+2026-06-07 local federation runtime evidence:
+
+- Ran the 10-node local Docker stack through `start.ps1`.
+- Bootstrapped 9 preconfigured simulated federation channels for reviewer/UAT
+  collaboration evidence.
+- Ran `tests/e2e/multi-node-federation-uat.spec.ts` with
+  `MEPN_MULTI_NODE_UAT=true`; 6 tests passed.
+- Captured 24 safe screenshots under
+  `docs/evidence/uat/screenshots/multi-node/`.
+- UAT-B-003 remains resolved by accepted product boundary, not direct Fabric
+  topology mutation.
+- UAT-B-004 remains resolved by live-proof gate, not seeded or simulated
+  metadata.

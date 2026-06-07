@@ -105,9 +105,10 @@ Boundary:
 - Finance-data relationships are shown only when the current node's
   node-federation canvas contains them.
 
-Pending in later slices:
+Completed in later slices:
 
-- Multi-node rendered screenshots from each relevant local port.
+- Multi-node rendered screenshots were captured from the local 10-node Docker
+  stack under `docs/evidence/uat/screenshots/multi-node/`.
 
 ## Validation Evidence
 
@@ -330,12 +331,32 @@ Validation:
 corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
 
 Skipped by default unless MEPN_MULTI_NODE_UAT=true.
+
+MEPN_MULTI_NODE_UAT=true corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+
+6 tests passed
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -ResetAll -NoBuild
+
+Completed successfully:
+- stopped the legacy single-node local Docker stack;
+- reset and started all 10 local node stacks;
+- migrated and seeded all 10 local node databases;
+- bootstrapped 9 preconfigured simulated federation channels;
+- ran the enabled multi-node UAT spec;
+- captured 24 screenshots under docs/evidence/uat/screenshots/multi-node/.
 ```
 
-Pending runtime evidence:
+Screenshot evidence:
 
-- Run `.\start.ps1 -ResetAll` without `-SkipUat` to populate the screenshot
-  directory from all local node ports.
+```text
+docs/evidence/uat/screenshots/multi-node/login-*.png
+docs/evidence/uat/screenshots/multi-node/dashboard-*.png
+docs/evidence/uat/screenshots/multi-node/canvas-amanah-retail.png
+docs/evidence/uat/screenshots/multi-node/canvas-mabrur-finance.png
+docs/evidence/uat/screenshots/multi-node/admin-users-sidebar-amanah-retail.png
+docs/evidence/uat/screenshots/multi-node/profile-password-amanah-retail.png
+```
 
 Single-node seed command:
 
@@ -392,5 +413,8 @@ Direct database verification after the finance-node seed:
 
 ## Remaining Work
 
-- Run the new multi-node E2E/UAT spec against the 10-node local Docker stack
-  and commit safe screenshots from each local port.
+- No remaining blocker for the local/UAT simulated multi-node federation slice.
+- Real Fabric channel creation/join/MSP onboarding remains outside the app
+  runtime by accepted UAT-B-003 boundary.
+- Real Fabric proof remains gated by live Gateway `ReadAnchor` verification
+  under UAT-B-004.

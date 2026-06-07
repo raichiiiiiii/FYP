@@ -31,3 +31,9 @@ export function saveStoredSession(session: AuthSession) {
 export function clearStoredSession() {
   localStorage.removeItem(storageKey)
 }
+
+export function canHydrateStoredSessionLocally(
+  session: Pick<AuthSession, 'authMode'>,
+) {
+  return session.authMode === 'password' || session.authMode === 'oidc'
+}

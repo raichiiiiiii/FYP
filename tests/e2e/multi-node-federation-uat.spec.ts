@@ -265,7 +265,9 @@ test.describe.serial('local multi-node federation UAT', () => {
       expectedText: /Self-hosted nodes and simulated channels/i,
       screenshotName: 'canvas-amanah-retail.png',
     });
-    await expect(page.getByText('tender-market-channel')).toBeVisible();
+    await expect(
+      page.getByText('tender-market-channel', { exact: true }).first(),
+    ).toBeVisible();
 
     await openAuthenticatedRoute({
       page,
@@ -275,7 +277,9 @@ test.describe.serial('local multi-node federation UAT', () => {
       expectedText: /Self-hosted nodes and simulated channels/i,
       screenshotName: 'canvas-mabrur-finance.png',
     });
-    await expect(page.getByText('finance-data-channel')).toBeVisible();
+    await expect(
+      page.getByText('finance-data-channel', { exact: true }).first(),
+    ).toBeVisible();
 
     await openAuthenticatedRoute({
       page,

@@ -1,6 +1,6 @@
 # MEPN Multi-Node Federation Required Implementation Plan
 
-Status: partial implementation in progress
+Status: local/UAT simulated federation implemented
 Scope: required implementation plan only.  
 Boundary: keep real Fabric topology automation and real Fabric proof boundaries intact; implement local/UAT simulated node federation first.
 
@@ -19,8 +19,9 @@ Progress as of 2026-06-07:
 - UAT-B-003/UAT-B-004 Fabric decisions are API-backed and visible on
   `/fabric-governance` together with topology automation readiness.
 - Multi-node UAT spec and `start.ps1` execution hook implemented.
-- Remaining work: run the 10-node stack and commit safe multi-node E2E
-  screenshots.
+- The 10-node stack has been run locally through `start.ps1`, simulated channel
+  metadata was bootstrapped, multi-node UAT passed, and safe screenshots were
+  captured under `docs/evidence/uat/screenshots/multi-node/`.
 
 ## Direction for the implementation plan
 
