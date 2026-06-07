@@ -31,7 +31,7 @@ export function setIntegrationEnv() {
   process.env.DATABASE_URL = TEST_DATABASE_URL;
   process.env.REDIS_URL = TEST_REDIS_URL;
   process.env.MINIO_ENDPOINT =
-    process.env.MINIO_ENDPOINT || 'http://localhost:9000';
+    process.env.TEST_MINIO_ENDPOINT || 'http://localhost:9000';
   process.env.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'mepn';
   process.env.MINIO_SECRET_KEY =
     process.env.MINIO_SECRET_KEY || 'mepn_password';
