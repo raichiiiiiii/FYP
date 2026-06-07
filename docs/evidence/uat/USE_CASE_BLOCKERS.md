@@ -118,3 +118,19 @@ the corresponding UI/API path exists and is exercised by the test.
 - `ORG_ADMIN` keeps full sidebar access by default.
 - Sidebar hiding remains a navigation preference only; backend authorization and
   route guards remain authoritative.
+
+2026-06-07 Fabric blocker decision UI implementation:
+
+- Confirmed the accepted decision for UAT-B-003: MEPN implements
+  operator-assisted Fabric governance metadata/readiness/evidence and does not
+  implement direct API channel creation, channel joining, MSP onboarding, admin
+  key custody, or real topology mutation.
+- Confirmed the accepted decision for UAT-B-004: seeded/local metadata cannot
+  pass as real Fabric proof; `verified=true` remains gated by API-side
+  chaincode `ReadAnchor` hash comparison.
+- Extended `/fabric-governance` to fetch and display
+  `GET /api/v1/fabric/uat-blocker-decisions`.
+- Extended `/fabric-governance` to fetch and display
+  `GET /api/v1/fabric/automation/readiness`.
+- The UI now shows the boundary to reviewers without adding unsafe Fabric
+  execution actions or weakening proof truth rules.

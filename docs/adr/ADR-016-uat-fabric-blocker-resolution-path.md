@@ -106,6 +106,18 @@ The endpoint is Fabric-governance read protected and returns the accepted
 decision for UAT-B-003 and UAT-B-004 without exposing secrets or claiming direct
 topology mutation.
 
+The reviewer-facing UI surface is:
+
+```text
+/fabric-governance
+```
+
+The Fabric governance page renders the UAT-B-003/UAT-B-004 decisions and the
+disabled-by-default topology automation readiness response. The page must keep
+the same boundary as the API: direct channel creation, channel joining, MSP
+onboarding, admin key custody, and real topology mutation are not presented as
+available runtime actions.
+
 This ADR prevents the project from resolving Fabric blockers by weakening proof
 truth rules or by moving admin Fabric key custody into the normal application
 runtime without review.

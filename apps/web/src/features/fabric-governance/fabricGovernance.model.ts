@@ -3,6 +3,8 @@ import type {
   FabricGovernanceChannel,
   FabricGovernanceProposal,
   FabricGovernanceReadiness,
+  FabricTopologyAutomationReadiness,
+  FabricUatBlockerDecision,
 } from './fabricGovernance.types'
 
 export function canCreateFabricGovernanceProposal(roleCodes: readonly string[]) {
@@ -89,6 +91,67 @@ export function readinessSummary(readiness?: FabricGovernanceReadiness | null) {
     status: 'runtime_check_required',
     helper:
       'Operator execution is recorded, but this API runtime is not configured for the channel.',
+  }
+}
+
+export function decisionStatusLabel(decision: FabricUatBlockerDecision) {
+  if (decision.status === 'resolved_by_live_gate') {
+    return 'Live proof gate'
+  }
+
+  return 'Accepted boundary'
+}
+
+export function decisionRiskLabel(decision: FabricUatBlockerDecision) {
+  if (decision.id === 'UAT-B-004' && decision.readAnchorRequired) {
+    return 'Seeded proof rejected'
+  }
+
+  if (
+    decision.id === 'UAT-B-003' &&
+    decision.topologyMutationSupported === false
+  ) {
+    return 'Operator-assisted only'
+  }
+
+  return 'Boundary recorded'
+}
+
+export function automationReadinessSummary(
+  readiness?: FabricTopologyAutomationReadiness | null,
+) {
+  if (!readiness) {
+    return {
+      label: 'Automation readiness not checked',
+      status: 'pending',
+      helper:
+        'The reviewer decision endpoint has not loaded direct topology automation readiness yet.',
+    }
+  }
+
+  if (readiness.status === 'ready') {
+    return {
+      label: 'Gated operator-agent ready',
+      status: 'ready',
+      helper:
+        'All direct topology automation requirements are configured for gated real-Fabric tests only.',
+    }
+  }
+
+  if (readiness.status === 'blocked') {
+    return {
+      label: 'Automation blocked',
+      status: 'blocked',
+      helper:
+        'Direct topology execution is enabled but required decisions or operator-agent settings are missing.',
+    }
+  }
+
+  return {
+    label: 'Automation disabled',
+    status: 'disabled',
+    helper:
+      'Direct Fabric topology execution is disabled. Operator-assisted governance remains the supported path.',
   }
 }
 

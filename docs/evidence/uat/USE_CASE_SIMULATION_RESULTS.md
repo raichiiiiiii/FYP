@@ -136,3 +136,21 @@ Notes:
   metadata as real Fabric proof.
 - `GET /api/v1/fabric/uat-blocker-decisions` provides reviewer-visible,
   authorization-gated decision metadata.
+
+2026-06-07 Fabric governance UI decision surface:
+
+```text
+corepack pnpm --dir apps/web test -- fabricGovernance
+7 passed
+```
+
+Notes:
+
+- `/fabric-governance` now renders the UAT-B-003/UAT-B-004 decision cards from
+  the API-backed decision endpoint.
+- The same route renders `GET /api/v1/fabric/automation/readiness` so reviewers
+  can see that direct topology automation is disabled/blocked unless a future
+  operator-agent boundary is approved and configured.
+- The route continues to offer governance proposals, invitations, approvals, and
+  sanitized operator evidence only; it does not expose a direct Fabric topology
+  execution action.

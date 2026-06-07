@@ -405,6 +405,22 @@ export const endpoints = {
         organizationId,
         actorUserId,
       }),
+    automationReadiness: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery('/fabric/automation/readiness', {
+        organizationId,
+        actorUserId,
+      }),
+    uatBlockerDecisions: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery('/fabric/uat-blocker-decisions', {
+        organizationId,
+        actorUserId,
+      }),
     invitations: (
       channelId: string,
       organizationId?: string | null,

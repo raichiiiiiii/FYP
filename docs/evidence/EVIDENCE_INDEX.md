@@ -51,7 +51,7 @@ not be stored in this directory.
 | `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` | Graph anchor overlay, backend risk metadata, saved views, URL filters, and no-leak E2E evidence. | Complete for FYP scope. |
 | `docs/evidence/uat/USE_CASE_BLOCKERS.md` | SRS use-case UAT blocker and limitation register for UC-01 through UC-18. | Current for local node UAT simulation. |
 | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md` | SRS use-case UAT runner, latest local result, screenshot paths, and safety notes. | Passed locally for UC-01 through UC-18. |
-| `docs/evidence/uat/FABRIC_UAT_BLOCKER_DECISIONS.md` | Accepted UAT-B-003/UAT-B-004 decision evidence and validation commands. | Complete for local UAT decision boundary; live proof evidence remains environment-gated. |
+| `docs/evidence/uat/FABRIC_UAT_BLOCKER_DECISIONS.md` | Accepted UAT-B-003/UAT-B-004 decision evidence, `/fabric-governance` decision UI, and validation commands. | Complete for local UAT decision boundary; live proof evidence remains environment-gated. |
 | `docs/evidence/uat/seeded-node-accounts.txt` | Seeded organization-node account list and local/demo password reference. | Complete for local/UAT reviewer use; not production credential behavior. |
 | `docs/evidence/uat/MULTI_NODE_FEDERATION_RESULTS.md` | Multi-node federation implementation evidence, including isolated one-organization seed validation and Docker/start scaffolding. | Partial; API federation, channel sync, canvas, and screenshots remain in progress. |
 | `docs/evidence/uat/MULTI_NODE_FEDERATION_BLOCKERS.md` | Blocker and open-item register for the multi-node federation workstream. | Current; no active blocker for the isolated seed slice. |

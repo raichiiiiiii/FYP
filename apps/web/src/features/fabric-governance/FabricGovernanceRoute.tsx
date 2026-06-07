@@ -12,8 +12,11 @@ import { StatusBadge } from '../../shared/components/StatusBadge'
 import type { AppSession, LoadState } from '../../shared/types'
 import { formatDateTime } from '../../shared/utils/formatting'
 import {
+  automationReadinessSummary,
   canCreateFabricGovernanceProposal,
   canOperateFabricGovernance,
+  decisionRiskLabel,
+  decisionStatusLabel,
   latestProposal,
   proposalApprovalLabel,
   readinessSummary,
@@ -22,6 +25,8 @@ import type {
   FabricGovernanceChannel,
   FabricGovernanceProposal,
   FabricGovernanceReadiness,
+  FabricTopologyAutomationReadiness,
+  FabricUatBlockerDecisionResponse,
 } from './fabricGovernance.types'
 
 type NoticeState =
@@ -83,6 +88,12 @@ export function FabricGovernanceRoute({
   >({ status: 'loading' })
   const [readinessState, setReadinessState] = useState<
     LoadState<FabricGovernanceReadiness | null>
+  >({ status: 'ready', data: null })
+  const [decisionState, setDecisionState] = useState<
+    LoadState<FabricUatBlockerDecisionResponse | null>
+  >({ status: 'ready', data: null })
+  const [automationState, setAutomationState] = useState<
+    LoadState<FabricTopologyAutomationReadiness | null>
   >({ status: 'ready', data: null })
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [channelForm, setChannelForm] =
@@ -156,6 +167,80 @@ export function FabricGovernanceRoute({
     }
   }, [loadChannels])
 
+  useEffect(() => {
+    let cancelled = false
+
+    if (!session.organizationId || !session.actorUserId) {
+      return () => {
+        cancelled = true
+      }
+    }
+
+    Promise.resolve()
+      .then(async () => {
+        if (!cancelled) {
+          setDecisionState({ status: 'loading' })
+        }
+
+        return apiRequest<FabricUatBlockerDecisionResponse>(
+          endpoints.fabricGovernance.uatBlockerDecisions(
+            session.organizationId,
+            session.actorUserId,
+          ),
+        )
+      })
+      .then((decisions) => {
+        if (!cancelled) {
+          setDecisionState({ status: 'ready', data: decisions })
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDecisionState({
+            status: 'error',
+            message: getErrorMessage(
+              error,
+              'Unable to load Fabric UAT blocker decisions',
+            ),
+          })
+        }
+      })
+
+    Promise.resolve()
+      .then(async () => {
+        if (!cancelled) {
+          setAutomationState({ status: 'loading' })
+        }
+
+        return apiRequest<FabricTopologyAutomationReadiness>(
+          endpoints.fabricGovernance.automationReadiness(
+            session.organizationId,
+            session.actorUserId,
+          ),
+        )
+      })
+      .then((readiness) => {
+        if (!cancelled) {
+          setAutomationState({ status: 'ready', data: readiness })
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setAutomationState({
+            status: 'error',
+            message: getErrorMessage(
+              error,
+              'Unable to load Fabric topology automation readiness',
+            ),
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [session.actorUserId, session.organizationId])
+
   const channels = useMemo(
     () => (channelsState.status === 'ready' ? channelsState.data : []),
     [channelsState],
@@ -174,6 +259,10 @@ export function FabricGovernanceRoute({
     readinessState.status === 'ready'
       ? readinessSummary(readinessState.data)
       : readinessSummary(null)
+  const automationSummary =
+    automationState.status === 'ready'
+      ? automationReadinessSummary(automationState.data)
+      : automationReadinessSummary(null)
 
   const loadReadiness = useCallback(async () => {
     if (!selectedChannel || !session.organizationId || !session.actorUserId) {
@@ -437,6 +526,125 @@ export function FabricGovernanceRoute({
             record execution or failure evidence.
           </p>
         </article>
+      </section>
+
+      <section className="fabric-governance-detail">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">UAT blocker decisions</span>
+            <h2>Fabric topology and proof boundary</h2>
+          </div>
+          {decisionState.status === 'ready' && decisionState.data ? (
+            <StatusBadge status={decisionState.data.adr.status} />
+          ) : null}
+        </div>
+
+        {decisionState.status === 'loading' ? (
+          <LoadingState message="Loading Fabric blocker decisions..." />
+        ) : null}
+        {decisionState.status === 'error' ? (
+          <ErrorState
+            title="Unable to load Fabric blocker decisions"
+            message={decisionState.message}
+          />
+        ) : null}
+
+        {decisionState.status === 'ready' && decisionState.data ? (
+          <section className="fabric-governance-grid">
+            {decisionState.data.decisions.map((decision) => (
+              <article className="fabric-governance-panel" key={decision.id}>
+                <div className="section-heading">
+                  <div>
+                    <span className="eyebrow">{decision.id}</span>
+                    <h2>{decision.title}</h2>
+                  </div>
+                  <StatusBadge status={decision.status} />
+                </div>
+                <p>{decision.decision}</p>
+                <section className="details-grid integration-summary-grid">
+                  <article>
+                    <span>Decision</span>
+                    <strong>{decisionStatusLabel(decision)}</strong>
+                  </article>
+                  <article>
+                    <span>Safety result</span>
+                    <strong>{decisionRiskLabel(decision)}</strong>
+                  </article>
+                  <article>
+                    <span>Topology mutation</span>
+                    <strong>
+                      {decision.topologyMutationSupported
+                        ? 'Supported'
+                        : 'Not supported'}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Seeded proof accepted</span>
+                    <strong>{decision.seededProofAccepted ? 'Yes' : 'No'}</strong>
+                  </article>
+                </section>
+                <div className="fabric-governance-limitations">
+                  <h3>Truth rule</h3>
+                  <p>{decision.verificationTruthRule}</p>
+                  <h3>Next action</h3>
+                  <p>{decision.nextAction}</p>
+                </div>
+              </article>
+            ))}
+          </section>
+        ) : null}
+
+        <section className="fabric-governance-panel">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Automation readiness</span>
+              <h2>{automationSummary.label}</h2>
+            </div>
+            <StatusBadge status={automationSummary.status} />
+          </div>
+          <p>{automationSummary.helper}</p>
+
+          {automationState.status === 'loading' ? (
+            <LoadingState message="Checking topology automation readiness..." />
+          ) : null}
+          {automationState.status === 'error' ? (
+            <ErrorState
+              title="Unable to load topology automation readiness"
+              message={automationState.message}
+            />
+          ) : null}
+          {automationState.status === 'ready' && automationState.data ? (
+            <section className="details-grid integration-summary-grid">
+              <article>
+                <span>Execution mode</span>
+                <strong>{automationState.data.executionMode}</strong>
+              </article>
+              <article>
+                <span>Enabled</span>
+                <strong>{automationState.data.enabled ? 'Yes' : 'No'}</strong>
+              </article>
+              <article>
+                <span>Missing requirements</span>
+                <strong>{automationState.data.missingRequirementIds.length}</strong>
+              </article>
+              <article>
+                <span>Checked</span>
+                <strong>{formatDateTime(automationState.data.checkedAt)}</strong>
+              </article>
+            </section>
+          ) : null}
+          {automationState.status === 'ready' &&
+          automationState.data?.limitations.length ? (
+            <section className="fabric-governance-limitations">
+              <h3>Limitations</h3>
+              <ul>
+                {automationState.data.limitations.map((limitation) => (
+                  <li key={limitation}>{limitation}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </section>
       </section>
 
       {channelsState.status === 'loading' ? (

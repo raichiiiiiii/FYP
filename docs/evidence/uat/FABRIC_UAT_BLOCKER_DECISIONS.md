@@ -10,8 +10,8 @@ that local seeded data is real on-chain proof.
 
 | Blocker | Decision | Implemented evidence |
 |---|---|---|
-| UAT-B-003 Fabric topology | Resolved by accepted boundary decision. MEPN keeps channel creation, channel joining, MSP onboarding, and topology mutation operator-assisted outside the app runtime. | `GET /api/v1/fabric/uat-blocker-decisions`; `GET /api/v1/fabric/automation/readiness`; operator-assisted governance workflows. |
-| UAT-B-004 Fabric proof | Resolved by live-proof gate. MEPN can only mark real proof passed when API-side chaincode `ReadAnchor` verification compares matching hashes. | `GET /api/v1/fabric/uat-blocker-decisions`; hash-record Fabric verification endpoint; gated real Fabric proof UAT. |
+| UAT-B-003 Fabric topology | Resolved by accepted boundary decision. MEPN keeps channel creation, channel joining, MSP onboarding, and topology mutation operator-assisted outside the app runtime. | `GET /api/v1/fabric/uat-blocker-decisions`; `GET /api/v1/fabric/automation/readiness`; `/fabric-governance` decision/readiness cards; operator-assisted governance workflows. |
+| UAT-B-004 Fabric proof | Resolved by live-proof gate. MEPN can only mark real proof passed when API-side chaincode `ReadAnchor` verification compares matching hashes. | `GET /api/v1/fabric/uat-blocker-decisions`; `/fabric-governance` live-proof decision card; hash-record Fabric verification endpoint; gated real Fabric proof UAT. |
 
 ADR-017 adds a separate implementation decision for local UAT: simulated
 node-federation channels may be created as application metadata through
@@ -42,6 +42,25 @@ The endpoint must not return PEM blocks, private key material, tokens,
 passwords, endpoint credentials, Fabric admin material, or raw environment
 values.
 
+## Implemented Reviewer UI
+
+```text
+/fabric-governance
+```
+
+The page fetches the UAT decision endpoint and topology automation readiness
+endpoint. It displays:
+
+- UAT-B-003 as an accepted operator-assisted boundary;
+- UAT-B-004 as a live-proof gate;
+- `topologyMutationSupported=false`;
+- `seededProofAccepted=false`;
+- the `ReadAnchor` truth rule for real proof;
+- direct topology automation readiness as disabled, blocked, or gated-ready.
+
+The page does not expose a direct Fabric topology execution button and does not
+turn local simulated node-federation channels into real Fabric proof.
+
 ## Validation Commands
 
 ```bash
@@ -49,6 +68,7 @@ corepack pnpm --dir apps/api test:unit -- fabric-governance node-status
 corepack pnpm --dir apps/api test:integration -- fabric-governance node-status
 corepack pnpm --dir apps/api test:unit -- node-federation
 corepack pnpm --dir apps/api test:integration -- node-federation
+corepack pnpm --dir apps/web test -- fabricGovernance
 corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts
 ```
 

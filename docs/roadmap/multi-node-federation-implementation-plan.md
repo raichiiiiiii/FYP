@@ -16,6 +16,8 @@ Progress as of 2026-06-07:
 - Account password update API/UI implemented.
 - Organization admin identity hardening implemented.
 - Admin sidebar visibility overrides implemented.
+- UAT-B-003/UAT-B-004 Fabric decisions are API-backed and visible on
+  `/fabric-governance` together with topology automation readiness.
 - Remaining work: multi-node E2E screenshots.
 
 ## Direction for the implementation plan

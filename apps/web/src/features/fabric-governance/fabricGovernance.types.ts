@@ -121,3 +121,55 @@ export type FabricGovernanceReadiness = {
   }
   limitations: string[]
 }
+
+export type FabricTopologyAutomationRequirement = {
+  id: string
+  label: string
+  configured: boolean
+  source: 'environment' | 'runtime' | 'decision'
+}
+
+export type FabricTopologyAutomationReadiness = {
+  enabled: boolean
+  status: 'disabled' | 'blocked' | 'ready'
+  executionMode: 'not_enabled' | 'operator_agent'
+  checkedAt: string
+  requirements: FabricTopologyAutomationRequirement[]
+  missingRequirementIds: string[]
+  limitations: string[]
+  nextActions: string[]
+}
+
+export type FabricUatBlockerResolutionStatus =
+  | 'resolved_by_decision'
+  | 'resolved_by_live_gate'
+
+export type FabricUatBlockerDecision = {
+  id: 'UAT-B-003' | 'UAT-B-004'
+  title: string
+  status: FabricUatBlockerResolutionStatus
+  decision: string
+  implementedBoundary: string
+  topologyMutationSupported: false
+  directFabricExecutionSupported: false
+  operatorAssistedOnly: boolean
+  localSeedCanPass: boolean
+  seededProofAccepted: boolean
+  liveEvidenceRequired: boolean
+  readAnchorRequired: boolean
+  verificationTruthRule: string
+  acceptedAdr: 'ADR-016'
+  supportingAdr: 'ADR-015' | null
+  evidencePath: string
+  nextAction: string
+}
+
+export type FabricUatBlockerDecisionResponse = {
+  checkedAt: string
+  adr: {
+    id: 'ADR-016'
+    status: 'accepted'
+    path: 'docs/adr/ADR-016-uat-fabric-blocker-resolution-path.md'
+  }
+  decisions: FabricUatBlockerDecision[]
+}
