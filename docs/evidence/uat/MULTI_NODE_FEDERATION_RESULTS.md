@@ -18,6 +18,27 @@ Implemented:
   one organization with only that node's users.
 - Seeded local password is `password`; only password hashes are stored.
 
+## Current Slice: Docker/Start Scaffolding
+
+Implemented:
+
+- Added `docker-compose.node.yml`.
+- Added `.env.nodes/*.env` for 10 local demo nodes.
+- Updated `.gitignore` so the committed local demo node env files and
+  `start.ps1` are trackable.
+- Replaced root `start.ps1` with a 10-node reset/start/migrate/seed/health
+  workflow.
+- Each node is mapped to a distinct web, API, PostgreSQL, Redis, and MinIO port.
+- The script prints node URLs and `admin@<node>.local` account guidance.
+- The script keeps Fabric in mock/simulated mode and does not attempt real
+  topology automation.
+
+Pending in later slices:
+
+- Node-federation API.
+- Preconfigured simulated tender, award, finance-data, and support channels.
+- Multi-node canvas rendering and screenshots.
+
 ## Validation Evidence
 
 Catalog test:
@@ -26,6 +47,14 @@ Catalog test:
 corepack pnpm test:uat-catalog
 
 3 tests passed
+```
+
+Docker/start scaffolding checks:
+
+```text
+powershell parser check for start.ps1
+docker compose -f docker-compose.node.yml --env-file .env.nodes/amanah-retail.env config
+docker compose -f docker-compose.node.yml --env-file .env.nodes/mabrur-finance.env config
 ```
 
 Single-node seed command:

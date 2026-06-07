@@ -11,9 +11,6 @@ None for the isolated node seed slice.
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- 10-node Docker Compose topology.
-- Per-node `.env.nodes/*.env` files.
-- Root `start.ps1` reset/rebuild/reseed workflow for all nodes.
 - Node-to-node federation APIs and shared-secret local transport.
 - Preconfigured simulated tender, award/deal, finance-data, and finance-support
   channels.
@@ -22,6 +19,15 @@ multi-node federation objective:
 - Sidebar visibility override APIs/UI.
 - Account password update API/UI.
 - Multi-node E2E/UAT screenshots from every relevant local port.
+
+## Resolved Items
+
+2026-06-07:
+
+- 10-node Docker Compose topology scaffold added through `docker-compose.node.yml`.
+- Per-node local demo env files added under `.env.nodes/`.
+- Root `start.ps1` now supports reset/start/migrate/seed/health checks across
+  the 10 local nodes.
 
 ## Boundary Notes
 

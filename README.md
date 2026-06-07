@@ -137,6 +137,64 @@ deployment owns its PostgreSQL database, evidence/object storage, configuration,
 and secrets. Fabric participation is optional proof infrastructure; Fabric stores
 hash/proof anchors only and is not the operational business database.
 
+## Local Multi-Node Federation Demo
+
+Purpose:
+
+Run 10 local MEPN self-hosted organization nodes on one machine. Each node has
+its own web/API/worker containers, PostgreSQL volume, Redis volume, and MinIO
+volume. This is local/UAT federation scaffolding; simulated channel
+synchronization is implemented separately from real Fabric topology automation.
+
+Start or reset all nodes:
+
+```powershell
+.\start.ps1 -ResetAll
+```
+
+Useful options:
+
+```powershell
+.\start.ps1 -NoBuild
+.\start.ps1 -SeedOnly
+.\start.ps1 -SkipUat
+```
+
+Default seeded password:
+
+```text
+password
+```
+
+Node URLs:
+
+```text
+Amanah Retail:      http://localhost:5173  API http://localhost:3000
+Barakah Supplies:   http://localhost:5174  API http://localhost:3001
+Ihsan Foods:        http://localhost:5175  API http://localhost:3002
+Nur Logistics:      http://localhost:5176  API http://localhost:3003
+Salsabil Packaging: http://localhost:5177  API http://localhost:3004
+Taqwa Office:       http://localhost:5178  API http://localhost:3005
+Hikmah Health:      http://localhost:5179  API http://localhost:3006
+Mabrur Finance:     http://localhost:5180  API http://localhost:3007
+Aman Capital:       http://localhost:5181  API http://localhost:3008
+Safwa Growth:       http://localhost:5182  API http://localhost:3009
+```
+
+Important local/UAT boundary:
+
+- Each node hosts exactly one organization after seeding.
+- Each node owns its own database volume and object-storage volume.
+- Node-to-node channels are local simulated federation channels.
+- Real Fabric topology mutation is not performed by the normal app runtime.
+- Simulated channel state must not be described as real Fabric proof.
+
+Current status:
+
+- The Docker/start scaffolding and isolated node seed mode are implemented.
+- The node-federation API and preconfigured channel synchronization are still
+  tracked as the next multi-node federation slices.
+
 Prerequisites:
 
 - Node.js 22 or compatible LTS

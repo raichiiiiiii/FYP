@@ -7,6 +7,8 @@ coverage/
 .env.*
 !.env.example
 !.env.production.example
+!.env.nodes/
+!.env.nodes/*.env
 backups/
 *.pem
 
@@ -38,4 +40,3 @@ chaincode/audit-anchor-go/audit-anchor-go.exe
 chaincode/audit-anchor-go/vendor/
 
 vm-mepn-fyp-key.pem
-start.ps1
