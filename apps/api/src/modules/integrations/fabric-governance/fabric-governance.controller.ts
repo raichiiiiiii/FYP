@@ -79,6 +79,17 @@ export class FabricGovernanceController {
     return this.fabricGovernance.listChannels({ organizationId, actorUserId });
   }
 
+  @Get('automation/readiness')
+  getAutomationReadiness(
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+  ) {
+    return this.fabricGovernance.getAutomationReadiness({
+      organizationId,
+      actorUserId,
+    });
+  }
+
   @Post('channels')
   createChannel(@Body() body: CreateChannelBody) {
     return this.fabricGovernance.createChannel(body);

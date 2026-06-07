@@ -85,6 +85,32 @@ describe('Integration: Fabric consortium governance', () => {
     );
   });
 
+  it('reports direct topology automation readiness without exposing secret material', async () => {
+    const setup = await createOrganizationFixture(context.app);
+
+    const readiness = await request(context.app.getHttpServer())
+      .get('/api/v1/fabric/automation/readiness')
+      .query({
+        organizationId: setup.organization.id,
+        actorUserId: setup.adminUser.id,
+      })
+      .expect(200);
+
+    expect(readiness.body).toEqual(
+      expect.objectContaining({
+        enabled: false,
+        status: 'disabled',
+        executionMode: 'not_enabled',
+      }),
+    );
+    expect(readiness.body.missingRequirementIds).toContain(
+      'automation-adr-approved',
+    );
+    expect(JSON.stringify(readiness.body)).not.toMatch(
+      /BEGIN|PRIVATE KEY|FABRIC_PRIVATE_KEY|password|token/i,
+    );
+  });
+
   it('invites an organization, accepts membership, approves, and records sanitized operator execution', async () => {
     const sponsor = await createOrganizationFixture(context.app);
     const invited = await createOrganizationFixture(context.app);
@@ -244,6 +270,14 @@ describe('Integration: Fabric consortium governance', () => {
         organizationId: setup.organization.id,
         actorUserId: procurement.userId,
         channelName: 'unauthorized-channel',
+      })
+      .expect(403);
+
+    await request(context.app.getHttpServer())
+      .get('/api/v1/fabric/automation/readiness')
+      .query({
+        organizationId: setup.organization.id,
+        actorUserId: procurement.userId,
       })
       .expect(403);
   });

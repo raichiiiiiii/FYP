@@ -36,6 +36,7 @@ import {
   type FabricGovernanceEvidenceDto,
   type FabricNetworkDto,
 } from './fabric-governance.dto';
+import { getFabricTopologyAutomationReadiness } from './fabric-topology-automation-readiness';
 
 type CreateNetworkInput = {
   organizationId?: string;
@@ -391,6 +392,11 @@ export class FabricGovernanceService {
       runtime,
       limitations,
     };
+  }
+
+  async getAutomationReadiness(input: ListScopedInput = {}) {
+    await this.requireReadableActor(input);
+    return getFabricTopologyAutomationReadiness();
   }
 
   async createInvitation(input: InvitationInput) {

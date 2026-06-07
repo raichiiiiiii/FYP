@@ -110,6 +110,17 @@ private-key custody without an approved secret-management and signing model.
 - Committed the fix as:
   - `2ff838f test(api): isolate integration MinIO endpoint`
 
+## Follow-Up Work Completed On 2026-06-07
+
+- Added ADR `docs/adr/ADR-015-fabric-topology-automation-boundary.md`.
+- Added disabled-by-default readiness API:
+  - `GET /api/v1/fabric/automation/readiness`
+- Added unit and integration coverage for the readiness contract.
+- The endpoint reports `disabled`, `blocked`, or `ready` without returning
+  private key, PEM, token, password, MSP folder, or raw admin secret contents.
+- The endpoint does not create channels, join organizations, enroll MSPs, or
+  submit channel config updates.
+
 ## Remaining Work
 
 Before direct Fabric topology automation can be implemented, the project needs:
@@ -145,9 +156,6 @@ Before direct Fabric topology automation can be implemented, the project needs:
 
 Repository-implementable preparatory slices:
 
-- Add an ADR for direct Fabric topology automation.
-- Add an automation preflight/readiness endpoint that verifies required
-  non-secret configuration is present and reports missing prerequisites.
 - Add a disabled-by-default operator-agent contract/interface.
 - Add unit tests that prove the API refuses direct execution unless the
   explicit automation mode and admin material contract are configured.
