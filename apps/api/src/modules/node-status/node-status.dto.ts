@@ -33,7 +33,11 @@ export type NodeStatusFabricDto = {
     id: 'UAT-B-003' | 'UAT-B-004';
     status: 'resolved_by_decision' | 'resolved_by_live_gate';
     topologyMutationSupported: false;
+    directFabricExecutionSupported: false;
+    operatorAssistedOnly: boolean;
+    seededProofAccepted: boolean;
     liveEvidenceRequired: boolean;
+    readAnchorRequired: boolean;
   }>;
   automationStatus: 'disabled' | 'blocked' | 'ready';
   automationEnabled: boolean;

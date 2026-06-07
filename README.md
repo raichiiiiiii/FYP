@@ -179,7 +179,7 @@ MinIO console:http://localhost:9001
 Seeded local/demo password:
 
 ```text
-mepn-demo-password
+password
 ```
 
 The seed stores only `passwordHash`. Local/UAT deployments allow seeded

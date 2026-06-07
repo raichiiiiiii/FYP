@@ -102,7 +102,7 @@ describe('Integration: auth', () => {
         id: setup.adminUser.id,
       },
       data: {
-        passwordHash: hashDemoPassword('mepn-demo-password'),
+        passwordHash: hashDemoPassword('password'),
       },
     });
 
@@ -120,7 +120,7 @@ describe('Integration: auth', () => {
       .post('/api/v1/auth/password-login')
       .send({
         email: setup.adminUser.email,
-        password: 'mepn-demo-password',
+        password: 'password',
         organizationId: setup.organization.id,
       })
       .expect(201);
@@ -145,7 +145,7 @@ describe('Integration: auth', () => {
         id: setup.adminUser.id,
       },
       data: {
-        passwordHash: hashDemoPassword('mepn-demo-password'),
+        passwordHash: hashDemoPassword('password'),
       },
     });
 
@@ -170,7 +170,7 @@ describe('Integration: auth', () => {
       .post('/api/v1/auth/password-login')
       .send({
         email: 'admin@example.test',
-        password: 'mepn-demo-password',
+        password: 'password',
       })
       .expect(403)
       .expect(({ body }) => {

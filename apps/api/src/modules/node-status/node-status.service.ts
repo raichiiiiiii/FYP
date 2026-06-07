@@ -98,7 +98,12 @@ export class NodeStatusService {
           id: decision.id,
           status: decision.status,
           topologyMutationSupported: decision.topologyMutationSupported,
+          directFabricExecutionSupported:
+            decision.directFabricExecutionSupported,
+          operatorAssistedOnly: decision.operatorAssistedOnly,
+          seededProofAccepted: decision.seededProofAccepted,
           liveEvidenceRequired: decision.liveEvidenceRequired,
+          readAnchorRequired: decision.readAnchorRequired,
         })),
         automationStatus: fabricReadiness.status,
         automationEnabled: fabricReadiness.enabled,

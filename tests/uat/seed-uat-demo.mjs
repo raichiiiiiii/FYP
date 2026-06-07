@@ -9,7 +9,7 @@ const rootDir = path.resolve(
 
 process.env.DATABASE_URL ||= 'postgresql://mepn:mepn@localhost:5432/mepn';
 
-const demoPassword = 'mepn-demo-password';
+const demoPassword = 'password';
 const passwordHash = `sha256:${createHash('sha256')
   .update(demoPassword)
   .digest('hex')}`;

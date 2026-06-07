@@ -247,7 +247,7 @@ export function LoginPage() {
                     type="password"
                     registration={register('password')}
                     error={errors.password?.message}
-                    hint="Seeded local/demo accounts use the documented UAT password. Leave blank only for the development login fallback."
+                    hint="Seeded local/demo accounts use password. Leave blank only for the development login fallback."
                     autoComplete="current-password"
                   />
                 ) : null}

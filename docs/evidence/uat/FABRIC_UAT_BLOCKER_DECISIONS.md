@@ -25,6 +25,10 @@ The endpoint is Fabric-governance read protected. It returns:
 - UAT-B-003 decision status;
 - UAT-B-004 decision status;
 - `topologyMutationSupported=false`;
+- `directFabricExecutionSupported=false`;
+- `operatorAssistedOnly=true` for topology mutation;
+- `seededProofAccepted=false`;
+- `readAnchorRequired=true` for real Fabric proof;
 - whether local seed data can pass the UAT scenario;
 - whether live evidence is required;
 - the proof truth rule for `verified=true`.

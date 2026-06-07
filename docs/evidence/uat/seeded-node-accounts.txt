@@ -5,7 +5,7 @@ Seed command:
   corepack pnpm seed:uat
 
 Seeded demo password for all accounts:
-  mepn-demo-password
+  password
 
 Important safety notes:
   - These are local/demo accounts only.

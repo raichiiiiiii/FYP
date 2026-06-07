@@ -58,10 +58,18 @@ describe('Integration: node status', () => {
         expect.objectContaining({
           id: 'UAT-B-003',
           topologyMutationSupported: false,
+          directFabricExecutionSupported: false,
+          operatorAssistedOnly: true,
+          seededProofAccepted: false,
+          readAnchorRequired: false,
         }),
         expect.objectContaining({
           id: 'UAT-B-004',
+          directFabricExecutionSupported: false,
+          operatorAssistedOnly: false,
+          seededProofAccepted: false,
           liveEvidenceRequired: true,
+          readAnchorRequired: true,
         }),
       ]),
     );

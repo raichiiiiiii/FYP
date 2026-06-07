@@ -17,7 +17,7 @@ corepack pnpm seed:uat
 Seeded demo password for local/demo accounts:
 
 ```text
-mepn-demo-password
+password
 ```
 
 The seed stores only a password hash. Local/UAT seeded-password login is

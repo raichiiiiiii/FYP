@@ -60,7 +60,7 @@ test('SRS-AUTH-003 seeded local password login creates an authenticated applicat
   await expect(passwordField).toBeVisible();
 
   await emailField.fill('buyer.admin@amanah.local');
-  await passwordField.fill('mepn-demo-password');
+  await passwordField.fill('password');
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
