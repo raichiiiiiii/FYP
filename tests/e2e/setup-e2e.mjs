@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -65,6 +66,38 @@ function quoteIdentifier(identifier) {
   return `"${identifier.replace(/"/g, '""')}"`;
 }
 
+async function isTcpPortOpen(port) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({
+      host: '127.0.0.1',
+      port,
+      timeout: 1_000,
+    });
+
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function localInfrastructureAlreadyAvailable() {
+  const requiredPorts = [5432, 6379, 9000];
+  const results = await Promise.all(
+    requiredPorts.map((port) => isTcpPortOpen(port)),
+  );
+
+  return results.every(Boolean);
+}
+
 async function waitForPostgres() {
   const attempts = 40;
 
@@ -120,6 +153,9 @@ async function prepareDatabase() {
   );
 }
 
-run('docker', ['compose', '-f', 'infra/docker-compose.yml', 'up', '-d']);
+if (!(await localInfrastructureAlreadyAvailable())) {
+  run('docker', ['compose', '-f', 'infra/docker-compose.yml', 'up', '-d']);
+}
+
 await waitForPostgres();
 await prepareDatabase();
