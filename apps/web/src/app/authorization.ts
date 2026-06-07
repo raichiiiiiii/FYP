@@ -6,6 +6,8 @@ import type {
 } from '../shared/types'
 import type { AppRouteMetadata } from './navigation'
 
+export type SidebarVisibilityOverrides = Record<string, boolean>
+
 export type AuthorizationState =
   | {
       status: 'anonymous'
@@ -100,6 +102,9 @@ export function canAccessRoute(
     return false
   }
 
+  const hasElevatedNavigationAccess =
+    authorization.roleCodes.includes('ORG_ADMIN')
+
   if (route.requiredOrganizationContext && !session.organizationId) {
     return false
   }
@@ -114,15 +119,13 @@ export function canAccessRoute(
 
   if (
     route.requiredRoleCodes?.length &&
+    !hasElevatedNavigationAccess &&
     !route.requiredRoleCodes.some((roleCode) =>
       authorization.roleCodes.includes(roleCode),
     )
   ) {
     return false
   }
-
-  const hasElevatedNavigationAccess =
-    authorization.roleCodes.includes('ORG_ADMIN')
 
   if (
     route.requiredPermissions.length &&
@@ -151,13 +154,21 @@ export function getVisibleSidebarRoutes(
   routes: readonly AppRouteMetadata[],
   session: AppSession,
   authorization: AuthorizationState,
+  sidebarVisibilityOverrides: SidebarVisibilityOverrides = {},
 ) {
   if (authorization.status !== 'ready') {
     return []
   }
 
+  const hasElevatedNavigationAccess =
+    authorization.roleCodes.includes('ORG_ADMIN')
+
   return routes.filter(
-    (route) => route.showInSidebar && canAccessRoute(route, session, authorization),
+    (route) =>
+      route.showInSidebar &&
+      canAccessRoute(route, session, authorization) &&
+      (hasElevatedNavigationAccess ||
+        sidebarVisibilityOverrides[route.path] !== false),
   )
 }
 

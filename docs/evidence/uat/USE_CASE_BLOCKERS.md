@@ -108,3 +108,13 @@ the corresponding UI/API path exists and is exercised by the test.
 - This resolves the local multi-node requirement that organization admins
   cannot assign roles to users from another node/organization within the current
   one-role MVP model.
+
+2026-06-07 sidebar visibility override implementation:
+
+- Added per-user sidebar visibility overrides for same-organization users.
+- Admins can save route visibility toggles from `/admin/users`.
+- Non-admin sidebars are computed from route authorization plus the saved admin
+  toggle state.
+- `ORG_ADMIN` keeps full sidebar access by default.
+- Sidebar hiding remains a navigation preference only; backend authorization and
+  route guards remain authoritative.

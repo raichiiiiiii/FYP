@@ -244,6 +244,51 @@ corepack pnpm --dir apps/api test:integration -- identity-rbac
 4 tests passed
 ```
 
+## Current Slice: Admin-Controlled Sidebar Visibility
+
+Implemented:
+
+- Added `UserNavigationOverride` persistence for per-organization,
+  per-user, per-route sidebar visibility.
+- Added `GET /api/v1/admin/users/:userId/navigation`.
+  - Same-organization users can read their own overrides.
+  - Same-organization admins can inspect another user's overrides.
+- Added `PATCH /api/v1/admin/users/:userId/navigation`.
+  - Requires active same-organization `ORG_ADMIN`.
+  - Rejects cross-organization target users.
+  - Records `USER_NAVIGATION_OVERRIDES_UPDATED` audit events.
+- `/admin/users` now includes a sidebar access panel where an admin selects a
+  same-organization user and toggles left-panel route visibility.
+- Sidebar rendering now computes:
+
+```text
+visible = route authorization allowed AND admin sidebar toggle allowed
+```
+
+- `ORG_ADMIN` keeps full sidebar access by default and ignores per-user sidebar
+  hiding when acting as an admin.
+
+Boundary:
+
+- Sidebar visibility does not grant permissions.
+- Sidebar visibility does not bypass route guards or backend API guards.
+- Hidden route menu items remain protected by route authorization if opened
+  directly.
+
+Validation:
+
+```text
+corepack pnpm --dir apps/api test:integration -- identity-rbac
+
+1 test suite passed
+5 tests passed
+
+corepack pnpm --dir apps/web test -- authorization identity Sidebar
+
+3 test files passed
+23 tests passed
+```
+
 Single-node seed command:
 
 ```text

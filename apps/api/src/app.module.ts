@@ -12,6 +12,7 @@ import { InboxModule } from './modules/inbox/inbox.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { NodeFederationModule } from './modules/node-federation/node-federation.module';
 import { NodeStatusModule } from './modules/node-status/node-status.module';
+import { NavigationOverridesModule } from './modules/navigation/navigation-overrides.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -38,6 +39,7 @@ import { UsersModule } from './users/users.module';
     IntegrationsModule,
     NodeFederationModule,
     NodeStatusModule,
+    NavigationOverridesModule,
   ],
 })
 export class AppModule {}

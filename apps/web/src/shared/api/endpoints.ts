@@ -65,6 +65,17 @@ export const endpoints = {
   memberships: {
     create: '/memberships',
   },
+  navigationOverrides: {
+    user: (
+      userId: string,
+      organizationId?: string | null,
+      actorUserId?: string | null,
+    ) =>
+      withQuery(`/admin/users/${userId}/navigation`, {
+        organizationId,
+        actorUserId,
+      }),
+  },
   auditEvents: {
     list: (organizationId?: string | null) =>
       scopedPath('/audit-events', organizationId),

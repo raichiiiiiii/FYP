@@ -26,6 +26,7 @@ function visibleLabelsFor(
   roleCodes: Parameters<typeof readyAuthorization>[0],
   permissionCodes: Parameters<typeof readyAuthorization>[1],
   deploymentMode: DeploymentMode = 'standalone_sme',
+  sidebarOverrides: Record<string, boolean> = {},
 ) {
   return getVisibleSidebarRoutes(
     routeMetadata,
@@ -34,6 +35,7 @@ function visibleLabelsFor(
       organizationDeploymentMode: deploymentMode,
     },
     readyAuthorization(roleCodes, permissionCodes),
+    sidebarOverrides,
   ).map((item) => item.label)
 }
 
@@ -189,5 +191,38 @@ describe('route authorization', () => {
     expect(labels).toContain('Requisitions')
     expect(labels).toContain('Reports')
     expect(labels).not.toContain('Fabric Governance')
+  })
+
+  it('lets organization admins satisfy role-gated navigation inside the current node mode', () => {
+    const labels = visibleLabelsFor(['ORG_ADMIN'], [], 'standalone_sme')
+
+    expect(labels).toContain('Evidence Items')
+    expect(labels).toContain('Receipt/Invoice Matching')
+  })
+
+  it('applies sidebar overrides only after route authorization for non-admin users', () => {
+    const labels = visibleLabelsFor(
+      ['AUDITOR'],
+      ['audit:read'],
+      'standalone_sme',
+      {
+        '/reports': false,
+        '/procurement/suppliers': true,
+      },
+    )
+
+    expect(labels).not.toContain('Reports')
+    expect(labels).not.toContain('Suppliers')
+    expect(labels).toContain('Audit Events')
+  })
+
+  it('ignores sidebar overrides for organization admins by default', () => {
+    const labels = visibleLabelsFor(['ORG_ADMIN'], [], 'standalone_sme', {
+      '/reports': false,
+      '/admin/users': false,
+    })
+
+    expect(labels).toContain('Reports')
+    expect(labels).toContain('Users')
   })
 })

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
+import { routeMetadata } from '../../app/navigation'
 import { useAppSession } from '../../app/session'
 import { PageHeader } from '../../layouts/PageHeader'
 import { apiRequest } from '../../shared/api/client'
+import { endpoints } from '../../shared/api/endpoints'
 import { getErrorMessage } from '../../shared/api/errors'
 import { Button } from '../../shared/components/Button'
 import { DataTable } from '../../shared/components/DataTable'
@@ -15,7 +17,12 @@ import { SelectField } from '../../shared/components/SelectField'
 import { StatusBadge } from '../../shared/components/StatusBadge'
 import { useValidatedForm } from '../../shared/forms/useValidatedForm'
 import { useToast } from '../../shared/toast/useToast'
-import type { Membership, Role, User } from '../../shared/types'
+import type {
+  Membership,
+  Role,
+  User,
+  UserNavigationOverridesResponse,
+} from '../../shared/types'
 import {
   adminReadinessStatusLabel,
   buildAdminReadinessCards,
@@ -39,6 +46,11 @@ export function UsersAdmin() {
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
+  const [selectedNavigationUserId, setSelectedNavigationUserId] = useState('')
+  const [navigationOverrides, setNavigationOverrides] = useState<
+    Record<string, boolean>
+  >({})
+  const [navigationLoading, setNavigationLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const createUserForm = useValidatedForm(createUserSchema, {
@@ -66,6 +78,13 @@ export function UsersAdmin() {
         hasMemberships: memberships.length > 0,
       }),
     [memberships.length, roles.length, session.organizationId],
+  )
+  const sidebarRoutes = useMemo(
+    () => routeMetadata.filter((route) => route.showInSidebar),
+    [],
+  )
+  const selectedNavigationUser = users.find(
+    (user) => user.id === selectedNavigationUserId,
   )
 
   const loadAdminData = useCallback(async () => {
@@ -102,6 +121,11 @@ export function UsersAdmin() {
       createUserForm.setValue('selectedRoleId', data.roleRows[0]?.id ?? '')
       assignRoleForm.setValue('selectedUserId', data.userRows[0]?.id ?? '')
       assignRoleForm.setValue('selectedRoleId', data.roleRows[0]?.id ?? '')
+      setSelectedNavigationUserId((current) =>
+        current && data.userRows.some((user) => user.id === current)
+          ? current
+          : data.userRows[0]?.id ?? '',
+      )
     },
     [assignRoleForm, createUserForm],
   )
@@ -183,6 +207,108 @@ export function UsersAdmin() {
       notify({ type: 'error', message: errorMessage })
     }
   })
+
+  const loadNavigationOverrides = useCallback(
+    async (userId: string) => {
+      if (!session.organizationId || !session.actorUserId || !userId) {
+        setNavigationOverrides({})
+        return
+      }
+
+      try {
+        setNavigationLoading(true)
+        const response = await apiRequest<UserNavigationOverridesResponse>(
+          endpoints.navigationOverrides.user(
+            userId,
+            session.organizationId,
+            session.actorUserId,
+          ),
+        )
+        setNavigationOverrides(
+          Object.fromEntries(
+            response.overrides.map((override) => [
+              override.routePath,
+              override.visible,
+            ]),
+          ),
+        )
+      } catch (error) {
+        const errorMessage = getErrorMessage(
+          error,
+          'Unable to load sidebar access',
+        )
+        setMessage(errorMessage)
+      } finally {
+        setNavigationLoading(false)
+      }
+    },
+    [session.actorUserId, session.organizationId],
+  )
+
+  useEffect(() => {
+    if (!selectedNavigationUserId) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(
+      () => void loadNavigationOverrides(selectedNavigationUserId),
+      0,
+    )
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadNavigationOverrides, selectedNavigationUserId])
+
+  function toggleNavigationRoute(routePath: string) {
+    setNavigationOverrides((current) => ({
+      ...current,
+      [routePath]: !(current[routePath] ?? true),
+    }))
+  }
+
+  async function saveNavigationOverrides() {
+    if (!session.organizationId || !session.actorUserId || !selectedNavigationUserId) {
+      setMessage('Select an organization user before saving sidebar access.')
+      return
+    }
+
+    try {
+      setMessage(null)
+      const response = await apiRequest<UserNavigationOverridesResponse>(
+        endpoints.navigationOverrides.user(
+          selectedNavigationUserId,
+          session.organizationId,
+          session.actorUserId,
+        ),
+        {
+          method: 'PATCH',
+          body: {
+            organizationId: session.organizationId,
+            actorUserId: session.actorUserId,
+            overrides: sidebarRoutes.map((route) => ({
+              routePath: route.path,
+              visible: navigationOverrides[route.path] ?? true,
+            })),
+          },
+        },
+      )
+      setNavigationOverrides(
+        Object.fromEntries(
+          response.overrides.map((override) => [
+            override.routePath,
+            override.visible,
+          ]),
+        ),
+      )
+      notify({ type: 'success', message: 'Sidebar access saved' })
+    } catch (error) {
+      const errorMessage = getErrorMessage(
+        error,
+        'Unable to save sidebar access',
+      )
+      setMessage(errorMessage)
+      notify({ type: 'error', message: errorMessage })
+    }
+  }
 
   return (
     <>
@@ -384,6 +510,73 @@ export function UsersAdmin() {
         ) : (
           <EmptyState title="No memberships found">
             Create users and assign roles to build organization access.
+          </EmptyState>
+        )}
+      </section>
+
+      <section className="table-section" aria-labelledby="sidebar-access-title">
+        <div className="section-heading-row">
+          <div>
+            <h2 id="sidebar-access-title">Sidebar access</h2>
+            <p>
+              Hide or show left-panel items for a same-organization user. This
+              does not grant route permissions or bypass backend authorization.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => void saveNavigationOverrides()}
+            disabled={!selectedNavigationUserId || navigationLoading}
+          >
+            Save sidebar access
+          </Button>
+        </div>
+
+        {users.length ? (
+          <>
+            <SelectField
+              label="User"
+              name="sidebarUserId"
+              value={selectedNavigationUserId}
+              onChange={(event) =>
+                setSelectedNavigationUserId(event.currentTarget.value)
+              }
+              options={users.map((user) => ({
+                value: user.id,
+                label: `${user.displayName} (${user.email})`,
+              }))}
+            />
+            {selectedNavigationUser ? (
+              <p className="form-support-copy">
+                Editing sidebar items for {selectedNavigationUser.displayName}.
+                Organization admins keep full sidebar access by default.
+              </p>
+            ) : null}
+            <div className="sidebar-access-grid">
+              {sidebarRoutes.map((route) => {
+                const visible = navigationOverrides[route.path] ?? true
+
+                return (
+                  <label key={route.path} className="sidebar-access-item">
+                    <input
+                      type="checkbox"
+                      checked={visible}
+                      onChange={() => toggleNavigationRoute(route.path)}
+                    />
+                    <span>
+                      <strong>{route.label}</strong>
+                      <small>
+                        {route.module} · {route.path}
+                      </small>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <EmptyState title="No organization users found">
+            Create users before configuring sidebar access.
           </EmptyState>
         )}
       </section>

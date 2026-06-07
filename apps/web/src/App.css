@@ -2714,6 +2714,45 @@ textarea {
   max-width: 720px;
 }
 
+.sidebar-access-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 16px;
+}
+
+.sidebar-access-item {
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  min-height: 70px;
+  padding: 12px;
+}
+
+.sidebar-access-item input {
+  margin-top: 3px;
+}
+
+.sidebar-access-item span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sidebar-access-item strong,
+.sidebar-access-item small {
+  overflow-wrap: anywhere;
+}
+
+.sidebar-access-item small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .requisition-form {
   border: 1px solid var(--border);
   border-radius: 8px;

@@ -56,6 +56,7 @@ model Organization {
   graphSavedViews          GraphSavedView[]
   graphAnnotations         GraphAnnotation[]
   inboxItems               InboxItem[]
+  userNavigationOverrides  UserNavigationOverride[]
   operatedFabricNetworks   FabricNetwork[] @relation("FabricNetworkOperatorOrganization")
   createdFabricChannels    FabricChannel[] @relation("FabricChannelCreatedByOrganization")
   fabricChannelMemberships FabricChannelMembership[]
@@ -90,6 +91,8 @@ model User {
   graphSavedViews       GraphSavedView[] @relation("GraphSavedViewOwner")
   createdGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationCreatedBy")
   updatedGraphAnnotations GraphAnnotation[] @relation("GraphAnnotationUpdatedBy")
+  navigationOverrides      UserNavigationOverride[] @relation("UserNavigationOverrideUser")
+  setNavigationOverrides   UserNavigationOverride[] @relation("UserNavigationOverrideSetBy")
   sentInboxItems        InboxItem[] @relation("InboxItemSender")
   receivedInboxItems    InboxItem[] @relation("InboxItemRecipient")
   createdFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationCreatedByUser")
@@ -458,6 +461,26 @@ model InboundNodeEvent {
   @@index([sourceNodeKey])
   @@index([eventType])
   @@index([status])
+}
+
+model UserNavigationOverride {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  routePath      String
+  visible        Boolean
+  setByUserId    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation("UserNavigationOverrideUser", fields: [userId], references: [id])
+  setByUser    User         @relation("UserNavigationOverrideSetBy", fields: [setByUserId], references: [id])
+
+  @@unique([organizationId, userId, routePath])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([setByUserId])
 }
 
 model Workspace {

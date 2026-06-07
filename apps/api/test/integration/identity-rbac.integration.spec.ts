@@ -185,4 +185,81 @@ describe('Integration: identity and RBAC', () => {
       })
       .expect(400);
   });
+
+  it('allows organization admins to manage same-organization sidebar overrides only', async () => {
+    const setup = await createOrganizationFixture(context.app);
+    const otherSetup = await createOrganizationFixture(context.app);
+    const role = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/roles')
+        .send({
+          code: `SIDEBAR_VIEWER_${Date.now()}`,
+          name: 'Sidebar Viewer',
+          permissionCodes: ['audit:read'],
+          organizationId: setup.organization.id,
+          actorUserId: setup.adminUser.id,
+        })
+        .expect(201)
+    ).body as { id: string };
+    const targetUser = (
+      await request(context.app.getHttpServer())
+        .post('/api/v1/users')
+        .send({
+          email: `sidebar-${Date.now()}@example.test`,
+          displayName: 'Sidebar Target',
+          roleId: role.id,
+          organizationId: setup.organization.id,
+          actorUserId: setup.adminUser.id,
+        })
+        .expect(201)
+    ).body as { id: string };
+
+    const updated = (
+      await request(context.app.getHttpServer())
+        .patch(`/api/v1/admin/users/${targetUser.id}/navigation`)
+        .send({
+          organizationId: setup.organization.id,
+          actorUserId: setup.adminUser.id,
+          overrides: [
+            { routePath: '/reports', visible: false },
+            { routePath: '/graph/projects', visible: true },
+          ],
+        })
+        .expect(200)
+    ).body as {
+      overrides: Array<{ routePath: string; visible: boolean }>;
+    };
+
+    expect(updated.overrides).toEqual(
+      expect.arrayContaining([
+        { routePath: '/reports', visible: false },
+        { routePath: '/graph/projects', visible: true },
+      ]),
+    );
+
+    await request(context.app.getHttpServer())
+      .get(`/api/v1/admin/users/${targetUser.id}/navigation`)
+      .query({
+        organizationId: setup.organization.id,
+        actorUserId: targetUser.id,
+      })
+      .expect(200);
+
+    await request(context.app.getHttpServer())
+      .patch(`/api/v1/admin/users/${targetUser.id}/navigation`)
+      .send({
+        organizationId: setup.organization.id,
+        actorUserId: targetUser.id,
+        overrides: [{ routePath: '/reports', visible: true }],
+      })
+      .expect(403);
+
+    await request(context.app.getHttpServer())
+      .get(`/api/v1/admin/users/${targetUser.id}/navigation`)
+      .query({
+        organizationId: otherSetup.organization.id,
+        actorUserId: otherSetup.adminUser.id,
+      })
+      .expect(404);
+  });
 });

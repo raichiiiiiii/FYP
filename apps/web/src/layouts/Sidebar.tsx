@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   Archive,
@@ -44,6 +44,9 @@ import {
 } from '../app/navigation'
 import { useAppSession } from '../app/session'
 import { AccountMenu } from '../features/account/AccountMenu'
+import { apiRequest } from '../shared/api/client'
+import { endpoints } from '../shared/api/endpoints'
+import type { UserNavigationOverridesResponse } from '../shared/types'
 import {
   getActiveSidebarModule,
   getSidebarModuleId,
@@ -62,10 +65,38 @@ export function Sidebar({
   const location = useLocation()
   const { authorization, session } = useAppSession()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const sidebarOverrideKey = `${session.organizationId ?? ''}:${
+    session.actorUserId ?? ''
+  }`
+  const [sidebarVisibilityState, setSidebarVisibilityState] = useState<{
+    key: string
+    overrides: Record<string, boolean>
+  }>({
+    key: '',
+    overrides: {},
+  })
   const [collapsedModules, setCollapsedModules] = useState<Set<AppModule>>(
     () => new Set(),
   )
-  const visibleRoutes = getVisibleSidebarRoutes(routeMetadata, session, authorization)
+  const isOrganizationAdmin =
+    authorization.status === 'ready' &&
+    authorization.roleCodes.includes('ORG_ADMIN')
+  const visibleRoutes = useMemo(
+    () => {
+      const effectiveSidebarVisibilityOverrides =
+        sidebarVisibilityState.key === sidebarOverrideKey
+          ? sidebarVisibilityState.overrides
+          : {}
+
+      return getVisibleSidebarRoutes(
+        routeMetadata,
+        session,
+        authorization,
+        effectiveSidebarVisibilityOverrides,
+      )
+    },
+    [authorization, session, sidebarOverrideKey, sidebarVisibilityState],
+  )
   const groupedModules = useMemo(
     () => groupSidebarRoutesByModule(visibleRoutes),
     [visibleRoutes],
@@ -83,6 +114,58 @@ export function Sidebar({
     : canOpenAudit
       ? '/audit/search'
       : '/dashboard'
+
+  useEffect(() => {
+    if (
+      authorization.status !== 'ready' ||
+      isOrganizationAdmin ||
+      !session.organizationId ||
+      !session.actorUserId
+    ) {
+      return undefined
+    }
+
+    let cancelled = false
+
+    apiRequest<UserNavigationOverridesResponse>(
+      endpoints.navigationOverrides.user(
+        session.actorUserId,
+        session.organizationId,
+        session.actorUserId,
+      ),
+    )
+      .then((response) => {
+        if (!cancelled) {
+          setSidebarVisibilityState({
+            key: sidebarOverrideKey,
+            overrides: Object.fromEntries(
+              response.overrides.map((override) => [
+                override.routePath,
+                override.visible,
+              ]),
+            ),
+          })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSidebarVisibilityState({
+            key: sidebarOverrideKey,
+            overrides: {},
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    authorization.status,
+    isOrganizationAdmin,
+    session.actorUserId,
+    session.organizationId,
+    sidebarOverrideKey,
+  ])
 
   function toggleModule(module: AppModule) {
     setCollapsedModules((current) => {

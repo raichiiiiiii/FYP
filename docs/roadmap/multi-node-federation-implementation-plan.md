@@ -15,7 +15,8 @@ Progress as of 2026-06-07:
 - Graph route node/channel federation panel implemented.
 - Account password update API/UI implemented.
 - Organization admin identity hardening implemented.
-- Remaining work: admin sidebar overrides and multi-node E2E screenshots.
+- Admin sidebar visibility overrides implemented.
+- Remaining work: multi-node E2E screenshots.
 
 ## Direction for the implementation plan
 

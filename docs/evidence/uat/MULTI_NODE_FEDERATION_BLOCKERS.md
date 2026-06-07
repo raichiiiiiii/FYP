@@ -6,14 +6,14 @@ Last updated: 2026-06-07
 
 None for the isolated node seed, Docker/start scaffolding, backend
 node-federation API, preconfigured channel bootstrap, graph route federation
-panel, local password update, or organization-admin identity hardening slices.
+panel, local password update, organization-admin identity hardening, or sidebar
+visibility override slices.
 
 ## Open Implementation Items
 
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- Sidebar visibility override APIs/UI.
 - Multi-node E2E/UAT screenshots from every relevant local port.
 
 ## Resolved Items
@@ -36,6 +36,10 @@ multi-node federation objective:
 - User, role, and membership administration now requires an active
   same-organization `ORG_ADMIN` actor. Membership assignment rejects target
   users already registered under another organization.
+- Admin-controlled sidebar visibility overrides are persisted per
+  organization/user/route path. Non-admin sidebars apply route authorization
+  first and then admin visibility toggles. `ORG_ADMIN` keeps full sidebar access
+  by default.
 
 ## Validation Limitations
 

@@ -195,6 +195,17 @@ export type InboxResponse = {
   items: InboxItem[]
 }
 
+export type UserNavigationOverride = {
+  routePath: string
+  visible: boolean
+}
+
+export type UserNavigationOverridesResponse = {
+  organizationId: string
+  userId: string
+  overrides: UserNavigationOverride[]
+}
+
 export type Workspace = {
   id: string
   name: string
