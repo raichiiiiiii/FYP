@@ -171,5 +171,8 @@ Notes:
   federation channels.
 - Screenshot evidence was captured under
   `docs/evidence/uat/screenshots/multi-node/`.
+- The multi-node startup now also creates at least seven UAT-labelled
+  business activity traces per seeded user in every node through `AuditEvent`
+  and `InboxItem` records.
 - This is local simulated federation evidence only. It does not change the
   UAT-B-003 direct Fabric topology boundary or the UAT-B-004 live-proof gate.

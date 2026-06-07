@@ -87,6 +87,37 @@ Boundary:
 - It does not mutate real Fabric topology.
 - It does not produce real Fabric proof.
 
+## Current Slice: Per-User Business Activity Simulation
+
+Implemented:
+
+- Added `tests/uat/local-node-business-activity.mjs` with route-aware activity
+  templates for every seeded local node role.
+- Added `tests/uat/simulate-node-business-activity.mjs`.
+- Updated `start.ps1` to run the simulator after each node database is migrated
+  and seeded.
+- Every seeded account in each local node receives at least seven simulated
+  business activity traces.
+- Activity traces are visible as:
+  - `AuditEvent` rows attributed to the acting user.
+  - `InboxItem` rows addressed to the same user.
+
+Expected full 10-node counts:
+
+| Node group | Nodes | Users per node | Activities per user | Audit events | Inbox items |
+|---|---:|---:|---:|---:|---:|
+| Business nodes | 7 | 7 | 7 | 343 | 343 |
+| Finance nodes | 3 | 5 | 7 | 105 | 105 |
+| Total | 10 | 64 users | 7 minimum | 448 | 448 |
+
+Boundary:
+
+- The records are local/UAT activity traces only.
+- They do not mutate real Fabric topology.
+- They do not produce real Fabric proof.
+- They do not execute real payment/disbursement actions.
+- They do not calculate guaranteed or fixed mudarabah returns.
+
 ## Current Slice: Graph Route Federation Panel
 
 Implemented:
@@ -147,13 +178,38 @@ Channel-plan/bootstrap checks:
 ```text
 corepack pnpm test:uat-catalog
 
-2 suites passed
-7 tests passed
+3 suites passed
+10 tests passed
 
 node tests/uat/bootstrap-local-node-federation.mjs --dry-run
 
 Dry-run printed 10 nodes and 9 preconfigured simulated channels with
 realFabricTopologyMutation=false and realFabricProof=false.
+```
+
+Business-activity simulation checks:
+
+```text
+corepack pnpm test:uat-catalog
+
+3 suites passed
+10 tests passed
+
+node tests/uat/simulate-node-business-activity.mjs --node amanah-retail
+
+7 users
+49 AuditEvent records
+49 InboxItem records
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -SeedOnly -SkipUat
+
+passed; each seeded node printed the expected simulation summary
+
+10-node local simulator loop
+
+64 users
+448 AuditEvent records
+448 InboxItem records
 ```
 
 Graph panel checks:

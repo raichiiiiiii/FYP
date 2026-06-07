@@ -15,7 +15,7 @@
     "test:integration": "corepack pnpm --dir apps/api test:integration && corepack pnpm --dir apps/worker test:integration",
     "test:e2e": "node tests/e2e/setup-e2e.mjs && playwright test",
     "test:a11y": "node tests/e2e/setup-e2e.mjs && playwright test tests/e2e/18-accessibility-smoke.spec.ts",
-    "test:uat-catalog": "node --test tests/uat/local-node-catalog.test.mjs tests/uat/local-node-channel-plan.test.mjs",
+    "test:uat-catalog": "node --test tests/uat/local-node-catalog.test.mjs tests/uat/local-node-channel-plan.test.mjs tests/uat/local-node-business-activity.test.mjs",
     "test:ci": "corepack pnpm lint && corepack pnpm test:unit && corepack pnpm test:integration && corepack pnpm test:e2e",
     "seed:uat": "node tests/uat/seed-uat-demo.mjs",
     "typecheck": "corepack pnpm --dir apps/web typecheck",

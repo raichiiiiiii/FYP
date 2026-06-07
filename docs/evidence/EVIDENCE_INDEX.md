@@ -53,6 +53,7 @@ not be stored in this directory.
 | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md` | SRS use-case UAT runner, latest local result, screenshot paths, and safety notes. | Passed locally for UC-01 through UC-18. |
 | `docs/evidence/uat/FABRIC_UAT_BLOCKER_DECISIONS.md` | Accepted UAT-B-003/UAT-B-004 decision evidence, `/fabric-governance` decision UI, and validation commands. | Complete for local UAT decision boundary; live proof evidence remains environment-gated. |
 | `docs/evidence/uat/seeded-node-accounts.txt` | Seeded organization-node account list and local/demo password reference. | Complete for local/UAT reviewer use; not production credential behavior. |
+| `docs/evidence/uat/BUSINESS_ACTIVITY_SIMULATION.md` | Multi-node per-user business activity simulation using UAT-labelled audit and inbox records. | Complete for local/UAT simulation boundary; does not claim real Fabric proof or real payment execution. |
 | `docs/evidence/uat/MULTI_NODE_FEDERATION_RESULTS.md` | Multi-node federation implementation evidence, including isolated one-organization seed validation and Docker/start scaffolding. | Partial; API federation, channel sync, canvas, and screenshots remain in progress. |
 | `docs/evidence/uat/MULTI_NODE_FEDERATION_BLOCKERS.md` | Blocker and open-item register for the multi-node federation workstream. | Current; no active blocker for the isolated seed slice. |
 | `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` | Route-health audit for dashboard, finance, graph, and operations routes. | Complete for latest UI/HCI recovery run. |

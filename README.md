@@ -308,6 +308,19 @@ Optional isolated local-federation node seed:
 node tests/uat/seed-uat-demo.mjs --node amanah-retail
 ```
 
+Optional per-user business activity simulation for a seeded node:
+
+```bash
+node tests/uat/simulate-node-business-activity.mjs --node amanah-retail
+```
+
+The root `start.ps1` script runs this simulator automatically after each node
+database is migrated and seeded. It creates at least seven local/UAT activity
+traces per seeded account using `AuditEvent` and `InboxItem` records. These
+records are reviewer simulation evidence only; they do not create real Fabric
+proof, real topology mutation, real payment execution, or guaranteed/fixed
+mudarabah returns.
+
 Available local-federation node keys:
 
 ```text

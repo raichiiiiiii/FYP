@@ -301,6 +301,19 @@ function Invoke-NodeMigrationAndSeed {
 
       $summary = Convert-SeedSummaryOutput -OutputLines $seedResult.Output
       Write-Step "Seeded $($Node.MEPN_NODE_KEY) organization $($summary.organization.legalName)."
+
+      $activityResult = Invoke-NativeCommandOutput -Command {
+        node tests/uat/simulate-node-business-activity.mjs --node $Node.MEPN_NODE_KEY
+      }
+      if ($activityResult.ExitCode -ne 0) {
+        $activityResult.Output | ForEach-Object { Write-Host $_ }
+        throw "UAT business activity simulation failed for $($Node.MEPN_NODE_KEY)."
+      }
+
+      $activitySummary = Convert-SeedSummaryOutput -OutputLines $activityResult.Output
+      $summary | Add-Member -NotePropertyName businessActivitySimulation -NotePropertyValue $activitySummary -Force
+      Write-Step "Simulated $($activitySummary.totals.auditEventCount) audit activities and $($activitySummary.totals.inboxItemCount) inbox items for $($activitySummary.totals.userCount) users on $($Node.MEPN_NODE_KEY)."
+
       return $summary
     } finally {
       Pop-Location
