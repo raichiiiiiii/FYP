@@ -192,8 +192,31 @@ Important local/UAT boundary:
 Current status:
 
 - The Docker/start scaffolding and isolated node seed mode are implemented.
-- The node-federation API and preconfigured channel synchronization are still
-  tracked as the next multi-node federation slices.
+- The node-federation API is implemented for local/UAT simulated federation.
+- `start.ps1` runs migrations, seeds each node, then establishes the
+  preconfigured simulated tender, private award/deal, finance-data, and
+  finance-support channels through backend API calls.
+
+Preconfigured simulated channels:
+
+```text
+tender-market-channel                 all 7 business nodes
+award-amanah-barakah-channel          Amanah Retail + Barakah Supplies
+award-amanah-ihsan-channel            Amanah Retail + Ihsan Foods
+private-taqwa-salsabil-channel        Taqwa Office + Salsabil Packaging
+private-hikmah-nur-channel            Hikmah Health + Nur Logistics
+finance-data-channel                  Mabrur Finance + Aman Capital + Safwa Growth
+finance-mabrur-barakah-channel        Mabrur Finance + Barakah Supplies
+finance-aman-capital-ihsan-channel    Aman Capital + Ihsan Foods
+finance-safwa-hikmah-channel          Safwa Growth + Hikmah Health
+```
+
+Validate the local federation catalog and channel plan:
+
+```bash
+corepack pnpm test:uat-catalog
+node tests/uat/bootstrap-local-node-federation.mjs --dry-run
+```
 
 Prerequisites:
 

@@ -4,16 +4,14 @@ Last updated: 2026-06-07
 
 ## Active Blockers
 
-None for the isolated node seed, Docker/start scaffolding, or backend
-node-federation API slices.
+None for the isolated node seed, Docker/start scaffolding, backend
+node-federation API, or preconfigured channel bootstrap slices.
 
 ## Open Implementation Items
 
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- Preconfigured simulated tender, award/deal, finance-data, and finance-support
-  channels.
 - Graph/canvas node/channel rendering.
 - Organization admin role-assignment hardening.
 - Sidebar visibility override APIs/UI.
@@ -31,6 +29,9 @@ multi-node federation objective:
 - Backend node-federation APIs now support local simulated peers, channels,
   invitations, inbound events with a local shared-secret boundary, and canvas
   DTOs.
+- `start.ps1` now calls `tests/uat/bootstrap-local-node-federation.mjs` to
+  establish the preconfigured simulated tender, award/deal, finance-data, and
+  finance-support channels after seed.
 
 ## Boundary Notes
 

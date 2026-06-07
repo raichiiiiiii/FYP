@@ -179,8 +179,21 @@ function Invoke-NodeMigrationAndSeed {
 
     Push-Location $RepoRoot
     try {
-      & corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
-      & node tests/uat/seed-uat-demo.mjs --node $Node.MEPN_NODE_KEY
+      $migrationOutput = & corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma 2>&1
+      if ($LASTEXITCODE -ne 0) {
+        $migrationOutput | ForEach-Object { Write-Host $_ }
+        throw "Prisma migration failed for $($Node.MEPN_NODE_KEY)."
+      }
+
+      $seedOutput = & node tests/uat/seed-uat-demo.mjs --node $Node.MEPN_NODE_KEY 2>&1
+      if ($LASTEXITCODE -ne 0) {
+        $seedOutput | ForEach-Object { Write-Host $_ }
+        throw "UAT seed failed for $($Node.MEPN_NODE_KEY)."
+      }
+
+      $summary = Convert-SeedSummaryOutput -OutputLines $seedOutput
+      Write-Step "Seeded $($Node.MEPN_NODE_KEY) organization $($summary.organization.legalName)."
+      return $summary
     } finally {
       Pop-Location
     }
@@ -195,8 +208,32 @@ function Invoke-NodeMigrationAndSeed {
   }
 }
 
+function Convert-SeedSummaryOutput {
+  param([object[]]$OutputLines)
+
+  $text = ($OutputLines | ForEach-Object { "$_" }) -join "`n"
+  $start = $text.IndexOf('{')
+  $end = $text.LastIndexOf('}')
+
+  if ($start -lt 0 -or $end -lt $start) {
+    throw 'Seed command did not return a JSON summary.'
+  }
+
+  return $text.Substring($start, $end - $start + 1) | ConvertFrom-Json
+}
+
 function Invoke-SimulatedChannelBootstrap {
-  Write-Warn "Node federation API is not implemented yet; simulated channel bootstrap is deferred to the node-federation API slice."
+  Write-Step 'Establishing preconfigured local simulated federation channels.'
+
+  Push-Location $RepoRoot
+  try {
+    & node tests/uat/bootstrap-local-node-federation.mjs
+    if ($LASTEXITCODE -ne 0) {
+      throw 'Local simulated federation channel bootstrap failed.'
+    }
+  } finally {
+    Pop-Location
+  }
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -260,10 +297,14 @@ if (-not $SeedOnly) {
 }
 
 foreach ($node in $Nodes) {
-  Invoke-NodeMigrationAndSeed -Node $node
+  $node['SEED_SUMMARY'] = Invoke-NodeMigrationAndSeed -Node $node
 }
 
-Invoke-SimulatedChannelBootstrap
+if ($SeedOnly) {
+  Write-Warn 'SeedOnly was requested; skipping API-backed simulated channel bootstrap because node APIs may not be running.'
+} else {
+  Invoke-SimulatedChannelBootstrap
+}
 
 if (-not $SkipUat) {
   Write-Warn "Multi-node UAT spec is not implemented yet. Run existing use-case UAT with: corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts"
@@ -277,4 +318,4 @@ foreach ($node in $Nodes) {
   Write-Host ("{0,-20} Web: http://localhost:{1}  API: http://localhost:{2}/api/v1/health  Admin: admin@{0}.local" -f $node.MEPN_NODE_KEY, $node.WEB_HOST_PORT, $node.API_HOST_PORT)
 }
 Write-Host ''
-Write-Host 'Boundary: local federation channels are simulated metadata until the node-federation API slice is implemented. Real Fabric topology mutation remains outside the normal app runtime.'
+Write-Host 'Boundary: local federation channels are simulated metadata only. Real Fabric topology mutation and real Fabric proof remain outside this local bootstrap.'

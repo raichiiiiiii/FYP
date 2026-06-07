@@ -55,9 +55,40 @@ Boundary:
   MSP certificates, store Fabric admin private keys, or mark seeded proof as
   real Fabric verification.
 
+## Current Slice: Preconfigured Channel Bootstrap
+
+Implemented:
+
+- Added `tests/uat/local-node-channel-plan.mjs`.
+- Added `tests/uat/bootstrap-local-node-federation.mjs`.
+- Updated `start.ps1` to call the bootstrap runner after all 10 nodes are
+  migrated and seeded.
+- The bootstrap runner logs in with each node's local `admin@<node>.local`
+  account and creates/synchronizes the preconfigured simulated channel metadata
+  through `/api/v1/node-federation/*`.
+
+Preconfigured channels:
+
+| Channel | Type | Members |
+|---|---|---|
+| `tender-market-channel` | `SHARED_TENDER_COMPETITION` | all 7 business nodes |
+| `award-amanah-barakah-channel` | `PRIVATE_AWARD_OR_DEAL` | Amanah Retail, Barakah Supplies |
+| `award-amanah-ihsan-channel` | `PRIVATE_AWARD_OR_DEAL` | Amanah Retail, Ihsan Foods |
+| `private-taqwa-salsabil-channel` | `PRIVATE_AWARD_OR_DEAL` | Taqwa Office, Salsabil Packaging |
+| `private-hikmah-nur-channel` | `PRIVATE_AWARD_OR_DEAL` | Hikmah Health, Nur Logistics |
+| `finance-data-channel` | `FINANCE_ENTITY_DATA_SHARING` | Mabrur Finance, Aman Capital, Safwa Growth |
+| `finance-mabrur-barakah-channel` | `FINANCE_BACKUP_SUPPORT` | Mabrur Finance, Barakah Supplies |
+| `finance-aman-capital-ihsan-channel` | `FINANCE_BACKUP_SUPPORT` | Aman Capital, Ihsan Foods |
+| `finance-safwa-hikmah-channel` | `FINANCE_BACKUP_SUPPORT` | Safwa Growth, Hikmah Health |
+
+Boundary:
+
+- The bootstrap uses local simulated metadata only.
+- It does not mutate real Fabric topology.
+- It does not produce real Fabric proof.
+
 Pending in later slices:
 
-- Preconfigured simulated tender, award, finance-data, and support channels.
 - Multi-node canvas rendering and screenshots.
 
 ## Validation Evidence
@@ -90,6 +121,20 @@ corepack pnpm --dir apps/api test:integration -- node-federation
 
 1 test suite passed
 4 tests passed
+```
+
+Channel-plan/bootstrap checks:
+
+```text
+corepack pnpm test:uat-catalog
+
+2 suites passed
+7 tests passed
+
+node tests/uat/bootstrap-local-node-federation.mjs --dry-run
+
+Dry-run printed 10 nodes and 9 preconfigured simulated channels with
+realFabricTopologyMutation=false and realFabricProof=false.
 ```
 
 Single-node seed command:
@@ -148,6 +193,4 @@ Direct database verification after the finance-node seed:
 ## Remaining Work
 
 - Extend graph/canvas to show node/channel relationships.
-- Preconfigure simulated tender, award/deal, finance-data, and support
-  channels through startup automation.
 - Add multi-node E2E/UAT screenshots from each local port.
