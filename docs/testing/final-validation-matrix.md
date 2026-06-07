@@ -32,6 +32,8 @@ required runtime is actually available.
 | `corepack pnpm --dir apps/api run test:unit -- fabric-governance` | Fabric governance DTO validation and evidence sanitizer checks. | Passed after consortium governance implementation. | `docs/evidence/qa/FABRIC_CONSORTIUM_GOVERNANCE_EVIDENCE.md` |
 | `corepack pnpm --dir apps/api run test:integration -- fabric-governance` | Fabric governance proposal, invitation, acceptance, approval, operator execution evidence, role denial, and metadata-only side-effect assertions. | Passed after consortium governance implementation. | `docs/evidence/qa/FABRIC_CONSORTIUM_GOVERNANCE_EVIDENCE.md` |
 | `corepack pnpm --dir apps/web run test -- fabric-governance` | Fabric governance frontend role/status/secret-label model behavior. | Passed after consortium governance implementation. | `docs/evidence/qa/FABRIC_CONSORTIUM_GOVERNANCE_EVIDENCE.md` |
+| `corepack pnpm --dir apps/api test:unit -- node-status` | Self-hosted node status DTO/service compatibility mapping and secret redaction. | Passed on 2026-06-07; 3 tests passed. | `docs/evidence/uat/USE_CASE_BLOCKERS.md` |
+| `corepack pnpm --dir apps/api test:integration -- node-status` | `GET /api/v1/node/status` compatibility/readiness endpoint safety and migration status. | Passed on 2026-06-07; 1 test passed. | `docs/evidence/uat/USE_CASE_BLOCKERS.md` |
 | `corepack pnpm test:e2e -- tests/e2e/15-fabric-gateway-uat-proof.spec.ts` | Real Fabric Gateway proof panel screenshots. | Environment-gated. | `docs/evidence/qa/FABRIC_GATEWAY_UAT_EVIDENCE.md` |
 | `corepack pnpm test:e2e -- tests/e2e/16-reports-export-flow.spec.ts` | Report DTO UI and audited JSON export flow. | Previously passed during reports phase. | `docs/evidence/qa/REPORT_EXPORT_EVIDENCE.md` |
 | `corepack pnpm test:e2e -- tests/e2e/17-loss-exception-workflow.spec.ts` | Loss exception classification, closure gate, reviewer UI. | Previously passed during loss-exception phase. | `docs/evidence/qa/LOSS_EXCEPTION_WORKFLOW_EVIDENCE.md` |
@@ -40,7 +42,7 @@ required runtime is actually available.
 | `corepack pnpm test:e2e -- tests/e2e/00-route-health.spec.ts` | Dashboard, finance, graph, and operations route-health regression. | Passed in UI/HCI recovery aggregation; 7 checks passed. | `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` |
 | `corepack pnpm test:e2e -- tests/e2e/20-hci-walkthrough.spec.ts` | Playwright-instrumented HCI cognitive walkthrough route timing and error-count capture. | Passed in UI/HCI recovery aggregation. | `docs/evidence/ux/hci-walkthrough-instrumentation.json`; `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md` |
 | `corepack pnpm test:e2e -- tests/e2e/21-hci-screenshot-capture.spec.ts` | Safe HCI screenshot capture for reviewer routes and heuristic focus areas. | Passed in UI/HCI recovery aggregation. | `docs/evidence/ux/SCREENSHOT_INDEX.md` |
-| `corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts` | SRS UC-01 through UC-18 local node account/use-case route simulation and screenshots. | Passed locally on 2026-06-07; 18 checks passed. | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md`; `docs/evidence/uat/screenshots/` |
+| `corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts` | SRS UC-01 through UC-18 local node account/use-case route simulation and screenshots, including UC-18 `/node/status` API probe. | Passed locally on 2026-06-07; 18 checks passed. | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md`; `docs/evidence/uat/screenshots/` |
 
 ## Deployment / Operations Checks
 

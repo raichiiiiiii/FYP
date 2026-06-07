@@ -3,7 +3,12 @@ import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { E2E_DATABASE_URL, setSession, type E2ESession } from './helpers';
+import {
+  apiGet,
+  E2E_DATABASE_URL,
+  setSession,
+  type E2ESession,
+} from './helpers';
 
 type SeedUser = {
   id: string;
@@ -31,6 +36,7 @@ type UseCaseProbe = {
   organizationKey: string;
   route: string;
   expectedText: RegExp;
+  apiPath?: string;
   screenshotName: string;
   blockerNote?: string;
 };
@@ -259,9 +265,10 @@ const useCaseProbes: UseCaseProbe[] = [
     organizationKey: 'platform',
     route: '/fabric-governance',
     expectedText: /readiness|compatibility|operator|Fabric/i,
+    apiPath: '/node/status',
     screenshotName: 'UC-18-node-compatibility.png',
     blockerNote:
-      'Minimal compatibility evidence is currently Fabric automation readiness, not full production node-status automation.',
+      'Compatibility evidence includes the node status endpoint and Fabric automation readiness. It does not imply Fabric topology mutation support.',
   },
 ];
 
@@ -274,7 +281,7 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
   });
 
   for (const probe of useCaseProbes) {
-    test(`${probe.id} ${probe.title}`, async ({ page }, testInfo) => {
+    test(`${probe.id} ${probe.title}`, async ({ page, request }, testInfo) => {
       const session = sessionFor(probe);
 
       await setSession(page, session);
@@ -293,8 +300,19 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
         .filter((pattern) => pattern.test(bodyText))
         .map((pattern) => pattern.toString());
       const expectedTextVisible = probe.expectedText.test(bodyText);
+      const apiProbe = probe.apiPath
+        ? await apiGet<Record<string, unknown>>(request, probe.apiPath)
+        : null;
+      const apiProbeText = apiProbe ? JSON.stringify(apiProbe) : '';
+      const apiForbiddenFindings = forbiddenRenderedPatterns
+        .filter((pattern) => pattern.test(apiProbeText))
+        .map((pattern) => pattern.toString());
 
       await page.screenshot({ path: screenshotPath, fullPage: true });
+
+      if (probe.apiPath === '/node/status') {
+        assertNodeStatusProbe(apiProbe);
+      }
 
       await attachUseCaseDiagnostic(testInfo, {
         useCaseId: probe.id,
@@ -303,9 +321,11 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
         route: probe.route,
         documentStatus: response?.status() ?? null,
         screenshotPath,
+        apiPath: probe.apiPath ?? null,
+        apiProbePresent: Boolean(apiProbe),
         expectedTextVisible,
         blockerNote: probe.blockerNote ?? null,
-        forbiddenFindings,
+        forbiddenFindings: [...forbiddenFindings, ...apiForbiddenFindings],
       });
 
       if (!expectedTextVisible) {
@@ -318,7 +338,7 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
       }
 
       expect(response?.status() ?? 200).toBeLessThan(500);
-      expect(forbiddenFindings).toEqual([]);
+      expect([...forbiddenFindings, ...apiForbiddenFindings]).toEqual([]);
     });
   }
 });
@@ -383,4 +403,30 @@ async function attachUseCaseDiagnostic(
     body: JSON.stringify(diagnostic, null, 2),
     contentType: 'application/json',
   });
+}
+
+function assertNodeStatusProbe(apiProbe: Record<string, unknown> | null) {
+  expect(apiProbe).toEqual(
+    expect.objectContaining({
+      service: 'mepn-api',
+      deployment: expect.objectContaining({
+        model: 'self-hosted-organization-node',
+        localSystemOfRecord: true,
+        sharedCloudRequired: false,
+      }),
+      compatibility: expect.objectContaining({
+        apiVersion: 'v1',
+        canonicalHashVersion: 'v1',
+        reportSchemaVersion: 'v1',
+        channelJoinPackageVersion: 'v1',
+        fabricTopologyMode: 'operator_assisted',
+        topologyMutationSupported: false,
+      }),
+      fabric: expect.objectContaining({
+        proofInfrastructureOptional: true,
+        topologyMutationSupported: false,
+        automationReadinessEndpoint: '/api/v1/fabric/automation/readiness',
+      }),
+    }),
+  );
 }

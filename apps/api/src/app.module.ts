@@ -10,6 +10,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { GraphModule } from './modules/graph/graph.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { NodeStatusModule } from './modules/node-status/node-status.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module';
     GraphModule,
     InboxModule,
     IntegrationsModule,
+    NodeStatusModule,
   ],
 })
 export class AppModule {}

@@ -55,7 +55,7 @@ session for the specified actor and does not introduce production password auth.
 | UC-15 Integrate ERP/accounting | `erp.integrator@nusantara.local` | `/integrations` | `docs/evidence/uat/screenshots/UC-15-erp-integration.png` | Playwright route simulation |
 | UC-16 Verify release/update local node | `buyer.admin@amanah.local` | `/operations` | `docs/evidence/uat/screenshots/UC-16-update-local-node.png` | Documentation/operations-backed partial |
 | UC-17 Import network/channel package | `platform.admin@mepn.local` | `/fabric-governance` | `docs/evidence/uat/screenshots/UC-17-channel-join-package.png` | Governance/readiness-backed; no topology mutation |
-| UC-18 Check node/channel compatibility | `fabric.operator@mepn.local` | `/fabric-governance` | `docs/evidence/uat/screenshots/UC-18-node-compatibility.png` | Fabric automation readiness-backed partial |
+| UC-18 Check node/channel compatibility | `fabric.operator@mepn.local` | `/fabric-governance` plus `GET /api/v1/node/status` | `docs/evidence/uat/screenshots/UC-18-node-compatibility.png` | Route simulation plus node-status API probe; topology mutation remains unsupported |
 
 ## Latest Local Result
 
@@ -73,3 +73,24 @@ Notes:
 - The command applied all Prisma migrations to `mepn_e2e`, seeded the UAT node
   accounts/data, and captured all UC-01 through UC-18 screenshots.
 - Route screenshots are stored under `docs/evidence/uat/screenshots/`.
+
+2026-06-07 follow-up blocker retest:
+
+```text
+corepack pnpm --dir apps/api test:unit -- node-status
+3 passed
+
+corepack pnpm --dir apps/api test:integration -- node-status
+1 passed
+
+corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts
+18 passed
+```
+
+Notes:
+
+- UAT-B-007 is resolved for local UAT by `GET /api/v1/node/status`.
+- UC-18 now verifies the node-status API response in addition to rendering the
+  Fabric governance readiness page.
+- The endpoint reports `topologyMutationSupported=false`; it does not implement
+  direct channel creation, channel join, MSP onboarding, or admin secret custody.

@@ -16,7 +16,7 @@ the corresponding UI/API path exists and is exercised by the test.
 | UAT-B-004 | Fabric proof | High | Intentional boundary | Seeded hash and anchor metadata must not be treated as real Fabric verification. Positive verification requires backend ReadAnchor chaincode query and hash comparison. | Configure live Fabric Gateway and run the existing gated proof UAT when real proof evidence is needed. |
 | UAT-B-005 | Cross-node collaboration | Medium | Partial | The seed creates multiple organization nodes, but some workflows are represented in one local operational database for UAT visibility. | Add inter-node API invitation/workspace flows and explicit cross-node synchronization contracts. |
 | UAT-B-006 | Release/update node lifecycle | Medium | Hardening | UC-16 is currently evidenced through setup/update docs, operations visibility, backup/restore scripts, and readiness surfaces. Full release manifest/update execution UI is not yet implemented. | Add release manifest parser, preflight result persistence, upgrade run records, and rollback evidence UI. |
-| UAT-B-007 | Node/channel compatibility | Medium | Partial | UC-18 currently maps to Fabric automation readiness and governance surfaces. A general `GET /api/v1/node/status` endpoint is not yet implemented. | Add node status endpoint with app version, schema version, feature flags, canonical hash version, report schema, and chaincode compatibility. |
+| UAT-B-007 | Node/channel compatibility | Medium | Resolved for local UAT | UC-18 now probes `GET /api/v1/node/status` for self-hosted node status, Prisma migration status, app/API/report/canonical-hash compatibility labels, feature flags, and Fabric readiness linkage. The endpoint deliberately reports `topologyMutationSupported=false`. | Keep this endpoint as a compatibility/readiness surface. Add richer release-manifest and channel-package validation only in a later hardening slice. |
 
 ## Use-Case Execution Notes
 
@@ -39,4 +39,15 @@ the corresponding UI/API path exists and is exercised by the test.
 | UC-15 | Route-backed integrations/reconciliation visibility. | Real ERP adapter remains integration hardening unless configured. |
 | UC-16 | Documentation/operations-backed. | Full release package update UI is hardening. |
 | UC-17 | Governance/readiness-backed. | Real topology mutation is intentionally blocked. |
-| UC-18 | Readiness-backed. | General node status endpoint is recommended hardening. |
+| UC-18 | Route-backed and API-backed through `/fabric-governance` plus `GET /api/v1/node/status`. | Node status covers local UAT compatibility visibility. Production release package execution and real Fabric topology mutation remain separate hardening/boundary items. |
+
+## Latest Diagnosis And Fix Log
+
+2026-06-07:
+
+- Diagnosed UAT-B-001 through UAT-B-006 as either accepted MVP limitations, intentional Fabric/Fabric-proof boundaries, or larger product-hardening work.
+- Implemented UAT-B-007 because it was a concrete missing API surface required by UC-18.
+- Added `GET /api/v1/node/status`.
+- Added unit and integration coverage for the node status response.
+- Updated the UC-18 UAT probe so the use-case simulation checks `/node/status` in addition to rendering the Fabric governance route.
+- The endpoint returns only safe compatibility/status fields and does not return Fabric endpoint URLs, private keys, PEM blocks, tokens, passwords, or raw environment values.
