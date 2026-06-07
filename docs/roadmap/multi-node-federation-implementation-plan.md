@@ -12,8 +12,9 @@ Progress as of 2026-06-07:
 - Phase 6 backend node-federation API implemented.
 - Phase 10 Docker Compose/start scaffolding implemented.
 - Preconfigured channel bootstrap implemented.
-- Remaining work: graph/canvas UI rendering, admin sidebar overrides, password
-  update UI/API, multi-node E2E screenshots.
+- Graph route node/channel federation panel implemented.
+- Remaining work: admin sidebar overrides, password update UI/API, multi-node
+  E2E screenshots.
 
 ## Direction for the implementation plan
 

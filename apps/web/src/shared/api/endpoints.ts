@@ -323,6 +323,18 @@ export const endpoints = {
         status: filters?.status,
       }),
   },
+  nodeFederation: {
+    canvas: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+      localNodeKey?: string | null,
+    ) =>
+      withQuery('/node-federation/canvas', {
+        organizationId,
+        actorUserId,
+        localNodeKey,
+      }),
+  },
   integrations: {
     outbox: (organizationId?: string | null) =>
       scopedPath('/integrations/outbox', organizationId),

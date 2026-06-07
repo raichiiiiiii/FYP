@@ -175,6 +175,20 @@ export const queryKeys = {
         filters?.status ?? 'all-status',
       ] as const,
   },
+  nodeFederation: {
+    canvas: (
+      organizationId?: string | null,
+      actorUserId?: string | null,
+      localNodeKey?: string | null,
+    ) =>
+      [
+        'node-federation',
+        'canvas',
+        organizationId ?? 'global',
+        actorUserId ?? 'anonymous',
+        localNodeKey ?? 'default-node',
+      ] as const,
+  },
   integrations: {
     fabricStatus: ['integrations', 'fabric-status'] as const,
     workers: ['integrations', 'workers'] as const,

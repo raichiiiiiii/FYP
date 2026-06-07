@@ -5,14 +5,14 @@ Last updated: 2026-06-07
 ## Active Blockers
 
 None for the isolated node seed, Docker/start scaffolding, backend
-node-federation API, or preconfigured channel bootstrap slices.
+node-federation API, preconfigured channel bootstrap, or graph route federation
+panel slices.
 
 ## Open Implementation Items
 
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- Graph/canvas node/channel rendering.
 - Organization admin role-assignment hardening.
 - Sidebar visibility override APIs/UI.
 - Account password update API/UI.
@@ -32,6 +32,18 @@ multi-node federation objective:
 - `start.ps1` now calls `tests/uat/bootstrap-local-node-federation.mjs` to
   establish the preconfigured simulated tender, award/deal, finance-data, and
   finance-support channels after seed.
+- `/graph/projects` now includes an API-backed local node-federation panel.
+
+## Validation Limitations
+
+2026-06-07:
+
+- Rendered browser screenshot capture for the graph panel was attempted through
+  the available Browser plugin, but no in-app browser backend was available in
+  this session. `agent.browsers.list()` returned an empty list.
+- Code-level graph validation passed through focused web tests, lint,
+  typecheck, and build. Screenshot evidence remains pending until a browser
+  backend or Playwright runtime is available with the local nodes running.
 
 ## Boundary Notes
 

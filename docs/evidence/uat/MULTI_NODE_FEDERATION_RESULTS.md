@@ -87,9 +87,27 @@ Boundary:
 - It does not mutate real Fabric topology.
 - It does not produce real Fabric proof.
 
+## Current Slice: Graph Route Federation Panel
+
+Implemented:
+
+- Added an API client hook for `GET /api/v1/node-federation/canvas`.
+- Added a local federation panel to `/graph/projects`.
+- The panel displays organization nodes, simulated channels, and relationship
+  rows returned by the node-federation API.
+- The panel explicitly labels the data as simulated metadata and states that
+  real Fabric proof still requires live `ReadAnchor` verification.
+
+Boundary:
+
+- The panel does not show `verified=true`.
+- The panel does not claim local simulated channels are real Fabric channels.
+- Finance-data relationships are shown only when the current node's
+  node-federation canvas contains them.
+
 Pending in later slices:
 
-- Multi-node canvas rendering and screenshots.
+- Multi-node rendered screenshots from each relevant local port.
 
 ## Validation Evidence
 
@@ -135,6 +153,29 @@ node tests/uat/bootstrap-local-node-federation.mjs --dry-run
 
 Dry-run printed 10 nodes and 9 preconfigured simulated channels with
 realFabricTopologyMutation=false and realFabricProof=false.
+```
+
+Graph panel checks:
+
+```text
+corepack pnpm --dir apps/web test -- graph
+
+3 test files passed
+10 tests passed
+
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm build
+
+All passed.
+```
+
+Rendered browser QA:
+
+```text
+Browser plugin runtime was available, but no in-app browser backend was
+available in this session (`agent.browsers.list()` returned an empty list).
+No screenshot was captured for this slice.
 ```
 
 Single-node seed command:
@@ -192,5 +233,4 @@ Direct database verification after the finance-node seed:
 
 ## Remaining Work
 
-- Extend graph/canvas to show node/channel relationships.
 - Add multi-node E2E/UAT screenshots from each local port.

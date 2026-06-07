@@ -196,6 +196,8 @@ Current status:
 - `start.ps1` runs migrations, seeds each node, then establishes the
   preconfigured simulated tender, private award/deal, finance-data, and
   finance-support channels through backend API calls.
+- The graph route includes an API-backed local federation panel showing
+  self-hosted nodes, simulated channels, and channel relationships.
 
 Preconfigured simulated channels:
 
@@ -216,6 +218,7 @@ Validate the local federation catalog and channel plan:
 ```bash
 corepack pnpm test:uat-catalog
 node tests/uat/bootstrap-local-node-federation.mjs --dry-run
+corepack pnpm --dir apps/web test -- graph
 ```
 
 Prerequisites:

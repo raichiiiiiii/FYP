@@ -19,6 +19,7 @@ import {
   mapProjectGraphApiToNetworkGraph,
   summarizeNetworkGraph,
 } from './model/networkGraph.model'
+import { NodeFederationCanvasPanel } from './NodeFederationCanvasPanel'
 import type {
   NetworkEdge,
   NetworkGraph,
@@ -530,6 +531,7 @@ export function GraphRoute({
           </span>
         </div>
       </section>
+      <NodeFederationCanvasPanel session={session} />
       <section className="form-grid graph-toolbar">
         <label className="field">
           <span>Project</span>
