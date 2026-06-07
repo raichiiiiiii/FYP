@@ -48,12 +48,35 @@ export type AuthPublicConfig = {
 type KnownRole =
   | 'ORG_ADMIN'
   | 'PROCUREMENT_OFFICER'
+  | 'RECEIVING_OFFICER'
   | 'APPROVER'
+  | 'APPROVER_MANAGER'
+  | 'SUPPLIER_USER'
+  | 'SUPPLIER_SALES'
+  | 'MUDARIB_OPERATOR'
+  | 'SUPPLIER_FINANCE'
+  | 'EVIDENCE_SUBMITTER'
+  | 'FINANCE_ACCOUNTANT'
   | 'FINANCIER_USER'
+  | 'INVESTMENT_OFFICER'
+  | 'RISK_REVIEWER'
+  | 'DISBURSEMENT_OFFICER'
+  | 'FINANCIER_AUDIT_VIEWER'
   | 'SHARIAH_REVIEWER'
+  | 'COMPLIANCE_REVIEWER'
+  | 'CONTRACT_REVIEWER'
   | 'AUDITOR'
+  | 'AUDIT_VIEWER'
+  | 'REGULATOR_REVIEWER'
+  | 'READ_ONLY_EVIDENCE_VIEWER'
   | 'FABRIC_GOVERNANCE_ADMIN'
-  | 'PLATFORM_OPERATOR';
+  | 'PLATFORM_OPERATOR'
+  | 'FABRIC_OPERATOR'
+  | 'SUPPORT_OPERATOR'
+  | 'SECURITY_OPERATOR'
+  | 'DEVELOPER_INTEGRATOR'
+  | 'ERP_INTEGRATOR'
+  | 'API_CLIENT_MANAGER';
 
 const rolePermissionDefaults: Record<KnownRole, Permission[]> = {
   ORG_ADMIN: [
@@ -66,12 +89,35 @@ const rolePermissionDefaults: Record<KnownRole, Permission[]> = {
     'fabric:governance',
   ],
   PROCUREMENT_OFFICER: ['procurement:create', 'audit:read'],
+  RECEIVING_OFFICER: ['procurement:create', 'audit:read'],
   APPROVER: ['procurement:approve', 'audit:read'],
+  APPROVER_MANAGER: ['procurement:approve', 'audit:read'],
+  SUPPLIER_USER: ['procurement:create', 'audit:read'],
+  SUPPLIER_SALES: ['procurement:create', 'audit:read'],
+  MUDARIB_OPERATOR: ['finance:review', 'audit:read'],
+  SUPPLIER_FINANCE: ['finance:review', 'audit:read'],
+  EVIDENCE_SUBMITTER: ['procurement:create', 'audit:read'],
+  FINANCE_ACCOUNTANT: ['finance:review', 'audit:read'],
   FINANCIER_USER: ['finance:review', 'audit:read'],
+  INVESTMENT_OFFICER: ['finance:review', 'audit:read'],
+  RISK_REVIEWER: ['finance:review', 'audit:read'],
+  DISBURSEMENT_OFFICER: ['finance:review', 'audit:read'],
+  FINANCIER_AUDIT_VIEWER: ['audit:read'],
   SHARIAH_REVIEWER: ['shariah:review', 'audit:read'],
+  COMPLIANCE_REVIEWER: ['shariah:review', 'audit:read'],
+  CONTRACT_REVIEWER: ['shariah:review', 'audit:read'],
   AUDITOR: ['audit:read'],
+  AUDIT_VIEWER: ['audit:read'],
+  REGULATOR_REVIEWER: ['audit:read'],
+  READ_ONLY_EVIDENCE_VIEWER: ['audit:read'],
   FABRIC_GOVERNANCE_ADMIN: ['audit:read', 'fabric:governance'],
   PLATFORM_OPERATOR: ['audit:read', 'fabric:operate'],
+  FABRIC_OPERATOR: ['audit:read', 'fabric:operate'],
+  SUPPORT_OPERATOR: ['audit:read'],
+  SECURITY_OPERATOR: ['audit:read'],
+  DEVELOPER_INTEGRATOR: ['audit:read', 'fabric:operate'],
+  ERP_INTEGRATOR: ['audit:read'],
+  API_CLIENT_MANAGER: ['audit:read'],
 };
 
 const legacyPermissionMap: Record<string, Permission> = {

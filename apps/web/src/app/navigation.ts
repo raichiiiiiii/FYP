@@ -44,6 +44,61 @@ const selfHostedNodeModes: DeploymentMode[] = [
   'fabric_organization',
 ]
 
+const procurementActorRoles: AppRoleCode[] = [
+  'ORG_ADMIN',
+  'PROCUREMENT_OFFICER',
+  'RECEIVING_OFFICER',
+]
+
+const procurementReviewerRoles: AppRoleCode[] = [
+  'ORG_ADMIN',
+  'APPROVER',
+  'APPROVER_MANAGER',
+]
+
+const supplierActorRoles: AppRoleCode[] = [
+  'SUPPLIER_USER',
+  'SUPPLIER_SALES',
+  'MUDARIB_OPERATOR',
+  'SUPPLIER_FINANCE',
+  'EVIDENCE_SUBMITTER',
+]
+
+const financeReviewerRoles: AppRoleCode[] = [
+  'ORG_ADMIN',
+  'FINANCE_ACCOUNTANT',
+  'FINANCIER_USER',
+  'INVESTMENT_OFFICER',
+  'RISK_REVIEWER',
+  'DISBURSEMENT_OFFICER',
+]
+
+const complianceReviewerRoles: AppRoleCode[] = [
+  'SHARIAH_REVIEWER',
+  'COMPLIANCE_REVIEWER',
+  'CONTRACT_REVIEWER',
+]
+
+const auditReaderRoles: AppRoleCode[] = [
+  'ORG_ADMIN',
+  'AUDITOR',
+  'AUDIT_VIEWER',
+  'FINANCIER_AUDIT_VIEWER',
+  'REGULATOR_REVIEWER',
+  'READ_ONLY_EVIDENCE_VIEWER',
+]
+
+const integrationOperatorRoles: AppRoleCode[] = [
+  'ORG_ADMIN',
+  'DEVELOPER_INTEGRATOR',
+  'ERP_INTEGRATOR',
+  'API_CLIENT_MANAGER',
+  'PLATFORM_OPERATOR',
+  'FABRIC_OPERATOR',
+  'SUPPORT_OPERATOR',
+  'SECURITY_OPERATOR',
+]
+
 export const routeMetadata: readonly AppRouteMetadata[] = [
   {
     path: '/login',
@@ -132,7 +187,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/projects',
@@ -160,7 +215,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/requisitions',
@@ -179,7 +234,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER', 'APPROVER'],
+    requiredRoleCodes: [
+      ...procurementActorRoles,
+      ...procurementReviewerRoles,
+    ],
   },
   {
     path: '/procurement/requisitions/new',
@@ -198,7 +256,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'APPROVER'],
+    requiredRoleCodes: procurementReviewerRoles,
   },
   {
     path: '/procurement/approval-rules',
@@ -227,7 +285,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/quotations',
@@ -246,7 +304,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/purchase-orders',
@@ -265,7 +323,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/receipts',
@@ -284,7 +342,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/procurement/invoices',
@@ -303,7 +361,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: procurementActorRoles,
   },
   {
     path: '/evidence/documents/:id',
@@ -312,7 +370,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: false,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER', 'AUDITOR'],
+    requiredRoleCodes: [
+      ...procurementActorRoles,
+      ...auditReaderRoles,
+    ],
   },
   {
     path: '/evidence/items',
@@ -322,7 +383,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
+    requiredRoleCodes: [
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+    ],
   },
   {
     path: '/evidence/packs',
@@ -332,10 +396,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -346,10 +410,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -360,10 +424,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -373,7 +437,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: true,
-    requiredRoleCodes: ['ORG_ADMIN', 'AUDITOR'],
+    requiredRoleCodes: auditReaderRoles,
   },
   {
     path: '/evidence/hashes/:id',
@@ -382,7 +446,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: false,
-    requiredRoleCodes: ['ORG_ADMIN', 'AUDITOR'],
+    requiredRoleCodes: auditReaderRoles,
   },
   {
     path: '/evidence/timeline',
@@ -392,11 +456,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -406,7 +470,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: true,
-    requiredRoleCodes: ['ORG_ADMIN', 'AUDITOR'],
+    requiredRoleCodes: auditReaderRoles,
   },
   {
     path: '/audit/entity/:entityType/:entityId',
@@ -416,11 +480,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -430,7 +494,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: true,
-    requiredRoleCodes: ['ORG_ADMIN', 'AUDITOR'],
+    requiredRoleCodes: auditReaderRoles,
   },
   {
     path: '/finance/opportunities',
@@ -441,9 +505,8 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: true,
     deploymentModes: financeNodeModes,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'FINANCE_ACCOUNTANT',
-      'FINANCIER_USER',
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
     ],
   },
   {
@@ -454,7 +517,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: smeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN'],
+    requiredRoleCodes: [
+      'ORG_ADMIN',
+      'MUDARIB_OPERATOR',
+      'SUPPLIER_FINANCE',
+    ],
   },
   {
     path: '/finance/applications',
@@ -471,10 +538,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: true,
     deploymentModes: financeNodeModes,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
     ],
   },
   {
@@ -492,11 +559,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: false,
     deploymentModes: financeNodeModes,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -514,11 +581,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: false,
     deploymentModes: financeNodeModes,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -530,7 +597,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: financeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER', 'SHARIAH_REVIEWER'],
+    requiredRoleCodes: [
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+    ],
   },
   {
     path: '/finance/ledgers',
@@ -540,7 +610,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: financeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
+    requiredRoleCodes: financeReviewerRoles,
   },
   {
     path: '/finance/profit-loss',
@@ -550,7 +620,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: financeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
+    requiredRoleCodes: financeReviewerRoles,
   },
   {
     path: '/finance/closures',
@@ -561,7 +631,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: financeNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER', 'AUDITOR'],
+    requiredRoleCodes: [
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
+    ],
   },
   {
     path: '/graph/projects',
@@ -571,11 +644,11 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
+      ...procurementActorRoles,
+      ...supplierActorRoles,
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
     ],
   },
   {
@@ -587,11 +660,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     showInSidebar: true,
     deploymentModes: selfHostedNodeModes,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'PROCUREMENT_OFFICER',
-      'FINANCIER_USER',
-      'AUDITOR',
-      'DEVELOPER_INTEGRATOR',
+      ...procurementActorRoles,
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
+      ...integrationOperatorRoles,
     ],
   },
   {
@@ -607,7 +679,8 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
       'ORG_ADMIN',
       'FABRIC_GOVERNANCE_ADMIN',
       'PLATFORM_OPERATOR',
-      'AUDITOR',
+      'FABRIC_OPERATOR',
+      ...auditReaderRoles,
     ],
   },
   {
@@ -618,7 +691,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     deploymentModes: selfHostedNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
+    requiredRoleCodes: [
+      ...integrationOperatorRoles,
+      ...auditReaderRoles,
+    ],
   },
   {
     path: '/operations/health',
@@ -628,7 +704,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: false,
     deploymentModes: selfHostedNodeModes,
-    requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
+    requiredRoleCodes: [
+      ...integrationOperatorRoles,
+      ...auditReaderRoles,
+    ],
   },
   {
     path: '/reports',
@@ -638,11 +717,9 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'FINANCE_ACCOUNTANT',
-      'FINANCIER_USER',
-      'AUDITOR',
-      'DEVELOPER_INTEGRATOR',
+      ...financeReviewerRoles,
+      ...auditReaderRoles,
+      ...integrationOperatorRoles,
     ],
   },
   {
@@ -653,11 +730,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredOrganizationContext: true,
     showInSidebar: true,
     requiredRoleCodes: [
-      'ORG_ADMIN',
-      'FINANCIER_USER',
-      'SHARIAH_REVIEWER',
-      'AUDITOR',
-      'DEVELOPER_INTEGRATOR',
+      ...financeReviewerRoles,
+      ...complianceReviewerRoles,
+      ...auditReaderRoles,
+      ...integrationOperatorRoles,
     ],
   },
 ] as const
