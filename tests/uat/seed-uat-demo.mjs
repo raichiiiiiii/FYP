@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+  defaultSeedPassword,
+  findLocalFederationNode,
+  localFederationNodeDefinitions,
+} from './local-node-catalog.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -9,7 +14,7 @@ const rootDir = path.resolve(
 
 process.env.DATABASE_URL ||= 'postgresql://mepn:mepn@localhost:5432/mepn';
 
-const demoPassword = 'password';
+const demoPassword = defaultSeedPassword;
 const passwordHash = `sha256:${createHash('sha256')
   .update(demoPassword)
   .digest('hex')}`;
@@ -324,15 +329,20 @@ main()
   });
 
 async function main() {
-  if (process.argv.includes('--help')) {
-    console.log(`Usage: corepack pnpm seed:uat
+  const seedOptions = parseSeedOptions(process.argv.slice(2), process.env);
 
-Seeds deterministic local/UAT organization-node accounts and one procurement
-to mudarabah evidence chain. The script writes only password hashes and does
-not create real Fabric topology or verified Fabric proof.
+  if (seedOptions.help) {
+    printSeedHelp();
+    return;
+  }
 
-Environment:
-  DATABASE_URL  PostgreSQL URL, default ${process.env.DATABASE_URL}`);
+  if (seedOptions.mode === 'single-node') {
+    await resetSingleNodeDatabase();
+    await ensureRoles();
+
+    const node = await seedSingleOrganizationNode(seedOptions.nodeKey);
+
+    console.log(JSON.stringify(buildSingleNodeSummary(node), null, 2));
     return;
   }
 
@@ -391,6 +401,226 @@ Environment:
   };
 
   console.log(JSON.stringify(summary, null, 2));
+}
+
+function parseSeedOptions(args, env) {
+  const options = {
+    help: false,
+    mode: 'legacy',
+    nodeKey: env.MEPN_NODE_KEY?.trim() || '',
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--help' || arg === '-h') {
+      options.help = true;
+      continue;
+    }
+
+    if (arg === '--all-current-single-db-demo') {
+      options.mode = 'legacy';
+      continue;
+    }
+
+    if (arg === '--node') {
+      const value = args[index + 1];
+
+      if (!value?.trim()) {
+        throw new Error('--node requires a node key');
+      }
+
+      options.nodeKey = value.trim();
+      options.mode = 'single-node';
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--node=')) {
+      options.nodeKey = arg.slice('--node='.length).trim();
+      options.mode = 'single-node';
+      continue;
+    }
+
+    throw new Error(`Unknown seed option: ${arg}`);
+  }
+
+  if (readBoolean(env.MEPN_SINGLE_ORG_NODE)) {
+    options.mode = 'single-node';
+  }
+
+  if (options.mode === 'single-node' && !options.nodeKey) {
+    throw new Error(
+      'Single organization node seed requires --node or MEPN_NODE_KEY.',
+    );
+  }
+
+  return options;
+}
+
+function printSeedHelp() {
+  console.log(`Usage:
+  corepack pnpm seed:uat
+  node tests/uat/seed-uat-demo.mjs --all-current-single-db-demo
+  node tests/uat/seed-uat-demo.mjs --node amanah-retail
+
+Modes:
+  default / --all-current-single-db-demo
+    Seeds the current legacy all-in-one UAT demo database for UC-01 through
+    UC-18. This mode intentionally contains multiple organizations in one DB.
+
+  --node <key> or MEPN_SINGLE_ORG_NODE=true MEPN_NODE_KEY=<key>
+    Resets the target database and seeds exactly one self-hosted organization
+    node. This is the mode used by the local 10-node Docker federation demo.
+
+Available node keys:
+${localFederationNodeDefinitions.map((node) => `  - ${node.key}`).join('\n')}
+
+Environment:
+  DATABASE_URL                 PostgreSQL URL, default ${process.env.DATABASE_URL}
+  MEPN_NODE_KEY                Node key for single-node mode
+  MEPN_SINGLE_ORG_NODE=true    Enable isolated one-organization seed mode
+  MEPN_NODE_ORG_NAME           Optional organization-name override
+  MEPN_NODE_ORG_TYPE           Optional node-type override
+  MEPN_NODE_PUBLIC_WEB_URL     Optional public web URL override
+  MEPN_NODE_PUBLIC_API_URL     Optional public API URL override
+
+Safety:
+  The seeded password is ${defaultSeedPassword}.
+  The script writes only password hashes.
+  It does not create real Fabric topology or verified Fabric proof.`);
+}
+
+async function resetSingleNodeDatabase() {
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename <> '_prisma_migrations'
+  `);
+  const tableNames = rows
+    .map((row) => row.tablename)
+    .filter((name) => typeof name === 'string' && name.trim());
+
+  if (!tableNames.length) {
+    return;
+  }
+
+  await prisma.$executeRawUnsafe(
+    `TRUNCATE TABLE ${tableNames
+      .map(quoteIdentifier)
+      .join(', ')} RESTART IDENTITY CASCADE`,
+  );
+}
+
+async function seedSingleOrganizationNode(nodeKey) {
+  const catalogDefinition = findLocalFederationNode(nodeKey);
+
+  if (!catalogDefinition) {
+    throw new Error(
+      `Unknown node key "${nodeKey}". Use --help to list available nodes.`,
+    );
+  }
+
+  const definition = applySingleNodeEnvOverrides(catalogDefinition);
+  const organization = await ensureOrganization(definition);
+  const workspace = await ensureWorkspace(organization.id);
+  const admin = await ensureUser(definition.admin, organization, workspace);
+  const users = {};
+
+  await ensureMembership({
+    organizationId: organization.id,
+    userId: admin.id,
+    roleCode: definition.admin.roleCode,
+  });
+
+  for (const userDefinition of definition.users) {
+    const user = await ensureUser(userDefinition, organization, workspace);
+    await ensureMembership({
+      organizationId: organization.id,
+      userId: user.id,
+      roleCode: userDefinition.roleCode,
+    });
+    users[userDefinition.email] = {
+      ...user,
+      roleCode: userDefinition.roleCode,
+    };
+  }
+
+  await seedAuditEvents(organization.id, admin.id, [
+    ['UAT_SINGLE_NODE_SEEDED', 'Organization', organization.id],
+  ]);
+
+  return {
+    definition,
+    organization,
+    workspace,
+    admin: {
+      ...admin,
+      roleCode: definition.admin.roleCode,
+    },
+    users,
+  };
+}
+
+function buildSingleNodeSummary(node) {
+  return {
+    mode: 'single-organization-node',
+    databaseUrl: redactDatabaseUrl(process.env.DATABASE_URL),
+    generatedAt: new Date().toISOString(),
+    node: {
+      key: node.definition.key,
+      category: node.definition.category,
+      type: node.definition.type,
+      mainFunction: node.definition.mainFunction,
+      publicWebUrl: node.definition.webUrl,
+      publicApiUrl: node.definition.apiUrl,
+    },
+    organization: {
+      id: node.organization.id,
+      legalName: node.organization.legalName,
+      registrationNumber: node.organization.registrationNumber,
+      deploymentMode: node.organization.deploymentMode,
+      workspaceId: node.workspace.id,
+    },
+    seededCredential: {
+      emailPasswordAvailable: true,
+      defaultPassword: defaultSeedPassword,
+      storage: 'passwordHash only',
+      localUatOnly: true,
+    },
+    admin: {
+      id: node.admin.id,
+      email: node.admin.email,
+      roleCode: node.admin.roleCode,
+    },
+    users: Object.values(node.users).map((user) => ({
+      id: user.id,
+      email: user.email,
+      roleCode: user.roleCode,
+    })),
+    localIsolation: {
+      exactlyOneOrganizationSeeded: true,
+      peerOrganizationsSeededLocally: false,
+      crossNodePartiesExpectedAsPeers: true,
+    },
+    roleModelLimitation:
+      'Current MVP assigns one primary role per user per organization.',
+    fabricBoundary:
+      'Single-node seed does not create real Fabric topology and does not seed positive Fabric verification.',
+  };
+}
+
+function applySingleNodeEnvOverrides(definition) {
+  return {
+    ...definition,
+    type: process.env.MEPN_NODE_ORG_TYPE?.trim() || definition.type,
+    legalName: process.env.MEPN_NODE_ORG_NAME?.trim() || definition.legalName,
+    webUrl:
+      process.env.MEPN_NODE_PUBLIC_WEB_URL?.trim() || definition.webUrl,
+    apiUrl:
+      process.env.MEPN_NODE_PUBLIC_API_URL?.trim() || definition.apiUrl,
+  };
 }
 
 async function ensureRoles() {
@@ -1754,4 +1984,14 @@ function redactDatabaseUrl(value) {
   } catch {
     return '<redacted>';
   }
+}
+
+function quoteIdentifier(value) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function readBoolean(value) {
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(value ?? '').trim().toLowerCase(),
+  );
 }

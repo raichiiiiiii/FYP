@@ -194,6 +194,33 @@ The full seeded account reference is also committed at:
 docs/evidence/uat/seeded-node-accounts.txt
 ```
 
+Optional isolated local-federation node seed:
+
+```bash
+node tests/uat/seed-uat-demo.mjs --node amanah-retail
+```
+
+Available local-federation node keys:
+
+```text
+amanah-retail       Web http://localhost:5173  API http://localhost:3000
+barakah-supplies    Web http://localhost:5174  API http://localhost:3001
+ihsan-foods         Web http://localhost:5175  API http://localhost:3002
+nur-logistics       Web http://localhost:5176  API http://localhost:3003
+salsabil-packaging  Web http://localhost:5177  API http://localhost:3004
+taqwa-office        Web http://localhost:5178  API http://localhost:3005
+hikmah-health       Web http://localhost:5179  API http://localhost:3006
+mabrur-finance      Web http://localhost:5180  API http://localhost:3007
+aman-capital        Web http://localhost:5181  API http://localhost:3008
+safwa-growth        Web http://localhost:5182  API http://localhost:3009
+```
+
+In isolated node mode the seed resets the target database and creates exactly
+one local organization with only that node's users. Peer organizations are not
+stored as local users; later federation setup represents them as peer/channel
+metadata. This is local simulated federation only and does not create real
+Fabric topology or real Fabric proof.
+
 Seeded node accounts:
 
 ```text

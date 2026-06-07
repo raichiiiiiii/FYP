@@ -1,8 +1,12 @@
 MEPN local/UAT seeded organization-node accounts
 Generated for reviewer/local demo use only.
 
-Seed command:
-  corepack pnpm seed:uat
+Seed commands:
+  Legacy all-in-one UAT:
+    corepack pnpm seed:uat
+
+  Isolated local federation node:
+    node tests/uat/seed-uat-demo.mjs --node <node-key>
 
 Seeded demo password for all accounts:
   password
@@ -13,80 +17,162 @@ Important safety notes:
   - Change or disable seeded accounts before any non-demo use.
   - Production authentication should use configured OIDC or an approved identity boundary.
   - This file does not contain password hashes, tokens, PEM blocks, private keys, VM credentials, or Fabric material.
+  - Local federation channels are simulated metadata unless real Fabric Gateway proof is separately configured and verified.
 
-Organizations and users:
+Multi-node federation catalog:
 
-1. MEPN Platform Operator
-   Deployment mode: fabric_organization
-   Admin:
-     platform.admin@mepn.local / ORG_ADMIN
+1. Amanah Retail Sdn Bhd
+   Node key: amanah-retail
+   Type: BUSINESS_BUYER_SUPPLIER
+   Web/API: http://localhost:5173 / http://localhost:3000
    Users:
-     fabric.operator@mepn.local / FABRIC_OPERATOR
-     support.operator@mepn.local / SUPPORT_OPERATOR
+     admin@amanah-retail.local / ORG_ADMIN
+     procurement@amanah-retail.local / PROCUREMENT_OFFICER
+     approver@amanah-retail.local / APPROVER_MANAGER
+     finance@amanah-retail.local / FINANCE_ACCOUNTANT
+     receiving@amanah-retail.local / RECEIVING_OFFICER
+     sales@amanah-retail.local / SUPPLIER_SALES
+     mudarib@amanah-retail.local / MUDARIB_OPERATOR
 
-2. Amanah Retail Sdn Bhd
-   Deployment mode: standalone_sme
-   Admin:
-     buyer.admin@amanah.local / ORG_ADMIN
+2. Barakah Supplies Sdn Bhd
+   Node key: barakah-supplies
+   Type: BUSINESS_SUPPLIER_MUDARIB
+   Web/API: http://localhost:5174 / http://localhost:3001
    Users:
-     procurement.officer@amanah.local / PROCUREMENT_OFFICER
-     approver.manager@amanah.local / APPROVER_MANAGER
-     finance.accountant@amanah.local / FINANCE_ACCOUNTANT
-     receiving.officer@amanah.local / RECEIVING_OFFICER
+     admin@barakah-supplies.local / ORG_ADMIN
+     procurement@barakah-supplies.local / PROCUREMENT_OFFICER
+     approver@barakah-supplies.local / APPROVER_MANAGER
+     finance@barakah-supplies.local / FINANCE_ACCOUNTANT
+     receiving@barakah-supplies.local / RECEIVING_OFFICER
+     sales@barakah-supplies.local / SUPPLIER_SALES
+     mudarib@barakah-supplies.local / MUDARIB_OPERATOR
 
-3. Barakah Supplies Sdn Bhd
-   Deployment mode: standalone_sme
-   Admin:
-     supplier.admin@barakah.local / ORG_ADMIN
+3. Ihsan Foods Manufacturing Sdn Bhd
+   Node key: ihsan-foods
+   Type: BUSINESS_SUPPLIER
+   Web/API: http://localhost:5175 / http://localhost:3002
    Users:
-     supplier.sales@barakah.local / SUPPLIER_SALES
-     mudarib.operator@barakah.local / MUDARIB_OPERATOR
-     supplier.finance@barakah.local / SUPPLIER_FINANCE
+     admin@ihsan-foods.local / ORG_ADMIN
+     procurement@ihsan-foods.local / PROCUREMENT_OFFICER
+     approver@ihsan-foods.local / APPROVER_MANAGER
+     finance@ihsan-foods.local / FINANCE_ACCOUNTANT
+     receiving@ihsan-foods.local / RECEIVING_OFFICER
+     sales@ihsan-foods.local / SUPPLIER_SALES
+     mudarib@ihsan-foods.local / MUDARIB_OPERATOR
 
-4. Mabrur Finance Partner
-   Deployment mode: financial_entity_node
-   Admin:
-     financier.admin@mabrur.local / ORG_ADMIN
+4. Nur Logistics Sdn Bhd
+   Node key: nur-logistics
+   Type: BUSINESS_SUPPLIER
+   Web/API: http://localhost:5176 / http://localhost:3003
    Users:
-     investment.officer@mabrur.local / INVESTMENT_OFFICER
-     disbursement.officer@mabrur.local / DISBURSEMENT_OFFICER
-     risk.reviewer@mabrur.local / RISK_REVIEWER
+     admin@nur-logistics.local / ORG_ADMIN
+     procurement@nur-logistics.local / PROCUREMENT_OFFICER
+     approver@nur-logistics.local / APPROVER_MANAGER
+     finance@nur-logistics.local / FINANCE_ACCOUNTANT
+     receiving@nur-logistics.local / RECEIVING_OFFICER
+     sales@nur-logistics.local / SUPPLIER_SALES
+     mudarib@nur-logistics.local / MUDARIB_OPERATOR
 
-5. Hidayah Shariah Advisory
-   Deployment mode: financial_entity_node
-   Admin:
-     shariah.admin@hidayah.local / ORG_ADMIN
+5. Salsabil Packaging Sdn Bhd
+   Node key: salsabil-packaging
+   Type: BUSINESS_SUPPLIER
+   Web/API: http://localhost:5177 / http://localhost:3004
    Users:
-     shariah.reviewer@hidayah.local / SHARIAH_REVIEWER
-     compliance.reviewer@hidayah.local / COMPLIANCE_REVIEWER
+     admin@salsabil-packaging.local / ORG_ADMIN
+     procurement@salsabil-packaging.local / PROCUREMENT_OFFICER
+     approver@salsabil-packaging.local / APPROVER_MANAGER
+     finance@salsabil-packaging.local / FINANCE_ACCOUNTANT
+     receiving@salsabil-packaging.local / RECEIVING_OFFICER
+     sales@salsabil-packaging.local / SUPPLIER_SALES
+     mudarib@salsabil-packaging.local / MUDARIB_OPERATOR
 
-6. Raudhah Audit and Regulatory Review
-   Deployment mode: fabric_organization
-   Admin:
-     auditor.admin@raudah.local / ORG_ADMIN
+6. Taqwa Office Systems Sdn Bhd
+   Node key: taqwa-office
+   Type: BUSINESS_BUYER_SUPPLIER
+   Web/API: http://localhost:5178 / http://localhost:3005
    Users:
-     auditor.user@raudah.local / AUDITOR
-     regulator.user@raudah.local / REGULATOR_REVIEWER
+     admin@taqwa-office.local / ORG_ADMIN
+     procurement@taqwa-office.local / PROCUREMENT_OFFICER
+     approver@taqwa-office.local / APPROVER_MANAGER
+     finance@taqwa-office.local / FINANCE_ACCOUNTANT
+     receiving@taqwa-office.local / RECEIVING_OFFICER
+     sales@taqwa-office.local / SUPPLIER_SALES
+     mudarib@taqwa-office.local / MUDARIB_OPERATOR
 
-7. Nusantara Integration Services
-   Deployment mode: fabric_organization
-   Admin:
-     integrator.admin@nusantara.local / ORG_ADMIN
+7. Hikmah Health Supplies Sdn Bhd
+   Node key: hikmah-health
+   Type: BUSINESS_SUPPLIER
+   Web/API: http://localhost:5179 / http://localhost:3006
    Users:
-     erp.integrator@nusantara.local / ERP_INTEGRATOR
-     api.integrator@nusantara.local / API_CLIENT_MANAGER
+     admin@hikmah-health.local / ORG_ADMIN
+     procurement@hikmah-health.local / PROCUREMENT_OFFICER
+     approver@hikmah-health.local / APPROVER_MANAGER
+     finance@hikmah-health.local / FINANCE_ACCOUNTANT
+     receiving@hikmah-health.local / RECEIVING_OFFICER
+     sales@hikmah-health.local / SUPPLIER_SALES
+     mudarib@hikmah-health.local / MUDARIB_OPERATOR
 
-Reviewer starting routes:
-  Dashboard: /dashboard
-  Organization profile: /organization/profile
-  Procurement: /procurement
-  Finance opportunities: /finance/opportunities
-  Finance applications: /finance/applications
-  Finance contracts: /finance/contracts
-  Evidence: /evidence/packs
-  Audit: /audit
-  Graph: /graph/projects
-  Integrations: /integrations
-  Fabric governance: /fabric-governance
-  Operations: /operations
-  Reports: /reports
+8. Mabrur Finance Partner
+   Node key: mabrur-finance
+   Type: FINANCE_ENTITY
+   Web/API: http://localhost:5180 / http://localhost:3007
+   Users:
+     admin@mabrur-finance.local / ORG_ADMIN
+     investment@mabrur-finance.local / INVESTMENT_OFFICER
+     risk@mabrur-finance.local / RISK_REVIEWER
+     disbursement@mabrur-finance.local / DISBURSEMENT_OFFICER
+     audit@mabrur-finance.local / FINANCIER_AUDIT_VIEWER
+
+9. Aman Capital Islamic Finance
+   Node key: aman-capital
+   Type: FINANCE_ENTITY
+   Web/API: http://localhost:5181 / http://localhost:3008
+   Users:
+     admin@aman-capital.local / ORG_ADMIN
+     investment@aman-capital.local / INVESTMENT_OFFICER
+     risk@aman-capital.local / RISK_REVIEWER
+     disbursement@aman-capital.local / DISBURSEMENT_OFFICER
+     audit@aman-capital.local / FINANCIER_AUDIT_VIEWER
+
+10. Safwa SME Growth Fund
+    Node key: safwa-growth
+    Type: FINANCE_ENTITY
+    Web/API: http://localhost:5182 / http://localhost:3009
+    Users:
+      admin@safwa-growth.local / ORG_ADMIN
+      investment@safwa-growth.local / INVESTMENT_OFFICER
+      risk@safwa-growth.local / RISK_REVIEWER
+      disbursement@safwa-growth.local / DISBURSEMENT_OFFICER
+      audit@safwa-growth.local / FINANCIER_AUDIT_VIEWER
+
+Legacy all-in-one UAT accounts:
+
+These accounts are retained for the existing UC-01 through UC-18 simulation
+until the multi-node Docker/UAT runner fully replaces the single-database
+route evidence flow.
+
+  platform.admin@mepn.local / ORG_ADMIN
+  fabric.operator@mepn.local / FABRIC_OPERATOR
+  support.operator@mepn.local / SUPPORT_OPERATOR
+  buyer.admin@amanah.local / ORG_ADMIN
+  procurement.officer@amanah.local / PROCUREMENT_OFFICER
+  approver.manager@amanah.local / APPROVER_MANAGER
+  finance.accountant@amanah.local / FINANCE_ACCOUNTANT
+  receiving.officer@amanah.local / RECEIVING_OFFICER
+  supplier.admin@barakah.local / ORG_ADMIN
+  supplier.sales@barakah.local / SUPPLIER_SALES
+  mudarib.operator@barakah.local / MUDARIB_OPERATOR
+  supplier.finance@barakah.local / SUPPLIER_FINANCE
+  financier.admin@mabrur.local / ORG_ADMIN
+  investment.officer@mabrur.local / INVESTMENT_OFFICER
+  disbursement.officer@mabrur.local / DISBURSEMENT_OFFICER
+  risk.reviewer@mabrur.local / RISK_REVIEWER
+  shariah.admin@hidayah.local / ORG_ADMIN
+  shariah.reviewer@hidayah.local / SHARIAH_REVIEWER
+  compliance.reviewer@hidayah.local / COMPLIANCE_REVIEWER
+  auditor.admin@raudah.local / ORG_ADMIN
+  auditor.user@raudah.local / AUDITOR
+  regulator.user@raudah.local / REGULATOR_REVIEWER
+  integrator.admin@nusantara.local / ORG_ADMIN
+  erp.integrator@nusantara.local / ERP_INTEGRATOR
+  api.integrator@nusantara.local / API_CLIENT_MANAGER
