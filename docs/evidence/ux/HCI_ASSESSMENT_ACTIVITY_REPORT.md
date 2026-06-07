@@ -3,25 +3,35 @@
 | Field | Value |
 | --- | --- |
 | Product | Mudarabah-Enabled Procurement Network |
+| Repository | `raichiiiiiii/FYP` |
 | Worktree | `C:\Users\User\dev\FYP` |
-| Branch | `feature/reviewer-delighters-sprint-1` |
-| Prepared by | Agent E - HCI Instrumentation + Evaluation Docs; aggregated by Agent F |
-| Status | Route-health and HCI Playwright instrumentation passed on the aggregation run; final human HCI scoring and SUS remain not measured. |
+| Branch observed | `main` |
+| Prepared for | Agent HCI Templates |
+| Status | Evidence templates prepared and Playwright route/screenshot instrumentation run on 2026-06-07. No SUS result, participant score, Fabric success, payment success, disbursement success, ledger closure, or profit distribution success is claimed. |
 
 ## Assessment Boundary
 
-This report covers HCI evaluation preparation for the production MEPN web application. It does not certify usability, accessibility, SUS, participant outcomes, Fabric anchoring, payment, disbursement, ledger closure, or mudarabah profit distribution correctness.
+This report prepares HCI evaluation evidence for the MEPN production web application. It is not a usability certification and it does not replace reviewer walkthroughs, participant studies, accessibility review, security review, Shariah review, financial review, or Fabric proof validation.
 
-The current evidence set is intended to support later reviewer activity across:
+The evidence pack is scoped to:
 
-- Cognitive walkthrough of procurement-to-finance navigation and evidence review.
-- Heuristic evaluation of role-aware workflow screens.
-- Playwright-instrumented screenshot capture and route-health checks.
-- Remediation planning for UX findings discovered by automation or human review.
+- HCI activity planning using the DECIDE model.
+- Cognitive walkthrough mapping for the closest implemented procurement, finance, contract, disbursement, evidence, and audit workflow surfaces.
+- Heuristic evaluation preparation for system status visibility, error prevention and forgiveness, flexibility and efficiency, aesthetic/minimalist design, role clarity, and audit trust.
+- Conservative Playwright instrumentation that can capture route health, timing, screenshots, and browser errors only when the app, API, database, seeded data, and routes are available.
+- Metrics governance that distinguishes automation from expert judgement and participant studies.
+
+Out of scope for this task:
+
+- Fabric topology readiness or graph API changes.
+- Human usability or task-success claims from route rendering alone.
+- Fabric anchoring success unless proven by backend/Gateway evidence.
+- Payment, disbursement, ledger closure, or mudarabah profit distribution success.
+- Any SUS score or participant score.
 
 ## Source Of Truth
 
-The assessment must follow the repository authority order:
+The assessment follows the repository authority order:
 
 1. `docs/requirements/mudarabah_eprocurement_srs.tex`
 2. `docs/design/mepn_software_design_description.tex`
@@ -31,56 +41,102 @@ The assessment must follow the repository authority order:
 6. `docs/design/figma-make-reference/`
 7. Existing production code
 
-The Figma Make prototype is a visual and interaction reference only. It is not authority for authorization, validation, workflow transitions, API behavior, audit behavior, Fabric anchoring, ledger calculations, routing, or deployment behavior.
+The Figma Make prototype remains a visual and interaction reference only. It is not authority for authorization, validation, workflow state transitions, API behavior, backend persistence, audit behavior, Fabric anchoring, ledger calculations, routing, or deployment behavior.
+
+## DECIDE Model
+
+| DECIDE step | MEPN application for this evidence pack | Output |
+| --- | --- | --- |
+| Determine goals | Check whether users can understand procurement-to-finance status, role permissions, evidence readiness, contract/disbursement gates, audit proof status, and recovery paths. | HCI goals and route/task list |
+| Explore questions | Ask whether users know where they are, what can be done next, why a route/action is blocked, what evidence is missing, and what status is real versus pending/unavailable. | Cognitive walkthrough questions |
+| Choose methods | Use expert heuristic review, cognitive walkthrough, and Playwright-instrumented route/screenshot capture. Participant SUS remains separate. | Review worksheets and E2E skeletons |
+| Identify practical issues | Confirm local app/API/database availability, seeded data, role session, screenshot safety, route permissions, and no sensitive text exposure. | Skip/blocker rules |
+| Decide ethical handling | Do not fabricate participant metrics, do not expose secrets in screenshots, and do not imply production financial/Fabric outcomes from UI rendering. | Evidence and metric rules |
+| Evaluate and present | Record observations, blockers, severity, screenshots, and automation output only after a real run or review session. | Action plan and metrics registry |
 
 ## Relevant Requirements
 
 | Area | Source | HCI implication |
 | --- | --- | --- |
-| End-to-end procurement | SRS `BR-01`, SDD procurement core | User tasks must be understandable from project/requisition/RFQ/PO/receipt/invoice surfaces. |
-| Procurement evidence for finance | SRS `BR-03`, SDD evidence-driven finance | Users must see how evidence supports due diligence, Shariah review, monitoring, and closure. |
-| Role-based access | SRS `FR-03`, UI route visibility contract | Evaluation must include access-denied and permission-limited states where applicable. |
-| Audit and Fabric verification | SRS `BR-08`, SDD Audit/Fabric | UI must distinguish pending, unavailable, failed, anchored, and verified states without faking success. |
-| Accessibility and validation | SDD NFR cluster, UI contract WCAG 2.2 AA | Evaluation must check semantic headings, keyboard flow, labelled controls, contrast, error states, and focus management. |
+| Source-to-pay procurement | SRS in-scope procurement functions; SDD Procurement Core | Users need clear route labels, statuses, validation, and evidence links across requisition, RFQ, quotation, PO, receipt, invoice, and matching surfaces. |
+| Evidence-driven mudarabah finance | SRS in-scope capital application, review, contract, disbursement, monitoring, P/L, closure; SDD ADR that procurement evidence drives finance | Finance screens must explain evidence readiness, due diligence, Shariah review, contract readiness, disbursement state, ledger/P&L status, and closure readiness without treating the application as a generic loan. |
+| Role-based access | SRS/SDD identity and authorization requirements; UI role contract | Routes and actions must show permission-denied states clearly, enforce reusable permission rules, and avoid cross-role leakage. |
+| Audit and Fabric trust | SRS audit/Fabric scope; SDD hash-only Fabric anchoring and real Gateway proof boundary | UI must distinguish pending, unavailable, failed, mock, anchored, and verified states; screenshots cannot imply fake Fabric success. |
+| Self-hosted operations | SRS/SDD deployment and observability constraints | Dashboard and operations routes should expose degraded health, queue/outbox state, backup readiness, and setup blockers as actionable status. |
+| Shariah and financial safety | SRS mudarabah definition and finance lifecycle; UI/Figma map warnings | UI must not calculate guaranteed fixed returns, bypass Shariah review, fake disbursement, or fake ledger closure. |
 
-## Activity Plan
+## Relevant UI Contract Sections
 
-| Activity | Method | Evidence output | Status |
+| Contract source | Relevant content for HCI |
+| --- | --- |
+| `docs/ui/mepn-ui-contract-flow.md` Sections 3 and 4 | End-to-end flow: procurement evidence -> financing decision -> Shariah review -> contract -> disbursement -> ledger -> profit/loss -> closure pack -> audit/Fabric verification. |
+| `docs/ui/mepn-ui-contract-flow.md` Section 5 | Role model for SME Admin, Procurement Officer, Approver, Finance/Accountant, Financier User, Shariah Reviewer, Auditor, and Integrator. |
+| `docs/ui/mepn-ui-contract-flow.md` Section 26 | Protected entry, dashboard, organization setup, health/readiness, and authorization behavior. |
+| `docs/ui/mepn-ui-contract-flow-appendix.md` Sections 11-16 | Route inventory and use-case mapping for dashboard, procurement, finance, evidence, audit, graph, integrations, operations, and reports. |
+| `docs/ui/figma-to-ui-contract-map.md` | Figma reference mapping for production components, including explicit warnings not to fake approval, disbursement, Fabric anchoring, or guaranteed return behavior. |
+
+## Figma Reference Files
+
+The nearest visual references are in `docs/design/figma-make-reference/prototype-src/src/app/components/`:
+
+- `DashboardView.tsx`
+- `ProcurementView.tsx`
+- `OpportunitiesView.tsx`
+- `ApplicationsList.tsx`
+- `ApplicationWorkspace.tsx`
+- `LedgerView.tsx`
+- `AuditView.tsx`
+- `NetworkCanvas.tsx`
+- `OperationsView.tsx`
+- `ReportsView.tsx`
+
+These files can guide layout and interaction expectations, but production behavior must come from the SRS, SDD, UI contracts, and existing production code.
+
+## Metrics Governance
+
+Allowed metric source labels:
+
+- `Playwright-instrumented`
+- `Expert-estimated`
+- `Not measured`
+- `Requires user study`
+
+| Metric | Current source label | Current value/status | Rule |
 | --- | --- | --- | --- |
-| Route health precheck | Playwright route rendering check with seeded session | Test result and screenshots when routes render | Passed for instrumented routes |
-| Cognitive walkthrough | Structured reviewer worksheet plus Playwright timing instrumentation | `HCI_COGNITIVE_WALKTHROUGH.md`, `20-hci-walkthrough.spec.ts` | Instrumented |
-| Heuristic evaluation | Nielsen-style checklist adapted to MEPN role/evidence constraints | `HCI_HEURISTIC_EVALUATION.md` | Prepared |
-| Screenshot capture | Playwright safe screenshot capture of representative routes | `docs/evidence/ux/screenshots/` | Passed for representative routes |
-| Metrics placeholder | JSON registry for source, status, and measurement rules | `hci-metrics.json` | Prepared |
-| Action planning | Severity, owner, remediation, and verification worksheet | `HCI_ACTION_PLAN.md` | Prepared |
+| Task Completion Rate | `Playwright-instrumented` | `100% for 7/7 scripted route probes` | Do not generalize automation to human success. |
+| Error Frequency Rate | `Playwright-instrumented` | `0 observed errors across scripted probes` | Count only observed page, console, request, or rendered-error findings during a defined run. |
+| Time-on-Task | `Playwright-instrumented` | `6485 ms total scripted route time` | Automation timing can support regression evidence only; it is not human task timing. |
+| Cognitive friction rating | `Expert-estimated` | `Not measured` | Expert reviewers may record severity with evidence links; this is not participant data. |
+| System Usability Scale | `Requires user study` | `Not measured — participant survey required` | Keep this exact value unless real participant survey responses exist. |
 
-## Metric Rules
+## Activity Matrix
 
-| Metric | Source | Current status | Rule |
+| Activity | Method | Evidence output | Current status |
 | --- | --- | --- | --- |
-| Task Completion Rate | Playwright-instrumented route/task completion only | Instrumented; scripted walkthrough completed | Do not generalize to human users or participant outcomes. |
-| Error Frequency Rate | Playwright-instrumented observed UI/API/console errors only | Instrumented; latest scripted run recorded zero observed errors | Count only observed errors during defined tasks. |
-| Time-on-Task | Playwright-instrumented timings only | Instrumented; latest timings recorded in `hci-walkthrough-instrumentation.json` | Automation timing supports regression tracking only. |
-| System Usability Scale | Participant survey | Not measured | Requires participant survey responses. Do not fabricate. |
+| Route prerequisite check | Playwright setup, seeded session, route navigation | E2E output and instrumentation JSON | Passed in local Playwright run |
+| Cognitive walkthrough | Reviewer worksheet mapped to implemented route surfaces | `HCI_COGNITIVE_WALKTHROUGH.md` | Template prepared; Playwright route probes measured |
+| Heuristic evaluation | Expert review against MEPN-adapted heuristics | `HCI_HEURISTIC_EVALUATION.md` | Template prepared |
+| Screenshot capture | Safe Playwright screenshots with sensitive-text guard | `docs/evidence/ux/screenshots/` | Passed in local Playwright run |
+| Metrics registry | JSON status and source labels | `hci-metrics.json` | Updated with Playwright-instrumented values |
+| Remediation plan | Severity, owner, verification, and status tracker | `HCI_ACTION_PLAN.md` | Prepared |
 
 ## Blocking Conditions
 
-Final HCI pass/fail scoring remains blocked if any of the following are true:
+Final HCI scoring remains blocked if any of the following apply:
 
-- The relevant Playwright route-health checks fail or are skipped due to infrastructure or application errors.
-- The route renders an access-denied state for the intended evaluation role.
-- The route shows a framework error overlay or blank application shell.
-- Screenshot capture cannot produce sanitized evidence.
-- Participant-based metrics, including SUS, have not been collected through an approved survey protocol.
-
-For the latest Agent E validation run, route health was green for the instrumented routes. Participant-based scoring remains unmeasured.
+- App, API, database, or seeded data setup is unavailable.
+- The required route is missing, returns an error status, renders an application error, or shows a blank shell.
+- The seeded role receives access denied for a task that is intended to be evaluated.
+- Screenshots would expose secrets, tokens, private keys, passwords, certificates, or sensitive configuration.
+- Fabric, payment, disbursement, ledger closure, or profit distribution evidence is UI-only.
+- SUS or participant metrics are requested without a real participant study.
 
 ## Evidence Index
 
 | Evidence | Path |
 | --- | --- |
 | Metrics registry | `docs/evidence/ux/hci-metrics.json` |
-| Playwright instrumentation output | `docs/evidence/ux/hci-walkthrough-instrumentation.json` when generated |
+| Playwright instrumentation output | `docs/evidence/ux/hci-walkthrough-instrumentation.json` when generated by a run |
 | Cognitive walkthrough worksheet | `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md` |
 | Heuristic evaluation worksheet | `docs/evidence/ux/HCI_HEURISTIC_EVALUATION.md` |
 | Remediation action plan | `docs/evidence/ux/HCI_ACTION_PLAN.md` |

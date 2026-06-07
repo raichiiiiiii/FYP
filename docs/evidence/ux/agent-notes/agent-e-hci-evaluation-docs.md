@@ -2,66 +2,59 @@
 
 | Field | Value |
 | --- | --- |
-| Agent | Agent E - HCI Instrumentation + Evaluation Docs |
-| Worktree | `C:\Users\User\dev\FYP-ui-hci-docs` |
-| Branch | `feature/ui-hci-evaluation-docs` |
-| Scope | HCI evaluation docs/templates and Playwright instrumentation |
+| Agent | Agent HCI Templates - documentation and instrumentation scaffolding |
+| Repository | `raichiiiiiii/FYP` |
+| Worktree | `C:\Users\User\dev\FYP` |
+| Branch observed | `main` |
+| Scope | UI/HCI evaluation docs, metrics registry, and conservative Playwright skeletons |
+| Push status | Not pushed |
 
-## Files Changed
+## Files In Scope
 
 - `docs/evidence/ux/HCI_ASSESSMENT_ACTIVITY_REPORT.md`
 - `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md`
 - `docs/evidence/ux/HCI_HEURISTIC_EVALUATION.md`
 - `docs/evidence/ux/HCI_ACTION_PLAN.md`
 - `docs/evidence/ux/hci-metrics.json`
-- `docs/evidence/ux/hci-walkthrough-instrumentation.json`
-- `docs/evidence/ux/screenshots/*.png`
-- `docs/evidence/ux/agent-notes/agent-e-hci-evaluation-docs.md`
 - `tests/e2e/20-hci-walkthrough.spec.ts`
 - `tests/e2e/21-hci-screenshot-capture.spec.ts`
+- `docs/evidence/ux/agent-notes/agent-e-hci-evaluation-docs.md`
 
-## Tests Run
+## Summary Of This Pass
 
-- `corepack pnpm install` - completed; Prisma generated. Optional/native `pkcs11js` build reported a missing Visual Studio C++ toolset, but pnpm completed.
-- `corepack pnpm lint` - passed.
-- `corepack pnpm typecheck` - passed.
+- Reframed the HCI docs as evidence templates and governance records rather than completed HCI findings.
+- Added DECIDE model coverage and mapped the cognitive walkthrough to the closest implemented procurement, finance, contract, disbursement, ledger, closure, evidence, audit, operations, and graph route chain.
+- Added explicit heuristic coverage for visibility of system status, error prevention/forgiveness, flexibility/efficiency, aesthetic/minimalist design, trust/auditability, accessibility, and financial/Shariah safety.
+- Updated `hci-metrics.json` with the required source labels: `Playwright-instrumented`, `Expert-estimated`, `Not measured`, and `Requires user study`.
+- Kept System Usability Scale status as `Not measured — participant survey required`.
+- Hardened the two HCI Playwright specs so database reset and API fixture setup failures skip with clear prerequisite messages instead of producing misleading route-pass claims.
+- Preserved screenshot safety checks for private keys, certificates, password-like strings, and token-like strings.
+
+## Non-Claims
+
+This pass does not claim:
+
+- Any HCI route currently passes.
+- Any participant completed a task.
+- Any SUS score exists.
+- Any Fabric anchor, payment, disbursement, ledger closure, or profit distribution succeeded.
+- Any graph API or Fabric topology readiness behavior changed.
+
+## Validation Log
+
+- `node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('docs/evidence/ux/hci-metrics.json','utf8')); console.log('valid json')"` - passed.
+- `corepack pnpm exec playwright test --list tests/e2e/20-hci-walkthrough.spec.ts tests/e2e/21-hci-screenshot-capture.spec.ts` - passed; listed 2 tests.
+- `corepack pnpm --dir apps/web exec tsc --ignoreConfig --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022,DOM --types node --skipLibCheck ../../tests/e2e/20-hci-walkthrough.spec.ts ../../tests/e2e/21-hci-screenshot-capture.spec.ts ../../tests/e2e/helpers.ts` - passed.
+- `corepack pnpm typecheck` - passed on rerun.
+- `corepack pnpm --dir apps/web lint` - passed on rerun.
 - `corepack pnpm test:unit` - passed.
-- `corepack pnpm test:e2e -- tests/e2e/20-hci-walkthrough.spec.ts` - passed, 1 test.
-- `corepack pnpm test:e2e -- tests/e2e/21-hci-screenshot-capture.spec.ts` - passed, 1 test.
-- `corepack pnpm build` - passed.
+- `corepack pnpm build` - passed, with the existing Vite large chunk warning.
+- `corepack pnpm test:e2e -- tests/e2e/20-hci-walkthrough.spec.ts` - passed on 2026-06-07; generated `docs/evidence/ux/hci-walkthrough-instrumentation.json` and cognitive-walkthrough screenshots.
+- `corepack pnpm test:e2e -- tests/e2e/21-hci-screenshot-capture.spec.ts` - passed on 2026-06-07; refreshed HCI screenshots.
 
-## Screenshots And Evidence
+## Blockers To Carry Forward
 
-Generated screenshots:
-
-- `docs/evidence/ux/screenshots/cw-01-dashboard.png`
-- `docs/evidence/ux/screenshots/cw-02-procurement-hub.png`
-- `docs/evidence/ux/screenshots/cw-03-finance-opportunities.png`
-- `docs/evidence/ux/screenshots/cw-04-evidence-packs.png`
-- `docs/evidence/ux/screenshots/cw-05-audit.png`
-- `docs/evidence/ux/screenshots/cw-06-hash-verification.png`
-- `docs/evidence/ux/screenshots/cw-07-graph-projects.png`
-- `docs/evidence/ux/screenshots/shot-01-dashboard.png`
-- `docs/evidence/ux/screenshots/shot-02-procurement-hub.png`
-- `docs/evidence/ux/screenshots/shot-03-finance-opportunities.png`
-- `docs/evidence/ux/screenshots/shot-04-operations.png`
-- `docs/evidence/ux/screenshots/shot-05-reports.png`
-- `docs/evidence/ux/screenshots/shot-06-evidence-package.png`
-
-Generated instrumentation:
-
-- `docs/evidence/ux/hci-walkthrough-instrumentation.json`
-
-## Blockers
-
-- Automated route health is green for the instrumented routes in the Agent E validation run.
-- Final human HCI scoring remains unmeasured until walkthrough reviewer findings are recorded.
-- SUS remains not measured because participant survey data is required.
-- Web server output includes an existing `pg` deprecation warning during E2E startup: calling `client.query()` while a query is already executing is deprecated for pg 9.
-
-## Recommended Next Steps
-
-1. Populate `HCI_COGNITIVE_WALKTHROUGH.md` with reviewer observations and finding IDs.
-2. Populate `HCI_HEURISTIC_EVALUATION.md` after a human heuristic review.
-3. Add participant survey protocol and SUS results only after real survey responses are collected.
-4. Regenerate screenshots after route, layout, or fixture changes.
+- Human cognitive walkthrough findings are still required before human HCI scoring.
+- Human heuristic review findings are still required before expert conclusions.
+- SUS remains `Not measured — participant survey required` until real participant survey responses exist.
+- Route evidence requires a prepared local app/API/database environment; skips should remain blockers, not pass claims.

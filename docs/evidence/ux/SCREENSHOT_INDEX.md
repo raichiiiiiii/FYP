@@ -1,59 +1,47 @@
 # UI/HCI Screenshot Index
 
-Date: 2026-06-06
+Date: 2026-06-07
 
-## Route Health Screenshots
+## Route Health Failure Screenshots
 
-| Screenshot | Route | Purpose | Status |
-| --- | --- | --- | --- |
-| `docs/evidence/ux/screenshots/before-dashboard-error.png` | `/dashboard` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/before-finance-opportunities-error.png` | `/finance/opportunities` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/before-finance-applications-error.png` | `/finance/applications` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/before-finance-contracts-error.png` | `/finance/contracts` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/before-graph-projects-error.png` | `/graph/projects` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/before-operations-error.png` | `/operations` | Baseline error capture if route fails. | Not generated; route passed baseline health check. |
-| `docs/evidence/ux/screenshots/after-dashboard.png` | `/dashboard` | After evidence for dashboard route health. | Captured. |
-| `docs/evidence/ux/screenshots/after-finance-opportunities.png` | `/finance/opportunities` | After evidence for finance opportunities route health. | Captured. |
-| `docs/evidence/ux/screenshots/after-finance-applications.png` | `/finance/applications` | After evidence for finance applications route health and overflow fix. | Captured. |
-| `docs/evidence/ux/screenshots/after-finance-contracts.png` | `/finance/contracts` | After evidence for finance contracts route health. | Captured. |
-| `docs/evidence/ux/screenshots/after-graph-projects.png` | `/graph/projects` | After evidence for graph route health and no-leak route coverage. | Captured. |
-| `docs/evidence/ux/screenshots/after-operations.png` | `/operations` | After evidence for operations route health. | Captured. |
+These screenshots are not fabricated or pre-created. The route-health spec writes them only when a route fails the baseline health criteria.
 
-## Cognitive Walkthrough Screenshots
+| Route | Screenshot path | Console errors | Network failures | API status | Suspected cause | Before status | After status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/dashboard` | `docs/evidence/ux/screenshots/route-health/dashboard-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
+| `/finance/opportunities` | `docs/evidence/ux/screenshots/route-health/finance-opportunities-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
+| `/finance/applications` | `docs/evidence/ux/screenshots/route-health/finance-applications-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
+| `/finance/contracts` | `docs/evidence/ux/screenshots/route-health/finance-contracts-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
+| `/graph/projects` | `docs/evidence/ux/screenshots/route-health/graph-projects-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
+| `/operations` | `docs/evidence/ux/screenshots/route-health/operations-failure.png` | No failing diagnostic in latest run | No failing diagnostic in latest run | Response below 500 | No current route-health failure | Not reproduced | Passed |
 
-| Screenshot | Route | Purpose |
+## Current HCI Screenshot Evidence
+
+The following screenshots were refreshed by `corepack pnpm test:e2e -- tests/e2e/20-hci-walkthrough.spec.ts` or `corepack pnpm test:e2e -- tests/e2e/21-hci-screenshot-capture.spec.ts` on 2026-06-07.
+
+| Screenshot | Route | Status |
 | --- | --- | --- |
-| `docs/evidence/ux/screenshots/cw-01-dashboard.png` | `/dashboard` | Start of scripted HCI walkthrough. |
-| `docs/evidence/ux/screenshots/cw-02-procurement-hub.png` | `/procurement` | Procurement hub task context. |
-| `docs/evidence/ux/screenshots/cw-03-finance-opportunities.png` | `/finance/opportunities` | Finance opportunity review context. |
-| `docs/evidence/ux/screenshots/cw-04-evidence-packs.png` | `/evidence/packs` | Evidence review context. |
-| `docs/evidence/ux/screenshots/cw-05-audit.png` | `/audit` | Audit visibility context. |
-| `docs/evidence/ux/screenshots/cw-06-hash-verification.png` | `/evidence/hashes` | Hash/Fabric verification context. |
-| `docs/evidence/ux/screenshots/cw-07-graph-projects.png` | `/graph/projects` | Graph/canvas context. |
-
-## HCI Heuristic Screenshots
-
-| Screenshot | Route | Heuristic focus |
-| --- | --- | --- |
-| `docs/evidence/ux/screenshots/hci-dashboard-status-visibility.png` | `/dashboard` | Visibility of system status. |
-| `docs/evidence/ux/screenshots/hci-finance-approval-flow.png` | `/finance/applications` | Approval-flow clarity and state visibility. |
-| `docs/evidence/ux/screenshots/hci-contract-confirmation-state.png` | `/finance/contracts` | Confirmation and reversible-state clarity. |
-| `docs/evidence/ux/screenshots/hci-graph-information-density.png` | `/graph/projects` | Graph information density, filters, and visual scanability. |
-| `docs/evidence/ux/screenshots/hci-operations-error-prevention.png` | `/operations` | Error prevention, operations status, and safe integration wording. |
-
-## Representative Route Screenshots
-
-| Screenshot | Route |
-| --- | --- |
-| `docs/evidence/ux/screenshots/shot-01-dashboard.png` | `/dashboard` |
-| `docs/evidence/ux/screenshots/shot-02-procurement-hub.png` | `/procurement` |
-| `docs/evidence/ux/screenshots/shot-03-finance-opportunities.png` | `/finance/opportunities` |
-| `docs/evidence/ux/screenshots/shot-04-operations.png` | `/operations` |
-| `docs/evidence/ux/screenshots/shot-05-reports.png` | `/reports` |
-| `docs/evidence/ux/screenshots/shot-06-evidence-package.png` | `/evidence-package` |
+| `docs/evidence/ux/screenshots/cw-01-dashboard.png` | `/dashboard` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-02-procurement-hub.png` | `/procurement` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-03-finance-opportunities.png` | `/finance/opportunities` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-04-evidence-packs.png` | `/evidence/packs` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-05-audit.png` | `/audit` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-06-hash-verification.png` | `/evidence/hashes` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/cw-07-graph-projects.png` | `/graph/projects` | Refreshed cognitive walkthrough artifact |
+| `docs/evidence/ux/screenshots/hci-dashboard-status-visibility.png` | `/dashboard` | Refreshed HCI screenshot |
+| `docs/evidence/ux/screenshots/hci-finance-approval-flow.png` | `/finance/opportunities` | Refreshed HCI screenshot |
+| `docs/evidence/ux/screenshots/hci-contract-confirmation-state.png` | `/finance/contracts` | Refreshed HCI screenshot |
+| `docs/evidence/ux/screenshots/hci-graph-information-density.png` | `/graph/projects` | Refreshed HCI screenshot |
+| `docs/evidence/ux/screenshots/hci-operations-error-prevention.png` | `/operations` | Refreshed HCI screenshot |
+| `docs/evidence/ux/screenshots/shot-01-dashboard.png` | `/dashboard` | Refreshed screenshot capture artifact |
+| `docs/evidence/ux/screenshots/shot-02-procurement-hub.png` | `/procurement` | Refreshed screenshot capture artifact |
+| `docs/evidence/ux/screenshots/shot-03-finance-opportunities.png` | `/finance/opportunities` | Refreshed screenshot capture artifact |
+| `docs/evidence/ux/screenshots/shot-04-operations.png` | `/operations` | Refreshed screenshot capture artifact |
+| `docs/evidence/ux/screenshots/shot-05-reports.png` | `/reports` | Refreshed screenshot capture artifact |
+| `docs/evidence/ux/screenshots/shot-06-evidence-package.png` | `/evidence-package` | Refreshed screenshot capture artifact |
 
 ## Safety Notes
 
-- No screenshot should include PEM blocks, private keys, tokens, passwords, generated secret files, VM credentials, or Fabric material.
-- The HCI screenshots are production-route evidence, not participant-study results.
-- SUS remains not measured until real participant survey data exists.
+- Do not include PEM blocks, private keys, tokens, passwords, generated secret files, VM credentials, or Fabric material in screenshots.
+- Route-health screenshots are failure evidence, not proof that the route was repaired.
+- Passing route-health runs may produce no screenshot files by design.

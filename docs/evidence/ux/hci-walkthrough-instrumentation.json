@@ -6,7 +6,7 @@
       "id": "CW-01",
       "route": "/dashboard",
       "status": "measured",
-      "elapsedMs": 997,
+      "elapsedMs": 1122,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-01-dashboard.png",
       "blocker": null
@@ -15,7 +15,7 @@
       "id": "CW-02",
       "route": "/procurement",
       "status": "measured",
-      "elapsedMs": 841,
+      "elapsedMs": 905,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-02-procurement-hub.png",
       "blocker": null
@@ -24,7 +24,7 @@
       "id": "CW-03",
       "route": "/finance/opportunities",
       "status": "measured",
-      "elapsedMs": 829,
+      "elapsedMs": 888,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-03-finance-opportunities.png",
       "blocker": null
@@ -33,7 +33,7 @@
       "id": "CW-04",
       "route": "/evidence/packs",
       "status": "measured",
-      "elapsedMs": 718,
+      "elapsedMs": 784,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-04-evidence-packs.png",
       "blocker": null
@@ -42,7 +42,7 @@
       "id": "CW-05",
       "route": "/audit",
       "status": "measured",
-      "elapsedMs": 992,
+      "elapsedMs": 1028,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-05-audit.png",
       "blocker": null
@@ -51,7 +51,7 @@
       "id": "CW-06",
       "route": "/evidence/hashes",
       "status": "measured",
-      "elapsedMs": 699,
+      "elapsedMs": 792,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-06-hash-verification.png",
       "blocker": null
@@ -60,7 +60,7 @@
       "id": "CW-07",
       "route": "/graph/projects",
       "status": "measured",
-      "elapsedMs": 887,
+      "elapsedMs": 966,
       "errorsObserved": 0,
       "screenshot": "docs/evidence/ux/screenshots/cw-07-graph-projects.png",
       "blocker": null
