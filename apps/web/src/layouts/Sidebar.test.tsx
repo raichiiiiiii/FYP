@@ -15,6 +15,7 @@ const mockSessionState = vi.hoisted(() => ({
   session: {
     organizationId: 'org_123',
     actorUserId: 'user_123',
+    organizationDeploymentMode: 'standalone_sme',
   },
   authorization: {
     status: 'ready',
@@ -45,6 +46,11 @@ vi.mock('../features/auth/useAuth', () => ({
       displayName: 'Admin User',
       profileImageUrl: '/mock/example-sme-logo.png',
       organizationId: 'org_123',
+      organization: {
+        id: 'org_123',
+        legalName: 'Example SME Sdn Bhd',
+        deploymentMode: 'standalone_sme',
+      },
       roleCodes: ['ORG_ADMIN'],
       permissionCodes: ['users:create'],
       workspaceScopes: [],
@@ -62,6 +68,7 @@ describe('Sidebar', () => {
     mockSessionState.session = {
       organizationId: 'org_123',
       actorUserId: 'user_123',
+      organizationDeploymentMode: 'standalone_sme',
     }
     mockSessionState.authorization = {
       status: 'ready',

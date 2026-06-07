@@ -5,6 +5,7 @@ import {
   getVisibleSidebarRoutes,
 } from './authorization'
 import { matchRouteMetadata, routeMetadata } from './navigation'
+import type { DeploymentMode } from '../shared/types'
 import {
   anonymousSession,
   readyAuthorization,
@@ -24,10 +25,14 @@ function route(path: string) {
 function visibleLabelsFor(
   roleCodes: Parameters<typeof readyAuthorization>[0],
   permissionCodes: Parameters<typeof readyAuthorization>[1],
+  deploymentMode: DeploymentMode = 'standalone_sme',
 ) {
   return getVisibleSidebarRoutes(
     routeMetadata,
-    signedInSession,
+    {
+      ...signedInSession,
+      organizationDeploymentMode: deploymentMode,
+    },
     readyAuthorization(roleCodes, permissionCodes),
   ).map((item) => item.label)
 }
@@ -130,5 +135,59 @@ describe('route authorization', () => {
     expect(labels).toContain('Audit Events')
     expect(labels).toContain('Reports')
     expect(labels).not.toContain('Suppliers')
+  })
+
+  it('tailors the sidebar to hosted financier portals', () => {
+    const labels = visibleLabelsFor(
+      ['FINANCIER_USER'],
+      ['finance:review', 'audit:read'],
+      'hosted_financier_portal',
+    )
+
+    expect(labels).toContain('Applications')
+    expect(labels).toContain('Contract Terms')
+    expect(labels).toContain('Reports')
+    expect(labels).not.toContain('Integrations')
+    expect(labels).not.toContain('Operations Health')
+    expect(labels).not.toContain('Requisitions')
+  })
+
+  it('tailors the sidebar to financial entity nodes', () => {
+    const labels = visibleLabelsFor(
+      ['FINANCIER_USER'],
+      ['finance:review', 'audit:read'],
+      'financial_entity_node',
+    )
+
+    expect(labels).toContain('Finance Opportunities')
+    expect(labels).toContain('Applications')
+    expect(labels).toContain('Integrations')
+    expect(labels).not.toContain('Requisitions')
+    expect(labels).not.toContain('Fabric Governance')
+  })
+
+  it('shows Fabric governance only for Fabric organization nodes with governance authority', () => {
+    const fabricLabels = visibleLabelsFor(
+      ['FABRIC_GOVERNANCE_ADMIN'],
+      ['fabric:governance', 'audit:read'],
+      'fabric_organization',
+    )
+    const smeLabels = visibleLabelsFor(
+      ['FABRIC_GOVERNANCE_ADMIN'],
+      ['fabric:governance', 'audit:read'],
+      'standalone_sme',
+    )
+
+    expect(fabricLabels).toContain('Fabric Governance')
+    expect(smeLabels).not.toContain('Fabric Governance')
+  })
+
+  it('lets organization admins satisfy permission-gated navigation inside the current node mode', () => {
+    const labels = visibleLabelsFor(['ORG_ADMIN'], [], 'standalone_sme')
+
+    expect(labels).toContain('Users')
+    expect(labels).toContain('Requisitions')
+    expect(labels).toContain('Reports')
+    expect(labels).not.toContain('Fabric Governance')
   })
 })

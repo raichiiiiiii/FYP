@@ -1,4 +1,8 @@
-import type { AppPermission, AppRoleCode } from '../shared/types'
+import type {
+  AppPermission,
+  AppRoleCode,
+  DeploymentMode,
+} from '../shared/types'
 
 export type AppModule =
   | 'Dashboard'
@@ -20,11 +24,25 @@ export type AppRouteMetadata = {
   label: string
   module: AppModule
   requiredPermissions: AppPermission[]
+  requiredAnyPermissions?: AppPermission[]
   requiredOrganizationContext: boolean
   showInSidebar: boolean
   requiredRoleCodes?: AppRoleCode[]
+  deploymentModes?: DeploymentMode[]
   allowAnonymous?: boolean
 }
+
+const smeNodeModes: DeploymentMode[] = ['standalone_sme']
+const financeNodeModes: DeploymentMode[] = [
+  'standalone_sme',
+  'financial_entity_node',
+  'hosted_financier_portal',
+]
+const selfHostedNodeModes: DeploymentMode[] = [
+  'standalone_sme',
+  'financial_entity_node',
+  'fabric_organization',
+]
 
 export const routeMetadata: readonly AppRouteMetadata[] = [
   {
@@ -113,6 +131,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -122,6 +141,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/suppliers',
@@ -130,6 +150,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/suppliers/:id',
@@ -138,6 +159,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -147,6 +169,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/requisitions/:id',
@@ -155,6 +178,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER', 'APPROVER'],
   },
   {
@@ -164,6 +188,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/approvals',
@@ -172,6 +197,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:approve'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'APPROVER'],
   },
   {
@@ -181,6 +207,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:approve'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN'],
   },
   {
@@ -190,6 +217,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/rfqs/:id',
@@ -198,6 +226,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -207,6 +236,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/quotations/compare',
@@ -215,6 +245,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -224,6 +255,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/purchase-orders/:id',
@@ -232,6 +264,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -241,6 +274,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/procurement/matching',
@@ -249,6 +283,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -258,6 +293,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
   },
   {
     path: '/evidence/documents',
@@ -266,6 +302,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -284,6 +321,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['procurement:create'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'PROCUREMENT_OFFICER'],
   },
   {
@@ -401,6 +439,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: [
       'ORG_ADMIN',
       'FINANCE_ACCOUNTANT',
@@ -414,6 +453,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: smeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN'],
   },
   {
@@ -421,8 +461,15 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Applications',
     module: 'Finance',
     requiredPermissions: [],
+    requiredAnyPermissions: [
+      'procurement:create',
+      'finance:review',
+      'shariah:review',
+      'audit:read',
+    ],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: [
       'ORG_ADMIN',
       'PROCUREMENT_OFFICER',
@@ -435,8 +482,15 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Application workspace',
     module: 'Finance',
     requiredPermissions: [],
+    requiredAnyPermissions: [
+      'procurement:create',
+      'finance:review',
+      'shariah:review',
+      'audit:read',
+    ],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: [
       'ORG_ADMIN',
       'PROCUREMENT_OFFICER',
@@ -450,8 +504,15 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Application workspace tab',
     module: 'Finance',
     requiredPermissions: [],
+    requiredAnyPermissions: [
+      'procurement:create',
+      'finance:review',
+      'shariah:review',
+      'audit:read',
+    ],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: [
       'ORG_ADMIN',
       'PROCUREMENT_OFFICER',
@@ -465,8 +526,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Contract Terms',
     module: 'Finance',
     requiredPermissions: [],
+    requiredAnyPermissions: ['finance:review', 'shariah:review'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER', 'SHARIAH_REVIEWER'],
   },
   {
@@ -476,6 +539,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['finance:review'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
   },
   {
@@ -485,6 +549,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: ['finance:review'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER'],
   },
   {
@@ -492,8 +557,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Closure Packs',
     module: 'Finance',
     requiredPermissions: [],
+    requiredAnyPermissions: ['finance:review', 'audit:read'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: financeNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'FINANCIER_USER', 'AUDITOR'],
   },
   {
@@ -518,6 +585,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: selfHostedNodeModes,
     requiredRoleCodes: [
       'ORG_ADMIN',
       'PROCUREMENT_OFFICER',
@@ -531,8 +599,10 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     label: 'Fabric Governance',
     module: 'Integrations',
     requiredPermissions: [],
+    requiredAnyPermissions: ['fabric:governance', 'fabric:operate'],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: ['fabric_organization'],
     requiredRoleCodes: [
       'ORG_ADMIN',
       'FABRIC_GOVERNANCE_ADMIN',
@@ -547,6 +617,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: true,
+    deploymentModes: selfHostedNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
   },
   {
@@ -556,6 +627,7 @@ export const routeMetadata: readonly AppRouteMetadata[] = [
     requiredPermissions: [],
     requiredOrganizationContext: true,
     showInSidebar: false,
+    deploymentModes: selfHostedNodeModes,
     requiredRoleCodes: ['ORG_ADMIN', 'DEVELOPER_INTEGRATOR', 'AUDITOR'],
   },
   {

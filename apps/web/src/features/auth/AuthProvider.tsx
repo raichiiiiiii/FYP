@@ -152,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       organizationId: authSession?.organizationId ?? null,
       actorUserId: authSession?.userId ?? null,
+      organizationDeploymentMode:
+        authSession?.organization.deploymentMode ?? null,
     }),
     [authSession],
   )

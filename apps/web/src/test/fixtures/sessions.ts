@@ -8,11 +8,13 @@ import type { AuthorizationState } from '../../app/authorization'
 export const signedInSession: AppSession = {
   organizationId: 'org_123',
   actorUserId: 'user_123',
+  organizationDeploymentMode: 'standalone_sme',
 }
 
 export const anonymousSession: AppSession = {
   organizationId: null,
   actorUserId: null,
+  organizationDeploymentMode: null,
 }
 
 export function readyAuthorization(

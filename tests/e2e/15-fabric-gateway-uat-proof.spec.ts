@@ -58,6 +58,7 @@ function uatSession(): E2ESession {
     legalName:
       process.env.FABRIC_GATEWAY_UAT_ORGANIZATION_NAME ||
       'Fabric Gateway UAT Organization',
+    deploymentMode: 'fabric_organization',
     actorUserId: actorUserId!,
     email:
       process.env.FABRIC_GATEWAY_UAT_USER_EMAIL || 'auditor.fabric.uat@mepn.local',

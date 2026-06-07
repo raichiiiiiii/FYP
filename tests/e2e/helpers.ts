@@ -22,6 +22,7 @@ export type E2ESession = {
   organizationId: string;
   actorUserId: string;
   legalName: string;
+  deploymentMode: string;
   email: string;
   displayName: string;
   roleCodes: string[];
@@ -79,11 +80,17 @@ export async function setSession(page: Page, session: E2ESession) {
     email: session.email,
     displayName: session.displayName,
     organizationId: session.organizationId,
+    organization: {
+      id: session.organizationId,
+      legalName: session.legalName,
+      deploymentMode: session.deploymentMode,
+    },
     roleCodes: session.roleCodes,
     permissionCodes: session.permissionCodes,
     workspaceScopes: [],
     expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     authMode: 'dev',
+    devAuthEnabled: true,
     oidcEnabled: false,
   };
 
@@ -146,6 +153,7 @@ export async function createOrganizationViaApi(
     organizationId: setup.organization.id,
     actorUserId: setup.adminUser.id,
     legalName: setup.organization.legalName,
+    deploymentMode: 'standalone_sme',
     email: `admin-${suffix}@example.test`,
     displayName: 'E2E Admin',
     roleCodes: ['ORG_ADMIN'],

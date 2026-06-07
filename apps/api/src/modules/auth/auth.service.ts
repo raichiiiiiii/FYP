@@ -25,6 +25,11 @@ export type AuthSession = {
   displayName: string;
   profileImageUrl: string | null;
   organizationId: string;
+  organization: {
+    id: string;
+    legalName: string;
+    deploymentMode: string;
+  };
   roleCodes: string[];
   permissionCodes: Permission[];
   workspaceScopes: string[];
@@ -242,6 +247,7 @@ export class AuthService {
     const roleCodes = activeMemberships.map(
       (membership) => membership.role.code,
     );
+    const organization = activeMemberships[0].organization;
     const permissionCodes = new Set<Permission>();
     const workspaceScopes = new Set<string>();
 
@@ -269,6 +275,11 @@ export class AuthService {
       displayName: user.displayName,
       profileImageUrl: user.profileImageUrl,
       organizationId: input.organizationId,
+      organization: {
+        id: organization.id,
+        legalName: organization.legalName,
+        deploymentMode: organization.deploymentMode,
+      },
       roleCodes,
       permissionCodes: [...permissionCodes],
       workspaceScopes: [...workspaceScopes],

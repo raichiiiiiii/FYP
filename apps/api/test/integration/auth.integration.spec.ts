@@ -61,6 +61,11 @@ describe('Integration: auth', () => {
       expect.objectContaining({
         userId: setup.adminUser.id,
         organizationId: setup.organization.id,
+        organization: expect.objectContaining({
+          id: setup.organization.id,
+          legalName: setup.organization.legalName,
+          deploymentMode: 'standalone_sme',
+        }),
         authMode: 'dev',
         devAuthEnabled: true,
       }),
@@ -352,6 +357,11 @@ describe('Integration: auth', () => {
       expect.objectContaining({
         userId: setup.adminUser.id,
         organizationId: setup.organization.id,
+        organization: expect.objectContaining({
+          id: setup.organization.id,
+          legalName: setup.organization.legalName,
+          deploymentMode: 'standalone_sme',
+        }),
         authMode: 'oidc',
         oidcEnabled: true,
       }),

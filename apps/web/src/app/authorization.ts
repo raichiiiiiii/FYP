@@ -39,6 +39,8 @@ const knownRoleCodes = new Set<AppRoleCode>([
   'SHARIAH_REVIEWER',
   'AUDITOR',
   'DEVELOPER_INTEGRATOR',
+  'FABRIC_GOVERNANCE_ADMIN',
+  'PLATFORM_OPERATOR',
 ])
 
 export function authorizationFromSession(
@@ -83,6 +85,14 @@ export function canAccessRoute(
   }
 
   if (
+    route.deploymentModes?.length &&
+    (!session.organizationDeploymentMode ||
+      !route.deploymentModes.includes(session.organizationDeploymentMode))
+  ) {
+    return false
+  }
+
+  if (
     route.requiredRoleCodes?.length &&
     !route.requiredRoleCodes.some((roleCode) =>
       authorization.roleCodes.includes(roleCode),
@@ -91,9 +101,23 @@ export function canAccessRoute(
     return false
   }
 
+  const hasElevatedNavigationAccess =
+    authorization.roleCodes.includes('ORG_ADMIN')
+
   if (
     route.requiredPermissions.length &&
+    !hasElevatedNavigationAccess &&
     !route.requiredPermissions.every((permission) =>
+      authorization.permissionCodes.includes(permission),
+    )
+  ) {
+    return false
+  }
+
+  if (
+    route.requiredAnyPermissions?.length &&
+    !hasElevatedNavigationAccess &&
+    !route.requiredAnyPermissions.some((permission) =>
       authorization.permissionCodes.includes(permission),
     )
   ) {

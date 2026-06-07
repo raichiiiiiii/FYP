@@ -1,6 +1,7 @@
 export type AppSession = {
   organizationId: string | null
   actorUserId: string | null
+  organizationDeploymentMode?: DeploymentMode | null
 }
 
 export type AuthSession = {
@@ -9,6 +10,11 @@ export type AuthSession = {
   displayName: string
   profileImageUrl?: string | null
   organizationId: string
+  organization: {
+    id: string
+    legalName: string
+    deploymentMode: DeploymentMode
+  }
   roleCodes: string[]
   permissionCodes: AppPermission[]
   workspaceScopes: string[]
@@ -89,6 +95,12 @@ export type User = {
   profileImageUrl?: string | null
   status: string
 }
+
+export type DeploymentMode =
+  | 'standalone_sme'
+  | 'financial_entity_node'
+  | 'fabric_organization'
+  | 'hosted_financier_portal'
 
 export type Role = {
   id: string
