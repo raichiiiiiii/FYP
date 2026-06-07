@@ -69,6 +69,12 @@ export class NodeStatusService {
           source: 'environment',
         },
         {
+          id: 'local-seeded-auth',
+          label: 'Local seeded login boundary',
+          enabled: authConfig.passwordAuthEnabled,
+          source: 'environment',
+        },
+        {
           id: 'oidc',
           label: 'OIDC login boundary',
           enabled: authConfig.oidcEnabled,

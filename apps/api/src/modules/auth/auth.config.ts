@@ -1,5 +1,6 @@
 export type AuthRuntimeConfig = {
   devAuthEnabled: boolean;
+  passwordAuthEnabled: boolean;
   oidcEnabled: boolean;
   oidcTestMode: boolean;
   oidcIssuer?: string;
@@ -18,6 +19,10 @@ export function getAuthRuntimeConfig(
   return {
     devAuthEnabled: readBoolean(
       env.DEV_AUTH_ENABLED,
+      env.NODE_ENV !== 'production',
+    ),
+    passwordAuthEnabled: readBoolean(
+      env.LOCAL_PASSWORD_AUTH_ENABLED,
       env.NODE_ENV !== 'production',
     ),
     oidcEnabled: readBoolean(env.OIDC_ENABLED, false),

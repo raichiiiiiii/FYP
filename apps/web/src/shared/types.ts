@@ -19,13 +19,15 @@ export type AuthSession = {
   permissionCodes: AppPermission[]
   workspaceScopes: string[]
   expiresAt: string
-  authMode: 'dev' | 'oidc'
+  authMode: 'dev' | 'oidc' | 'password'
   devAuthEnabled: boolean
+  passwordAuthEnabled: boolean
   oidcEnabled: boolean
 }
 
 export type AuthPublicConfig = {
   devAuthEnabled: boolean
+  passwordAuthEnabled: boolean
   oidcEnabled: boolean
   oidcTestMode: boolean
 }
@@ -33,6 +35,12 @@ export type AuthPublicConfig = {
 export type DevLoginInput = {
   email?: string
   userId?: string
+  organizationId?: string
+}
+
+export type PasswordLoginInput = {
+  email?: string
+  password?: string
   organizationId?: string
 }
 

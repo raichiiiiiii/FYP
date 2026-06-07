@@ -14,15 +14,17 @@ Seed command used by the runner:
 corepack pnpm seed:uat
 ```
 
-Seeded demo password for local/demo account metadata:
+Seeded demo password for local/demo accounts:
 
 ```text
 mepn-demo-password
 ```
 
-The seed stores only a password hash. Current local authentication is still the
-configured dev/OIDC-style login boundary; this UAT runner injects a Playwright
-session for the specified actor and does not introduce production password auth.
+The seed stores only a password hash. Local/UAT seeded-password login is
+available outside production for reviewer simulation. This does not introduce a
+production password-auth policy; production deployments should use configured
+OIDC or an approved identity boundary unless local password auth is explicitly
+accepted.
 
 ## Safety Notes
 
@@ -39,7 +41,7 @@ session for the specified actor and does not introduce production password auth.
 | Use case | Actor | Route under test | Screenshot | Current result source |
 |---|---|---|---|---|
 | UC-01 Install and configure SME node | `buyer.admin@amanah.local` | `/organization/profile` | `docs/evidence/uat/screenshots/UC-01-install-node.png` | Playwright route simulation |
-| UC-02 Authenticate and authorize user | `procurement.officer@amanah.local` | `/dashboard` | `docs/evidence/uat/screenshots/UC-02-authenticate.png` | Playwright route simulation |
+| UC-02 Authenticate and authorize user | `procurement.officer@amanah.local` | `/dashboard` | `docs/evidence/uat/screenshots/UC-02-authenticate.png` | Playwright route simulation plus seeded password-login E2E coverage |
 | UC-03 Onboard supplier | `procurement.officer@amanah.local` | `/procurement/suppliers` | `docs/evidence/uat/screenshots/UC-03-onboard-supplier.png` | Playwright route simulation |
 | UC-04 Run RFQ and supplier evaluation | `procurement.officer@amanah.local` | `/procurement/rfqs` | `docs/evidence/uat/screenshots/UC-04-rfq-evaluation.png` | Playwright route simulation |
 | UC-05 Execute procure-to-pay workflow | `finance.accountant@amanah.local` | `/procurement/matching` | `docs/evidence/uat/screenshots/UC-05-p2p.png` | Playwright route simulation |
@@ -94,3 +96,21 @@ Notes:
   Fabric governance readiness page.
 - The endpoint reports `topologyMutationSupported=false`; it does not implement
   direct channel creation, channel join, MSP onboarding, or admin secret custody.
+
+2026-06-07 authentication blocker retest:
+
+```text
+corepack pnpm --dir apps/api test:integration -- auth
+15 passed
+
+corepack pnpm test:e2e -- tests/e2e/09-auth-flow.spec.ts
+3 passed
+```
+
+Notes:
+
+- UAT-B-002 is resolved for local UAT by `/api/v1/auth/password-login`.
+- Seeded local/demo accounts use the account list in
+  `docs/evidence/uat/seeded-node-accounts.txt`.
+- Password login remains local/demo scoped and does not replace production OIDC
+  hardening.

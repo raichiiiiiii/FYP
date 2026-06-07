@@ -27,6 +27,7 @@ export const endpoints = {
   auth: {
     config: '/auth/config',
     devLogin: '/auth/dev-login',
+    passwordLogin: '/auth/password-login',
     session: '/auth/session',
     oidcStart: (returnTo?: string | null) =>
       withQuery('/auth/oidc/start', { returnTo }),

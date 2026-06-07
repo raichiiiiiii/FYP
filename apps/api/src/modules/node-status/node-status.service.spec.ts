@@ -16,10 +16,12 @@ describe('NodeStatusService', () => {
       FABRIC_CHAINCODE: 'audit-anchor',
       FABRIC_MSP_ID: 'Org1MSP',
       FABRIC_TOPOLOGY_AUTOMATION_ENABLED: 'false',
+      LOCAL_PASSWORD_AUTH_ENABLED: 'true',
     };
     const service = new NodeStatusService(prismaMock() as never);
+    const status = await service.getStatus();
 
-    await expect(service.getStatus()).resolves.toMatchObject({
+    expect(status).toMatchObject({
       service: 'mepn-api',
       deployment: {
         model: 'self-hosted-organization-node',
@@ -47,6 +49,13 @@ describe('NodeStatusService', () => {
         configuredMspId: 'configured',
       },
     });
+    expect(
+      status.featureFlags.find((flag) => flag.id === 'local-seeded-auth'),
+    ).toEqual(
+      expect.objectContaining({
+        enabled: true,
+      }),
+    );
   });
 
   it('does not expose secret-like environment values', async () => {

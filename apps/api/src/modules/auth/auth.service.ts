@@ -3,7 +3,9 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import type { Permission } from '../identity/rbac.service';
 import { getAuthRuntimeConfig } from './auth.config';
@@ -11,6 +13,12 @@ import { getAuthRuntimeConfig } from './auth.config';
 export type DevLoginInput = {
   email?: string;
   userId?: string;
+  organizationId?: string;
+};
+
+export type PasswordLoginInput = {
+  email?: string;
+  password?: string;
   organizationId?: string;
 };
 
@@ -34,13 +42,15 @@ export type AuthSession = {
   permissionCodes: Permission[];
   workspaceScopes: string[];
   expiresAt: string;
-  authMode: 'dev' | 'oidc';
+  authMode: 'dev' | 'oidc' | 'password';
   devAuthEnabled: boolean;
+  passwordAuthEnabled: boolean;
   oidcEnabled: boolean;
 };
 
 export type AuthPublicConfig = {
   devAuthEnabled: boolean;
+  passwordAuthEnabled: boolean;
   oidcEnabled: boolean;
   oidcTestMode: boolean;
 };
@@ -190,11 +200,72 @@ export class AuthService {
     });
   }
 
+  async passwordLogin(input: PasswordLoginInput) {
+    this.assertPasswordAuthEnabled();
+
+    const email = input.email?.trim().toLowerCase();
+    const password = input.password ?? '';
+
+    if (!email || !password) {
+      throw new BadRequestException('email and password are required');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      include: {
+        memberships: {
+          where: {
+            status: 'active',
+            organizationId: input.organizationId || undefined,
+          },
+          include: {
+            role: {
+              include: {
+                permissions: true,
+              },
+            },
+            organization: {
+              include: {
+                workspaces: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (!verifyPasswordHash(password, user.passwordHash)) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const membership = user.memberships[0];
+
+    if (!membership) {
+      throw new NotFoundException('Active organization membership not found');
+    }
+
+    return this.buildSession({
+      user,
+      organizationId: membership.organizationId,
+      authMode: 'password',
+    });
+  }
+
   getPublicConfig(): AuthPublicConfig {
     const config = getAuthRuntimeConfig();
 
     return {
       devAuthEnabled: config.devAuthEnabled,
+      passwordAuthEnabled: config.passwordAuthEnabled,
       oidcEnabled: config.oidcEnabled,
       oidcTestMode: config.oidcTestMode,
     };
@@ -332,6 +403,7 @@ export class AuthService {
       expiresAt: new Date(Date.now() + sessionDurationMs).toISOString(),
       authMode: input.authMode ?? 'dev',
       devAuthEnabled: authConfig.devAuthEnabled,
+      passwordAuthEnabled: authConfig.passwordAuthEnabled,
       oidcEnabled: authConfig.oidcEnabled,
     };
   }
@@ -340,6 +412,14 @@ export class AuthService {
     if (!getAuthRuntimeConfig().devAuthEnabled) {
       throw new ForbiddenException(
         'Development login is disabled for this environment',
+      );
+    }
+  }
+
+  private assertPasswordAuthEnabled() {
+    if (!getAuthRuntimeConfig().passwordAuthEnabled) {
+      throw new ForbiddenException(
+        'Local password login is disabled for this environment',
       );
     }
   }
@@ -402,4 +482,21 @@ function isPermission(code: string): code is Permission {
   return Object.values(rolePermissionDefaults)
     .flat()
     .includes(code as Permission);
+}
+
+function verifyPasswordHash(password: string, storedHash: string | null) {
+  if (!storedHash?.startsWith('sha256:')) {
+    return false;
+  }
+
+  const expectedHex = storedHash.slice('sha256:'.length);
+  const actualHex = createHash('sha256').update(password).digest('hex');
+  const expected = Buffer.from(expectedHex, 'hex');
+  const actual = Buffer.from(actualHex, 'hex');
+
+  if (expected.length !== actual.length || expected.length === 0) {
+    return false;
+  }
+
+  return timingSafeEqual(expected, actual);
 }

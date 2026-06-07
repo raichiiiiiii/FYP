@@ -16,13 +16,14 @@ import { useAuth } from './useAuth'
 
 const loginSchema = z.object({
   email: z.string().trim().email('Enter a valid email address.'),
+  password: z.string().optional(),
   organizationId: z.string().trim().optional(),
 })
 
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { devLogin } = useAuth()
+  const { devLogin, passwordLogin } = useAuth()
   const { notify } = useToast()
   const [inviteToken, setInviteToken] = useState('')
   const [authConfig, setAuthConfig] = useState<AuthPublicConfig | null>(null)
@@ -35,7 +36,8 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useValidatedForm(loginSchema, {
     defaultValues: {
-      email: 'admin@example.test',
+      email: 'buyer.admin@amanah.local',
+      password: '',
       organizationId: '',
     },
   })
@@ -106,10 +108,27 @@ export function LoginPage() {
 
   const submitLogin = handleSubmit(async (values) => {
     try {
-      await devLogin({
-        email: values.email,
-        organizationId: values.organizationId || undefined,
-      })
+      const password = values.password?.trim()
+
+      if (authConfig?.passwordAuthEnabled && password) {
+        await passwordLogin({
+          email: values.email,
+          password,
+          organizationId: values.organizationId || undefined,
+        })
+      } else if (authConfig?.devAuthEnabled) {
+        await devLogin({
+          email: values.email,
+          organizationId: values.organizationId || undefined,
+        })
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'Password is required for this local login path.',
+        })
+        return
+      }
+
       notify({ type: 'success', message: 'Signed in' })
       const returnTo =
         typeof location.state === 'object' &&
@@ -164,11 +183,16 @@ export function LoginPage() {
             <span>Role-bound access</span>
             <span>Organization context required</span>
             <span>Audit and outbox aware</span>
-          <span>
-            {authConfig?.oidcEnabled
-              ? 'OIDC enabled'
-              : 'OIDC not configured'}
-          </span>
+            <span>
+              {authConfig?.oidcEnabled
+                ? 'OIDC enabled'
+                : 'OIDC not configured'}
+            </span>
+            <span>
+              {authConfig?.passwordAuthEnabled
+                ? 'Seeded password login available'
+                : 'Password login disabled'}
+            </span>
           </div>
         </div>
 
@@ -181,13 +205,15 @@ export function LoginPage() {
             <div className="entry-panel-header">
               <span className="eyebrow">
                 {authConfig?.devAuthEnabled
-                  ? 'Local/dev auth'
+                  ? 'Local/demo auth'
                   : 'Production auth boundary'}
               </span>
               <h2>Sign in to the prototype</h2>
               <p>
-                {authConfig?.devAuthEnabled
-                  ? 'Use a seeded user email and organization ID. This path is for local testing and UAT only.'
+                {authConfig?.passwordAuthEnabled
+                  ? 'Use a seeded account email and local/demo password. This path is for local testing and UAT only.'
+                  : authConfig?.devAuthEnabled
+                    ? 'Use a seeded user email and organization ID. This path is for local testing and UAT only.'
                   : 'Development login is disabled by this environment. Use the configured organization login path.'}
               </p>
             </div>
@@ -203,7 +229,7 @@ export function LoginPage() {
             {apiError ? (
               <ErrorState title="Login failed" message={apiError} />
             ) : null}
-            {authConfig?.devAuthEnabled ? (
+            {authConfig?.devAuthEnabled || authConfig?.passwordAuthEnabled ? (
               <>
                 <FormField
                   label="Email"
@@ -214,6 +240,17 @@ export function LoginPage() {
                   error={errors.email?.message}
                   hint="Example seed users can sign in by email when membership exists."
                 />
+                {authConfig?.passwordAuthEnabled ? (
+                  <FormField
+                    label="Password"
+                    name="password"
+                    type="password"
+                    registration={register('password')}
+                    error={errors.password?.message}
+                    hint="Seeded local/demo accounts use the documented UAT password. Leave blank only for the development login fallback."
+                    autoComplete="current-password"
+                  />
+                ) : null}
                 <FormField
                   label="Organization ID"
                   name="organizationId"
@@ -224,12 +261,12 @@ export function LoginPage() {
               </>
             ) : authConfig ? (
               <ErrorState
-                title="Development login disabled"
-                message="This deployment does not accept email-only development login."
+                title="Local login disabled"
+                message="This deployment does not accept email-only or local password login."
               />
             ) : null}
             <div className="form-actions">
-              {authConfig?.devAuthEnabled ? (
+              {authConfig?.devAuthEnabled || authConfig?.passwordAuthEnabled ? (
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>

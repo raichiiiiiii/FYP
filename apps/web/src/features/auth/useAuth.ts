@@ -1,7 +1,12 @@
 import { createContext, useContext } from 'react'
 
 import type { AuthorizationState } from '../../app/authorization'
-import type { AppSession, AuthSession, DevLoginInput } from '../../shared/types'
+import type {
+  AppSession,
+  AuthSession,
+  DevLoginInput,
+  PasswordLoginInput,
+} from '../../shared/types'
 
 export type AuthStatus = 'loading' | 'anonymous' | 'authenticated' | 'error'
 
@@ -12,6 +17,7 @@ export type AuthContextValue = {
   authorization: AuthorizationState
   message: string | null
   devLogin: (input: DevLoginInput) => Promise<AuthSession>
+  passwordLogin: (input: PasswordLoginInput) => Promise<AuthSession>
   refreshSession: () => Promise<void>
   logout: () => void
 }

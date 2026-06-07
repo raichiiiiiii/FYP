@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import type { DevLoginInput } from './auth.service';
+import type { DevLoginInput, PasswordLoginInput } from './auth.service';
 import { AuthService } from './auth.service';
 import type {
   AcceptInvitationInput,
@@ -21,6 +21,11 @@ export class AuthController {
   @Post('dev-login')
   devLogin(@Body() body: DevLoginInput) {
     return this.authService.devLogin(body);
+  }
+
+  @Post('password-login')
+  passwordLogin(@Body() body: PasswordLoginInput) {
+    return this.authService.passwordLogin(body);
   }
 
   @Get('session')

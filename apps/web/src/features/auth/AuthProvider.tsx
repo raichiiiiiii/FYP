@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { authorizationFromSession } from '../../app/authorization'
 import type { AuthorizationState } from '../../app/authorization'
 import { apiRequest } from '../../shared/api/client'
-import type { AuthSession, DevLoginInput } from '../../shared/types'
+import type {
+  AuthSession,
+  DevLoginInput,
+  PasswordLoginInput,
+} from '../../shared/types'
 import {
   clearStoredSession,
   loadStoredSession,
@@ -40,6 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const devLogin = useCallback(
     async (input: DevLoginInput) => {
       const nextSession = await apiRequest<AuthSession>('/auth/dev-login', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      })
+
+      persistSession(nextSession)
+      return nextSession
+    },
+    [persistSession],
+  )
+
+  const passwordLogin = useCallback(
+    async (input: PasswordLoginInput) => {
+      const nextSession = await apiRequest<AuthSession>('/auth/password-login', {
         method: 'POST',
         body: JSON.stringify(input),
       })
@@ -167,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authorization,
         message,
         devLogin,
+        passwordLogin,
         refreshSession,
         logout,
       }}

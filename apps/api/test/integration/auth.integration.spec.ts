@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { createHash } from 'node:crypto';
 import {
   calculateInvitationExpiry,
   createInvitationToken,
@@ -21,6 +22,7 @@ describe('Integration: auth', () => {
     OIDC_CALLBACK_URL: process.env.OIDC_CALLBACK_URL,
     OIDC_SCOPES: process.env.OIDC_SCOPES,
     OIDC_STATE_SECRET: process.env.OIDC_STATE_SECRET,
+    LOCAL_PASSWORD_AUTH_ENABLED: process.env.LOCAL_PASSWORD_AUTH_ENABLED,
   };
   let context: IntegrationAppContext | undefined;
 
@@ -86,6 +88,94 @@ describe('Integration: auth', () => {
       .expect(({ body }) => {
         expect(body.message).toBe(
           'Development login is disabled for this environment',
+        );
+      });
+  });
+
+  it('allows seeded local password login when enabled', async () => {
+    process.env.LOCAL_PASSWORD_AUTH_ENABLED = 'true';
+    context = await createIntegrationApp();
+    const setup = await createOrganizationFixture(context.app);
+
+    await context.prisma.user.update({
+      where: {
+        id: setup.adminUser.id,
+      },
+      data: {
+        passwordHash: hashDemoPassword('mepn-demo-password'),
+      },
+    });
+
+    const config = await request(context.app.getHttpServer())
+      .get('/api/v1/auth/config')
+      .expect(200);
+
+    expect(config.body).toEqual(
+      expect.objectContaining({
+        passwordAuthEnabled: true,
+      }),
+    );
+
+    const response = await request(context.app.getHttpServer())
+      .post('/api/v1/auth/password-login')
+      .send({
+        email: setup.adminUser.email,
+        password: 'mepn-demo-password',
+        organizationId: setup.organization.id,
+      })
+      .expect(201);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        userId: setup.adminUser.id,
+        organizationId: setup.organization.id,
+        authMode: 'password',
+        passwordAuthEnabled: true,
+      }),
+    );
+  });
+
+  it('rejects invalid local password login without revealing account state', async () => {
+    process.env.LOCAL_PASSWORD_AUTH_ENABLED = 'true';
+    context = await createIntegrationApp();
+    const setup = await createOrganizationFixture(context.app);
+
+    await context.prisma.user.update({
+      where: {
+        id: setup.adminUser.id,
+      },
+      data: {
+        passwordHash: hashDemoPassword('mepn-demo-password'),
+      },
+    });
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/auth/password-login')
+      .send({
+        email: setup.adminUser.email,
+        password: 'wrong-password',
+        organizationId: setup.organization.id,
+      })
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Invalid email or password');
+      });
+  });
+
+  it('rejects local password login when disabled', async () => {
+    process.env.LOCAL_PASSWORD_AUTH_ENABLED = 'false';
+    context = await createIntegrationApp();
+
+    await request(context.app.getHttpServer())
+      .post('/api/v1/auth/password-login')
+      .send({
+        email: 'admin@example.test',
+        password: 'mepn-demo-password',
+      })
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.message).toBe(
+          'Local password login is disabled for this environment',
         );
       });
   });
@@ -469,4 +559,8 @@ function restoreEnv(originalEnv: Record<string, string | undefined>) {
       process.env[key] = value;
     }
   }
+}
+
+function hashDemoPassword(password: string) {
+  return `sha256:${createHash('sha256').update(password).digest('hex')}`;
 }

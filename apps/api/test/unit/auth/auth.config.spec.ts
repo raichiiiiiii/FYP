@@ -48,4 +48,25 @@ describe('auth runtime config', () => {
       }),
     );
   });
+
+  it('enables local password login outside production by default', () => {
+    expect(getAuthRuntimeConfig({ NODE_ENV: 'test' }).passwordAuthEnabled).toBe(
+      true,
+    );
+  });
+
+  it('disables local password login in production by default', () => {
+    expect(
+      getAuthRuntimeConfig({ NODE_ENV: 'production' }).passwordAuthEnabled,
+    ).toBe(false);
+  });
+
+  it('allows explicit local password login override for controlled UAT environments', () => {
+    expect(
+      getAuthRuntimeConfig({
+        NODE_ENV: 'production',
+        LOCAL_PASSWORD_AUTH_ENABLED: 'true',
+      }).passwordAuthEnabled,
+    ).toBe(true);
+  });
 });

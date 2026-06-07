@@ -182,10 +182,17 @@ Seeded local/demo password:
 mepn-demo-password
 ```
 
-The seed stores only `passwordHash`. Current local authentication is still the
-configured dev/OIDC-style login boundary, so use the local login options exposed
-by the app for demo access. Change or disable seeded accounts before any
-non-demo use.
+The seed stores only `passwordHash`. Local/UAT deployments allow seeded
+password login by default outside production; production deployments should use
+configured OIDC or an approved identity boundary unless
+`LOCAL_PASSWORD_AUTH_ENABLED=true` is deliberately set. Change or disable seeded
+accounts before any non-demo use.
+
+The full seeded account reference is also committed at:
+
+```text
+docs/evidence/uat/seeded-node-accounts.txt
+```
 
 Seeded node accounts:
 
