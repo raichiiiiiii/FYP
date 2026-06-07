@@ -64,7 +64,7 @@
 \centering
 \vspace*{1.0cm}
 {\Large Software Requirements Specification\\[0.4cm]}
-{\huge \textbf{Mudarabah-Enabled Distributed E-Procurement System}\\[0.35cm]}
+{\huge \textbf{Mudarabah-Enabled Procurement Network}\\[0.35cm]}
 {\Large Product codename: \systemshort{}\\[0.8cm]}
 \vspace{0.8cm}
 \begin{tabular}{ll}
@@ -78,7 +78,7 @@ UML package: & Use case, activity, class, state machine, external sequence, RTM 
 \vfill
 \begin{minipage}{0.86\textwidth}
 \small
-This specification defines software requirements for a distributed e-procurement platform that automates procurement workflows and enables project-based mudarabah capital participation by banks, Islamic financial institutions, venture capital firms, or other approved financial entities. It is a tailored requirements artifact, not a legal contract, Shariah ruling, or production security assessment. Final use requires legal, Shariah, accounting, data protection, and regulatory review.
+This specification defines software requirements for a downloadable, self-hosted procurement and mudarabah-finance node application. MEPN is a self-hosted procurement and mudarabah-finance node application where each organization owns its local deployment and data, while optional private network and Hyperledger Fabric channel participation enables tamper-evident cross-organization proof sharing without turning the system into a shared-cloud SaaS. It is a tailored requirements artifact, not a legal contract, Shariah ruling, or production security assessment. Final use requires legal, Shariah, accounting, data protection, and regulatory review.
 \end{minipage}
 \vfill
 \end{titlepage}
@@ -97,7 +97,7 @@ This specification defines software requirements for a distributed e-procurement
 \centering
 \begin{tabularx}{\textwidth}{@{}lX@{}}
 \toprule
-Title & Software Requirements Specification for the Mudarabah-Enabled Distributed E-Procurement System \\
+Title & Software Requirements Specification for the Mudarabah-Enabled Procurement Network \\
 Revision & Version 1.1, 7 June 2026 \\
 System of interest & \systemname{} (\systemshort{}) \\
 Document type & Software Requirements Specification with UML appendices and traceability matrix \\
@@ -126,7 +126,7 @@ The current implementation is suitable for academic review, local validation, an
 The purpose of this SRS is to specify the required behavior, interfaces, data model, constraints, quality attributes, verification approach, and UML-supported analysis model for \systemshort{}. The system is intended to make mudarabah financing more commercially adoptable by embedding financiers into high-integrity procurement workflows, reducing information asymmetry, improving project-level accounting evidence, and providing auditable cross-organization records.
 
 \subsection{Scope}
-\systemshort{} is a distributed, self-hostable e-procurement and procurement-finance platform for SME organizations and financial entities. It supports conventional procurement automation, SME-to-SME business interaction, ERP integration, supply-chain network visibility, and restricted project-based mudarabah financing workflows.
+\systemshort{} is a downloadable, self-hosted organization node for procurement, evidence management, and optional mudarabah financing collaboration. Each organization owns its deployment, operational database, evidence store, configuration, and integration secrets. Cross-organization collaboration is optional and is performed through invitation-based workspaces, API integration, and operator-assisted Fabric proof channels.
 
 \subsubsection{In scope}
 \begin{itemize}
@@ -136,7 +136,8 @@ The purpose of this SRS is to specify the required behavior, interfaces, data mo
   \item Procure-to-pay functions: purchase requisition, approval, purchase order, goods receipt/service confirmation, invoice submission, three-way matching, payment status, and audit evidence.
   \item Procurement opportunity publication for revenue-generating trades, projects, resale cycles, or contract fulfillment.
   \item Mudarabah capital application, financier due diligence, Shariah/compliance review, contract execution, disbursement control, milestone monitoring, profit/loss calculation, profit distribution, and loss exception handling.
-  \item Distributed deployment for SME-owned nodes with optional consortium participation through Hyperledger Fabric channels and operator-assisted channel governance.
+  \item Downloadable self-hosted organization nodes with local PostgreSQL, evidence storage, configuration, secrets, backup, update, and rollback procedures.
+  \item Optional consortium participation through compatible private organization networks or Hyperledger Fabric channels with operator-assisted channel governance.
   \item Supply-chain network graph/canvas showing organizations, supplier/customer relationships, opportunities, financing links, document status, risk indicators, saved views, and annotations where authorized.
   \item ERP integration through APIs, file exchange, and adapter services.
   \item Audit trail, immutable event anchoring, Fabric chaincode verification, evidence package browsing, report export, and operations evidence.
@@ -155,7 +156,7 @@ The purpose of this SRS is to specify the required behavior, interfaces, data mo
 \end{itemize}
 
 \subsection{Product perspective}
-\systemshort{} is a distributed business application inspired by ERPNext's integrated ERP pattern. ERPNext exposes major ERP functions such as accounting, order management, manufacturing, asset management, and projects; the referenced repository also highlights a full-stack framework with database abstraction, user authentication, and REST API support, plus self-hosted Docker-oriented deployment. \systemshort{} adopts the integration breadth and self-hostability pattern, but rewrites the system as a modular distributed procurement-finance platform.
+\systemshort{} is a distributed business application inspired by ERPNext's integrated ERP pattern. ERPNext exposes major ERP functions such as accounting, order management, manufacturing, asset management, and projects; the referenced repository also highlights a full-stack framework with database abstraction, user authentication, and REST API support, plus self-hosted Docker-oriented deployment. \systemshort{} adopts the integration breadth and self-hostability pattern, but rewrites the system as a local-first, self-hostable procurement node with optional consortium proof anchoring rather than a shared-cloud SaaS.
 
 \subsection{Product functions}
 At a high level, \systemshort{} provides the following product functions:
@@ -211,6 +212,8 @@ Developer/Integrator & Builds adapters, chaincode integration, deployment automa
   \item[Fabric channel] Permissioned Hyperledger Fabric administrative and ledger domain shared by selected organizations.
   \item[Fabric Gateway verification] Verification mode in which MEPN queries approved chaincode, such as \code{ReadAnchor}, and compares the on-chain hash with local canonical hash and stored anchor metadata.
   \item[Operator-assisted Fabric governance] A governance workflow where MEPN records channel proposals, invitations, approvals, readiness checks, and sanitized execution evidence, while a Fabric operator executes topology changes outside the application.
+  \item[Release manifest] Versioned release metadata describing application version, API version, database schema version, canonical hash version, feature flags, compatibility notes, artifact references, and integrity verification material.
+  \item[Channel join package] Administrative configuration package for optional private-network or Fabric participation. It may describe channel name, MSP identifiers, peer/orderer endpoints, TLS trust roots, chaincode name, and Gateway profile reference, but must not contain Fabric admin private keys.
 \end{description}
 
 \section{References}
@@ -224,7 +227,7 @@ Developer/Integrator & Builds adapters, chaincode integration, deployment automa
 \bibitem{oidc} OpenID Foundation, \textit{OpenID Connect Core 1.0 incorporating errata set 2}.
 \bibitem{fabric} Hyperledger Fabric Documentation, release 2.5, network, private data, MSP, and chaincode documentation.
 \bibitem{featurestatus} \textit{MEPN Feature Status and Future Implementation Plan}, repository document \code{docs/roadmap/feature-status-and-future-implementation.md}, current review baseline.
-\bibitem{evidenceindex} \textit{MEPN Evidence Index}, repository document \code{docs/evidence/EVIDENCE_INDEX.md}, current review evidence entry point.
+\bibitem{evidenceindex} \textit{MEPN Evidence Index}, repository document \code{docs/evidence/EVIDENCE\_INDEX.md}, current review evidence entry point.
 \bibitem{fabricgovernance} \textit{Fabric Consortium Governance Requirements And Base Decision}, repository document \code{docs/roadmap/fabric-consortium-governance-requirements.md}.
 \end{thebibliography}
 
@@ -236,7 +239,7 @@ Traditional procurement frequently suffers from manual handoffs, fragmented data
 In Malaysia, the uploaded mudarabah performance report identifies a severe adoption gap for mudarabah financing relative to debt-like Islamic structures. The report attributes the gap to agency risk, profit verification cost, depositor expectations, regulatory/liquidity frictions, and weak borrower-level information. The product strategy is therefore to make procurement itself the evidence layer for mudarabah: verified buyer demand, supplier quotations, purchase orders, receipts, invoices, payments, and project ledgers become the operating data used to approve, monitor, and close financing.
 
 \subsection{Product vision}
-\systemshort{} will be an installable, distributed e-procurement system for SMEs that automates procurement and embeds financial entity participation through restricted mudarabah contracts. Each SME can own its deployment, manage its organization data, connect its ERP, join selected supply-chain channels, and invite financiers into specific procurement opportunities without exposing unrelated business records.
+\systemshort{} will be an installable, local-first procurement and mudarabah-finance node. Each organization can download the application and documentation, host the node on its own machine, server, or VM, own its PostgreSQL database, object/evidence storage, configuration, and secrets, operate core procurement and audit locally, and optionally join private organization networks or Hyperledger Fabric channels with compatible MEPN deployments.
 
 \subsection{Commercial adoption hypothesis}
 \begin{table}[h]
@@ -281,7 +284,7 @@ An SME installs \systemshort{} using a packaged deployment bundle. The SME confi
 
 The financial entity accesses a restricted workspace for the opportunity. It reviews buyer credibility, supplier reliability, quotations, cost budget, delivery timeline, risk factors, Shariah eligibility, proposed profit ratio, and project account rules. If approved, the financial entity and SME execute a restricted mudarabah contract. Capital is disbursed either to a controlled account, directly to approved suppliers, or to the mudarib under defined controls. The system tracks procurement execution, delivery, invoice collection, project cost, profit/loss calculation, and distribution.
 
-Critical cross-organization events are written to a Hyperledger Fabric channel as event hashes, transaction metadata, and optionally private data collection references. Full document payloads remain in the SME-controlled deployment unless the parties explicitly share them. Verification of real Fabric proof requires a successful chaincode read and hash comparison; mock anchors or locally stored metadata alone are insufficient. Fabric channel governance is operator-assisted in the current baseline: the application manages proposals, invitations, approvals, readiness, and sanitized evidence, while Fabric topology changes remain outside the application boundary. The supply-chain canvas shows the buyer, supplier, financier, opportunity, documents, contract state, risks, and milestones.
+Critical cross-organization events are written to a Hyperledger Fabric channel as event hashes, transaction metadata, and optionally private data collection references. Full document payloads remain in the SME-controlled deployment unless the parties explicitly share them. Verification of real Fabric proof requires a successful chaincode read and hash comparison; mock anchors or locally stored metadata alone are insufficient. MEPN records governance metadata, invitations, approvals, readiness checks, and sanitized operator execution evidence. Fabric topology mutation remains operator-assisted unless a future ADR approves a dedicated operator agent with managed key custody. The supply-chain canvas shows the buyer, supplier, financier, opportunity, documents, contract state, risks, and milestones.
 
 \subsection{System modes}
 \begin{table}[h]
@@ -297,6 +300,7 @@ Read-only audit mode & Auditors or reviewers access approved evidence and Fabric
 Fabric governance mode & Organization administrators and Fabric governance administrators manage channel metadata, invitations, proposals, approvals, readiness checks, and operator evidence without direct channel topology mutation by the application. \\
 Degraded integration mode & Core workflows continue when ERP, Fabric, or external payment APIs are unavailable; outbound events queue for retry. \\
 Maintenance mode & Administrators perform backup, restore, migration, channel update, adapter reconfiguration, and security maintenance. \\
+Self-hosted release/update mode & Organization administrators or operators download a release package, verify its manifest/checksum/signature, back up local data, apply migrations and container updates, run smoke tests, record upgrade evidence, and roll back from backup when required. \\
 \bottomrule
 \end{tabularx}
 \caption{System modes}
@@ -353,7 +357,7 @@ Maintenance mode & Administrators perform backup, restore, migration, channel up
 \end{figure}
 
 \subsection{Distributed deployment model}
-Each SME deployment is treated as an organization node with its own database, object store, identity configuration, audit log, and integration keys. Cross-organization collaboration uses signed API requests, Fabric event anchors, operator-assisted channel governance, and invitation-based sharing. A financial entity may either install its own node, join as a Fabric organization, or access a hosted financier portal with contractual data segregation.
+Each SME deployment is treated as an organization node with its own database, object store, identity configuration, audit log, and integration keys. Cross-organization collaboration uses signed API requests, Fabric event anchors, operator-assisted channel governance, and invitation-based sharing. A financial entity may run its own MEPN node, connect through a separately deployed financier node, or participate through a controlled integration workspace. Core MEPN operation must not depend on a project-maintained shared cloud service.
 
 \subsection{Data confidentiality principle}
 The operational database stores full business records. Fabric stores event identifiers, hashes, timestamps, participating organizations, endorsement metadata, and optional private-data references. Unless an explicit sharing rule applies, confidential documents such as invoices, quotations, buyer contracts, and bank details remain off-chain in the owning deployment.
@@ -380,6 +384,8 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{SN-10} & Medium & Future features need an extension mechanism that does not compromise core procurement, finance, and audit integrity. & Inspection & User vision \\ \hline
 \texttt{SN-11} & Medium & Operators and reviewers need health, worker, outbox, Fabric, backup, and deployment evidence without exposing secrets or raw integration payloads. & Demo/Test & Current implementation evidence \\ \hline
 \texttt{SN-12} & High & Organizations need Fabric channel governance records that prove proposal, invitation, approval, readiness, and operator execution state without requiring MEPN to hold Fabric admin private keys. & Inspection/Test & Fabric governance decision record \\ \hline
+\texttt{SN-13} & High & Organizations need a downloadable release package, local installation guide, update process, backup-before-update workflow, and rollback guidance so they can operate MEPN without depending on a shared cloud service. & Inspection/Test & Self-hosted node direction \\ \hline
+\texttt{SN-14} & Medium & Organizations need a safe way to import compatible private-network or Fabric channel configuration packages without exposing Fabric admin private keys to the MEPN application. & Inspection/Test & Fabric governance boundary \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsection{Business requirements}\label{sec:business-reqs}
@@ -401,6 +407,10 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{BR-10} & P2 & The system shall expose extension points for future features through versioned APIs, event subscriptions, and plugin interfaces. & I/T & SN-10 \\ \hline
 \texttt{BR-11} & P1 & The system shall provide reviewer-safe operations evidence for health, workers, queues, deployment, backups, reports, and Fabric status without printing or storing secret material. & T/I & SN-09,SN-11 \\ \hline
 \texttt{BR-12} & P1 & The system shall support operator-assisted Fabric consortium governance for channel metadata, invitations, approvals, readiness, and sanitized operator evidence. & T/I/R & SN-12 \\ \hline
+\texttt{BR-13} & P1 & The system shall be distributable as a downloadable self-hosted organization node with installation documentation, Docker Compose configuration, environment templates, release manifest, and local smoke-test guidance. & I/T & SN-09,SN-13 \\ \hline
+\texttt{BR-14} & P1 & The system shall allow core procurement, local audit, local evidence review, and local reporting to operate on an organization-owned deployment without requiring shared cloud services, external financial APIs, ERP APIs, or Fabric availability. & T/I & SN-01,SN-13 \\ \hline
+\texttt{BR-15} & P1 & The system shall support local patch/update releases with backup confirmation, migration compatibility checks, smoke-test evidence, and rollback guidance that do not overwrite organization secrets or Fabric material. & T/I & SN-09,SN-13 \\ \hline
+\texttt{BR-16} & P2 & The system shall support import and validation of compatible private-network or Fabric channel configuration packages for optional cross-organization participation while preserving operator-assisted topology governance. & T/I/R & SN-12,SN-14 \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsection{Functional requirements - identity, organization, and administration}\label{sec:fr-identity}
@@ -495,6 +505,21 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{FR-56} & P1 & The system shall record operations timeline events for worker heartbeat, outbox, reconciliation, Fabric anchors, report exports, backup/restore, and deployment evidence using sanitized summaries only. & T/I & BR-11 \\ \hline
 \end{longtable}
 \end{footnotesize}
+\subsection{Self-hosted node distribution and local update requirements}\label{sec:fr-self-hosted-release}
+\begin{footnotesize}
+\begin{longtable}{@{}p{0.10\textwidth}p{0.10\textwidth}p{0.48\textwidth}p{0.13\textwidth}p{0.13\textwidth}@{}}
+\rowcolor{gray!18}\textbf{ID} & \textbf{Priority} & \textbf{Requirement} & \textbf{Verification} & \textbf{Source} \\ \hline
+\endfirsthead
+\rowcolor{gray!18}\textbf{ID} & \textbf{Priority} & \textbf{Requirement} & \textbf{Verification} & \textbf{Source} \\ \hline
+\endhead
+\texttt{FR-57} & P1 & The system release shall provide a documentation/download entry point that identifies the release version, supported deployment modes, installation guide, update guide, rollback guide, backup/restore guide, and verification commands. & I/D & BR-13 \\ \hline
+\texttt{FR-58} & P1 & The release package shall include application source or container image references, Docker Compose files, environment templates, migration files, release manifest, checksum/signature verification instructions, local smoke-test command, and Fabric Gateway configuration guide. & I/T & BR-13 \\ \hline
+\texttt{FR-59} & P1 & The local update workflow shall require backup confirmation or an explicit waiver, shall not overwrite secrets or Fabric material, and shall record source version, target version, schema version, migration result, smoke-test result, and rollback recommendation. & T/I & BR-15 \\ \hline
+\texttt{FR-60} & P1 & The system shall expose node status for organization administrators, including application version, API version, database schema version, enabled feature flags, deployment mode, backup recency, and Fabric chaincode compatibility when Fabric is configured. & T/D & BR-13,BR-15 \\ \hline
+\texttt{FR-61} & P2 & Organization administrators shall be able to import a network or channel configuration package containing channel name, MSP identifiers, peer and orderer endpoints, TLS trust roots, chaincode name, and Gateway profile reference. & T/I & BR-16 \\ \hline
+\texttt{FR-62} & P2 & The system shall validate imported network/channel packages for schema version, node compatibility, chaincode compatibility, trust-root presence, and absence of Fabric admin private keys before enabling Fabric submission or governance workflows. & T/I/R & BR-16 \\ \hline
+\end{longtable}
+\end{footnotesize}
 \subsection{External interface requirements}\label{sec:interfaces}
 \begin{footnotesize}
 \begin{longtable}{@{}p{0.10\textwidth}p{0.10\textwidth}p{0.48\textwidth}p{0.13\textwidth}p{0.13\textwidth}@{}}
@@ -515,6 +540,8 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{IR-11} & P1 & The system shall support external e-signature providers through a signed document package, callback validation, and final signed artifact storage. & T/D & FR-33 \\ \hline
 \texttt{IR-12} & P1 & The system shall provide webhook subscriptions for procurement milestones, financing decisions, disbursement status, and audit events. & T/I & BR-10 \\ \hline
 \texttt{IR-13} & P1 & The system shall expose Fabric governance APIs for networks, channels, memberships, invitations, proposals, approvals, readiness checks, operator execution records, and sanitized evidence retrieval. & T/I & FR-55 \\ \hline
+\texttt{IR-14} & P1 & The system shall expose local node release/status interfaces or commands that report release version, schema version, feature flags, migration state, backup state, and smoke-test readiness without printing secrets. & T/I & FR-57,FR-60 \\ \hline
+\texttt{IR-15} & P2 & The system shall accept a network/channel join configuration package through a controlled administrative import interface and shall reject packages that include Fabric admin private keys, unsupported schema versions, or incompatible chaincode metadata. & T/I/R & FR-61,FR-62 \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsection{Logical data requirements}\label{sec:data}
@@ -536,6 +563,7 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{DR-10} & P2 & The data model shall support custom attributes by organization without requiring core schema modification for common extension fields. & I/T & BR-10 \\ \hline
 \texttt{DR-11} & P1 & The logical data model shall include WorkerHeartbeat, IntegrationReconciliationRecord, ReportExportJob, GraphSavedView, GraphAnnotation, and operations timeline read-model support where implemented. & I/T & BR-09,BR-11 \\ \hline
 \texttt{DR-12} & P1 & The logical data model shall include FabricNetwork, FabricChannel, FabricChannelMembership, FabricChannelInvitation, FabricChannelProposal, FabricGovernanceApproval, and FabricGovernanceEvidence for operator-assisted governance. & I/T & BR-12 \\ \hline
+\texttt{DR-13} & P1 & The logical data model shall include NodeDeployment, ReleaseManifest, UpgradeRun, MigrationRecord, BackupSnapshot, NodeNetworkProfile, ChannelJoinPackage, and UpgradeEvidence concepts for self-hosted release, update, compatibility, and network-join tracking. & I/T & BR-13--BR-16 \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsection{Software system attributes and non-functional requirements}\label{sec:nfr}
@@ -569,6 +597,9 @@ Each requirement is assigned an identifier, priority, verification method, and s
 \texttt{NFR-22} & P1 & The system shall provide vulnerability scanning and dependency report generation as part of the release pipeline. & Inspection & Security \\ \hline
 \texttt{NFR-23} & P1 & The system shall support evidence/report export in machine-readable JSON and CSV package formats for the FYP baseline, with PDF/spreadsheet report packs tracked as production hardening until implemented. & Test/Demo & BR-08 \\ \hline
 \texttt{NFR-24} & P2 & The system should support plugin sandboxing to limit future extension access to explicit API scopes. & Security review & BR-10 \\ \hline
+\texttt{NFR-25} & P1 & Each downloadable release shall include a release manifest and checksum/signature verification process so operators can verify package integrity before local installation or update. & Inspection/Test & BR-13 \\ \hline
+\texttt{NFR-26} & P1 & Local update procedures shall be recoverable through backup-based rollback unless a release explicitly supports and verifies down-migration. & DR test & BR-15 \\ \hline
+\texttt{NFR-27} & P1 & Node compatibility checks shall report application API version, database schema version, Fabric chaincode name/version/sequence when available, canonical hash version, report/evidence package schema, enabled feature flags, and channel join package version. & Inspection/Test & BR-16 \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsection{Verification method definitions}
@@ -652,7 +683,7 @@ Review & Stakeholder, Shariah, legal, accounting, compliance, or operational acc
 \rowcolor{gray!10}\textbf{Main success scenario} & 1. Launch deployment. 2. Create organization profile. 3. Configure identity provider. 4. Configure database, object storage, email, and queue. 5. Create administrator role. 6. Run health checks. 7. Enable backup schedule. \\ \hline
 \rowcolor{gray!10}\textbf{Alternate or exception flows} & A1: Identity provider unavailable - administrator uses local bootstrap admin and completes IdP configuration later. A2: ERP not ready - node operates without ERP adapter. \\ \hline
 \rowcolor{gray!10}\textbf{Postconditions} & Organization node is operational, audited, and ready for procurement setup. \\ \hline
-\rowcolor{gray!10}\textbf{Related requirements} & FR-01, FR-02, FR-03, NFR-10, NFR-19 \\ \hline
+\rowcolor{gray!10}\textbf{Related requirements} & FR-01, FR-02, FR-03, FR-57--FR-60, NFR-10, NFR-19, NFR-25--NFR-27 \\ \hline
 \end{longtable}
 \end{footnotesize}
 \subsubsection{UC-02 - Authenticate and authorize user}
@@ -1252,6 +1283,7 @@ Mudarabah finance & Scenario tests for application completeness, due diligence, 
 ERP integration & Adapter mapping tests, idempotency tests, duplicate handling, reconciliation status, and failure retry tests. \\
 Fabric integration & Chaincode transaction tests, event hash verification, failed gateway retry, transaction ID recording, API-side \code{ReadAnchor} verification, and channel access control. \\
 Fabric governance & Metadata, proposal, invitation, approval, readiness, operator execution, sanitized evidence, and no-admin-secret custody tests. \\
+Self-hosted release/update & Download package inspection, release manifest verification, checksum/signature verification, Docker Compose install test, backup-before-update evidence, migration compatibility test, local smoke test, and rollback rehearsal or waiver inspection. \\
 Network canvas & Graph permission tests, filter/search tests, saved-view tests, annotation target visibility tests, redaction tests, and no-leak browser tests. \\
 Security and audit & Penetration-oriented test cases, secrets inspection, TLS checks, immutable audit log checks, and contract amendment workflow tests. \\
 Deployment and operations & Installation test, migration test, backup/restore test, health/readiness check, worker heartbeat, operations timeline, observability review, and upgrade rollback rehearsal. \\
@@ -1281,10 +1313,12 @@ SN-05 & Shariah and compliance governance & BR-03, BR-04 & FR-30 to FR-32, FR-38
 SN-06 & Supply-chain network visibility & BR-09 & FR-43 to FR-46, DR-09 & UC-13 & Canvas demo, permission test \\ \hline
 SN-07 & ERP/accounting integration & BR-01, BR-03 & IR-05 to IR-07, FR-36, DR-07, NFR-11 & UC-05, UC-15 & Integration test, reconciliation test \\ \hline
 SN-08 & Tamper-evident auditability & BR-03, BR-07, BR-08 & FR-47 to FR-50, DR-04, DR-05, NFR-09 & UC-10, UC-11, UC-14 & Fabric test, audit inspection \\ \hline
-SN-09 & Installable SME deployment & BR-05 & FR-01, NFR-10, NFR-13, NFR-19, NFR-20 & UC-01 & Install, backup, restore, health check \\ \hline
+SN-09 & Installable SME deployment & BR-05, BR-13, BR-15 & FR-01, FR-57 to FR-60, NFR-10, NFR-13, NFR-19, NFR-20, NFR-25 to NFR-27 & UC-01 & Install, backup, restore, health check, update smoke test \\ \hline
 SN-10 & Future feature extension & BR-10 & FR-52, IR-01, IR-12, DR-10, NFR-24 & UC-01, UC-15 & API inspection, plugin sandbox review \\ \hline
 SN-11 & Reviewer-safe operations evidence & BR-11 & FR-56, DR-11, NFR-06, NFR-10, NFR-13, NFR-19 & UC-01, UC-14 & Operations timeline, backup/restore, deployment evidence \\ \hline
 SN-12 & Operator-assisted Fabric governance & BR-12 & FR-55, IR-13, DR-12, NFR-06, NFR-18 & UC-01, UC-14 & Fabric governance workflow tests and evidence inspection \\ \hline
+SN-13 & Local-first release and update & BR-13, BR-14, BR-15 & FR-57 to FR-60, IR-14, DR-13, NFR-25 to NFR-27 & UC-01 & Release package inspection, checksum verification, backup-before-update, migration, smoke, rollback evidence \\ \hline
+SN-14 & Compatible network/channel package import & BR-16 & FR-61, FR-62, IR-15, DR-13, NFR-27 & UC-01, UC-14 & Channel package validation, compatibility checks, no-admin-private-key inspection \\ \hline
 
 \end{longtable}
 \end{footnotesize}
@@ -1298,6 +1332,7 @@ SN-12 & Operator-assisted Fabric governance & BR-12 & FR-55, IR-13, DR-12, NFR-0
   \item SMEs will operate the system for revenue-generating procurement opportunities where project-level profit/loss can be measured.
   \item Financial entities will define underwriting policies, reviewer roles, product limits, disbursement controls, and Shariah requirements.
   \item At least one deployment mode will be available for SMEs with limited IT resources through Docker Compose.
+  \item Organizations will apply patch/update releases locally after verifying release integrity and taking a backup or recording an explicit backup waiver.
   \item Fabric channel governance for the current baseline is operator-assisted. Any future automated channel topology mutation requires a separate secret-custody, managed-operator, and recovery decision.
   \item ERP integration will vary by SME maturity; CSV/XLSX exchange is therefore retained as a fallback.
   \item Legal enforceability, Shariah approval, accounting treatment, and regulatory reporting requirements will be finalized per jurisdiction and institution.
@@ -1307,6 +1342,7 @@ SN-12 & Operator-assisted Fabric governance & BR-12 & FR-55, IR-13, DR-12, NFR-0
 \begin{itemize}
   \item OAuth/OIDC identity provider or bundled identity component.
   \item PostgreSQL, object storage, queue/cache, email provider, and backup storage.
+  \item Downloadable release package, release manifest, checksum/signature material, migration files, and local update/rollback documentation.
   \item Hyperledger Fabric gateway, channel configuration, MSP identity material, and approved chaincode for audit anchors; Fabric admin identities for channel topology changes are explicitly outside the current application runtime.
   \item ERP/accounting APIs or import/export capabilities.
   \item Optional e-signature provider, payment rail, banking API, and financial entity workflow API.
@@ -1338,7 +1374,7 @@ UML & Unified Modeling Language \\ \hline
 \begin{longtable}{@{}p{0.12\textwidth}p{0.65\textwidth}p{0.18\textwidth}@{}}
 \rowcolor{gray!18}\textbf{ID} & \textbf{Issue} & \textbf{Owner} \\ \hline
 OI-01 & Select the first target jurisdiction and map legal/Shariah/regulatory requirements to production controls. & Product + Legal/Shariah \\ \hline
-OI-02 & Decide whether the financial entity portal is always self-hosted by the financier or can be hosted by an SME consortium operator. & Product Architecture \\ \hline
+OI-02 & Decide whether a financial entity will run its own MEPN node, connect through a separately deployed financier node, or participate through a controlled integration workspace for each pilot; core operation must not depend on a project-maintained shared cloud service. & Product Architecture \\ \hline
 OI-03 & Define minimum borrower accounting maturity required for live mudarabah financing. & Finance/Risk \\ \hline
 OI-04 & Select initial ERP adapters and document canonical field mappings. & Integration Team \\ \hline
 OI-05 & Decide if and when operator-assisted Fabric governance should evolve into automated topology administration, including managed secret store, operator-agent, signing, retry, and recovery policies. & Product + Distributed Ledger + Security \\ \hline

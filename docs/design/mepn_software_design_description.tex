@@ -97,10 +97,10 @@ Repository target & \texttt{raichiiiiiii/FYP}, path \texttt{docs/design/mepn\_so
 This document combines ISO/IEC/IEEE 42010 as the conceptual model, arc42 as the practical architecture-document structure, C4 as the diagram hierarchy, and IEEE 1016 as the formal SDD lens. It identifies stakeholders, concerns, viewpoints, views, design entities, interfaces, data, runtime behavior, deployment, quality attributes, architecture rationale, and traceability.
 
 \section{Purpose and Scope}
-The purpose of this SDD is to specify the software architecture and design baseline for \codename{}, a distributed e-procurement platform that allows SME organizations to automate procurement workflows and obtain project-based mudarabah capital from approved financial entities.
+The purpose of this SDD is to specify the software architecture and design baseline for \codename{}. MEPN is a self-hosted procurement and mudarabah-finance node application where each organization owns its local deployment and data, while optional private network and Hyperledger Fabric channel participation enables tamper-evident cross-organization proof sharing without turning the system into a shared-cloud SaaS.
 
 \subsection{Scope}
-The design covers e-procurement workflows, restricted mudarabah finance workflows, scoped cross-organization collaboration, supply-chain graph/canvas visibility, ERP/accounting integration boundaries, e-signature and financial entity API integration boundaries, Hyperledger Fabric audit anchoring, API-side Fabric verification, operator-assisted Fabric consortium governance, report/evidence export, Docker Compose deployment, backup/restore, observability, UI/HCI evidence, and security architecture.
+The design covers e-procurement workflows, restricted mudarabah finance workflows, scoped cross-organization collaboration, supply-chain graph/canvas visibility, ERP/accounting integration boundaries, e-signature and financial entity API integration boundaries, Hyperledger Fabric audit anchoring, API-side Fabric verification, operator-assisted Fabric consortium governance, report/evidence export, Docker Compose deployment, self-hosted release packaging, local update/rollback behavior, backup/restore, observability, UI/HCI evidence, and security architecture.
 
 \subsection{Out of Scope}
 Full banking-core replacement, autonomous Shariah/legal rulings, public blockchain settlement, production regulatory reporting, production penetration-test certification, real external provider certification, and direct Fabric channel topology administration by the MEPN application are outside this SDD baseline.
@@ -132,15 +132,16 @@ Identity and administration & Organization profile and media, guarded dev/UAT au
 Procurement core & Requisition, approval, RFQ/RFP/tender, quotation, purchase order, receipt, invoice matching, supplier onboarding, supplier performance, spend analytics, contracts, catalogs. & \req{FR-09--FR-24} \\
 Mudarabah finance & Procurement opportunity, capital application, evidence checklist, due diligence, Shariah review, restricted contract, e-signature, disbursement, ledger, profit/loss, distribution, loss exception, closure pack. & \req{FR-25--FR-42} \\
 Network, audit, extension & Graph/canvas, node/edge access control, saved views, annotations, append-only audit, Fabric anchoring, verification, invitations, operator-assisted Fabric governance, extension registry. & \req{FR-43--FR-56} \\
-External interfaces & OpenAPI REST, OAuth/OIDC, ERP sync, JSON/CSV exports, Fabric gateway, Fabric governance APIs, finance APIs, e-signature, webhooks. & \req{IR-01--IR-13} \\
+Self-hosted release and update & Download package, Docker Compose installation, environment template, release manifest, checksum/signature verification, backup-before-update, migration compatibility, smoke test, rollback guidance, node status, and channel join package import. & \req{FR-57--FR-62} \\
+External interfaces & OpenAPI REST, OAuth/OIDC, ERP sync, JSON/CSV exports, Fabric gateway, Fabric governance APIs, finance APIs, e-signature, webhooks, node release/status, and channel package import. & \req{IR-01--IR-15} \\
 \bottomrule
 \end{longtable}
 
 \subsection{Non-Functional Drivers}
-Performance, scalability, TLS, secret protection, organization isolation, token validation, append-only audit, backup/restore, integration resilience, degraded Fabric mode, observability, localization, accessibility, clear validation, immutable contracts, off-chain confidentiality, Docker Compose deployment, data residency, dependency scanning, evidence export, and plugin sandboxing drive the architecture. These map to \req{NFR-01--NFR-24}.
+Performance, scalability, TLS, secret protection, organization isolation, token validation, append-only audit, backup/restore, integration resilience, degraded Fabric mode, observability, localization, accessibility, clear validation, immutable contracts, off-chain confidentiality, Docker Compose deployment, data residency, dependency scanning, evidence export, release manifest verification, migration compatibility, node compatibility checks, and plugin sandboxing drive the architecture. These map to \req{NFR-01--NFR-27}.
 
 \subsection{Constraints}
-SMEs must be able to self-host; financiers require controlled monitoring without taking over SME operations; Fabric is required for communication/audit anchoring but must not store confidential payloads by default; real Fabric verification requires chaincode query evidence; operator-assisted Fabric governance must not store channel-admin private keys in the application; OAuth/OIDC is required for production while guarded dev/UAT auth remains a demo mechanism; ERP integration must be adapter-based; Shariah/compliance approval is mandatory before restricted contract execution.
+Organizations must be able to self-host and update their own node; core procurement, audit, evidence review, and local reporting must not require a shared cloud service; financiers require controlled monitoring without taking over SME operations; Fabric is optional proof infrastructure and must not store confidential payloads by default; real Fabric verification requires chaincode query evidence; operator-assisted Fabric governance must not store channel-admin private keys in the application; OAuth/OIDC is required for production while guarded dev/UAT auth remains a demo mechanism; ERP integration must be adapter-based; Shariah/compliance approval is mandatory before restricted contract execution.
 
 \section{Stakeholders and Concerns}
 \begin{longtable}{L{42mm}L{94mm}}
@@ -182,6 +183,7 @@ Rationale & Design alternatives, decisions, consequences. & ADR section and trac
 \subsection{Core Principles}
 \begin{enumerate}
 \item SME-owned node is the operational system of record for the organization's data.
+\item Each organization owns its PostgreSQL database, evidence storage, configuration, secrets, backup schedule, and local update process.
 \item Procurement evidence drives mudarabah due diligence, monitoring, profit/loss calculation, and closure.
 \item Full confidential payloads stay off-chain; Fabric anchors hashes and minimal metadata.
 \item External systems are unreliable by default; use adapters, retries, idempotency, and reconciliation.
@@ -202,7 +204,7 @@ Rationale & Design alternatives, decisions, consequences. & ADR section and trac
 \node[c4external, below right=of mepn] (erp) {ERP / Accounting};
 \node[c4external, below=of mepn] (fabric) {Hyperledger Fabric};
 \node[c4external, above=of mepn] (idp) {OAuth/OIDC IdP};
-\node[c4external, far right=of mepn] (esign) {E-signature / finance APIs};
+\node[c4external, right=of mepn, xshift=30mm] (esign) {E-signature / finance APIs};
 \draw[c4arrow] (sme) -- (mepn);
 \draw[c4arrow] (supplier) -- (mepn);
 \draw[c4arrow] (auditor) -- (mepn);
@@ -333,6 +335,40 @@ The system continues core local procurement when Fabric is unavailable and shows
 \section{Deployment Architecture}
 Docker Compose is the MVP deployment baseline. Deployment units are reverse proxy, frontend container, backend API container, worker container, PostgreSQL, object storage-ready volume or service, Redis/queue where configured, optional search index, and backup job. The Azure Student VM review deployment materializes Fabric Gateway identity, private key, TLS CA, connection profile, and generated env metadata under \texttt{/run/secrets/fabric}, mounted read-only into API/worker containers. Helm/Kubernetes is a future managed-deployment option for financial entities or consortium operators.
 
+\section{Self-Hosted Release, Node Operation, and Local Update Design}
+\codename{} is designed as an organization-owned, local-first node. The node owns its PostgreSQL operational database, evidence/object storage, configuration, integration secrets, backup artifacts, and local release/update decisions. A shared cloud service can be introduced as an optional managed deployment or support service, but it is not the default product identity and must not be required for core procurement, local audit, local evidence review, or local reporting.
+
+Docker Compose is the MVP installation path. The release package is expected to contain:
+\begin{itemize}
+\item application source archive or container image references;
+\item Docker Compose files and reverse-proxy configuration;
+\item \texttt{.env.example} and environment variable documentation;
+\item Prisma/database migration files and schema compatibility notes;
+\item release manifest with application version, API version, schema version, canonical hash version, report/evidence package schema, feature flags, and supported Fabric chaincode compatibility;
+\item checksum/signature verification instructions;
+\item backup/restore guide and update/rollback guide;
+\item local smoke-test command and expected health/readiness checks;
+\item Fabric Gateway configuration guide for imported or mounted MSP/TLS material.
+\end{itemize}
+
+Fabric Gateway material is imported or mounted by the organization/operator and is not generated by the MEPN application. The application may validate file presence, compatibility metadata, and readiness, but it must not print or persist PEM/private-key contents. Fabric remains optional proof infrastructure: the local node remains the operational system of record, while Fabric stores hashes, metadata, transaction references, and proof anchors only.
+
+The local update workflow is:
+\begin{enumerate}
+\item read release notes and compatibility notes;
+\item verify the release manifest, checksum, or signature;
+\item run preflight checks for disk, database connectivity, object storage, Fabric configuration where enabled, and target schema compatibility;
+\item confirm a current backup or record an explicit backup waiver;
+\item stop or drain services;
+\item apply database migrations;
+\item replace or rebuild containers;
+\item run local smoke tests for web, API health, worker, database, reports, and Fabric readiness where configured;
+\item record upgrade evidence with source version, target version, schema version, migration result, smoke-test result, and rollback recommendation;
+\item roll back from backup if required unless a release explicitly provides and verifies a down-migration path.
+\end{enumerate}
+
+Node compatibility checks cover application API version, database schema version, Fabric chaincode name/version/sequence, canonical hash version, report/evidence package schema, enabled feature flags, and channel join package version. A channel join/configuration package may include channel name, MSP IDs, peer/orderer endpoints, TLS trust roots, chaincode name, and Gateway profile reference. It must not contain Fabric admin private keys. Importing a package validates compatibility before Fabric submission or governance workflow activation. MEPN records governance metadata, invitations, approvals, readiness checks, and sanitized operator execution evidence. Fabric topology mutation remains operator-assisted unless a future ADR approves a dedicated operator agent with managed key custody.
+
 \section{Observability: Logs, Metrics, Tracing, Alerts}
 Logs are structured and include timestamp, service, module, correlation ID, actor, organization/workspace when allowed, event type, and error code. Metrics include request latency, workflow transition duration, queue depth, retry count, database pool state, object store errors, adapter failures, pending anchor age, backup status, worker heartbeat freshness, report export lifecycle, and authorization denials. Traces follow requests through API, domain services, database, outbox, workers, and external adapters. The operations timeline provides reviewer-safe summaries of worker, outbox, reconciliation, Fabric, report, backup, and deployment events without raw payloads or secrets. Alerts cover high 5xx rate, queue backlog, Fabric anchors stuck, ERP sync failures, object storage failures, stale workers, and failed backups.
 
@@ -348,6 +384,11 @@ Data quality weakness & P/L may be unreliable if procurement evidence is incompl
 Modular monolith coupling & Boundaries may erode over time. & Module dependency rules, tests, ADRs, extraction criteria. \\
 Graph data leakage & Network visibility may expose confidential relationships. & Edge-level access control and scoped read models. \\
 Production auth provider not configured & Dev/UAT auth is acceptable for review but not production. & Guard dev login behind config, implement OIDC/invitation boundary, and require real-provider UAT before production use. \\
+Local update failure & A failed migration or container replacement may corrupt local node state or leave services unavailable. & Preflight checks, backup-before-update, release manifest verification, smoke test, upgrade evidence, and backup-based rollback. \\
+Limited SME IT capacity & Some organizations may lack staff to run backups, inspect logs, or recover from failed updates. & Docker Compose baseline, operator documentation, guided smoke tests, clear health/readiness output, and optional managed support. \\
+Incompatible node versions & Different organizations may run incompatible API, schema, chaincode, canonical hash, or evidence package versions. & Compatibility matrix, node status reporting, channel join package version checks, and explicit feature flags. \\
+Misconfigured Fabric package & Imported channel configuration may reference wrong endpoints, trust roots, chaincode, or MSP identifiers. & Package schema validation, TLS trust-root checks, no-admin-private-key inspection, readiness checks, and sanitized operator evidence. \\
+Rollback complexity & Some database migrations may not support safe down-migration. & Backup-based rollback by default, explicit down-migration support only when verified by the release, and upgrade evidence records. \\
 \bottomrule
 \end{longtable}
 
@@ -368,6 +409,7 @@ Production auth provider not configured & Dev/UAT auth is acceptable for review 
 \adr{010} & Docker Compose first & Practical for SMEs and FYP prototype; Helm later. & \req{NFR-19,NFR-20} \\
 \adr{011} & Current implementation stack & React, NestJS, Prisma, PostgreSQL, worker/outbox, and Docker Compose are the implemented FYP baseline. & \req{BR-05,NFR-19} \\
 \adr{012} & Integration boundary & Mock/demo and real integrations are separated; external side effects use adapters, outbox, and reconciliation. & \req{NFR-11,IR-05--IR-13} \\
+\adr{013} & Self-hosted node release model & MEPN shall be distributed as a self-hosted organization node that can be downloaded, installed, updated, backed up, restored, and verified locally. This supports SME data ownership, avoids shared-cloud dependency, and matches the intended distributed procurement network model. & \req{BR-13--BR-16,FR-57--FR-62,IR-14--IR-15,DR-13,NFR-25--NFR-27} \\
 \adr{014} & Real Fabric Gateway anchoring & Real proof requires Gateway submission and chaincode read verification; mock anchors are never verified Fabric proof. & \req{FR-48--FR-54} \\
 Roadmap decision & Operator-assisted Fabric governance & MEPN records governance metadata, approvals, readiness, execution, and sanitized evidence but does not directly mutate Fabric topology. & \req{FR-55,IR-13,DR-12} \\
 \bottomrule
@@ -404,6 +446,7 @@ OQ-12 & Should operator-assisted Fabric governance evolve into automated topolog
 \req{BR-03,DR-07} & Evidence lineage links procurement records, ERP postings, reviewer decisions, and P/L calculations. & Evidence/Documents, Project Ledger, \adr{007} \\
 \req{BR-04,FR-30--FR-32} & Policy engine blocks contract generation until financier and Shariah approvals or authorized waivers exist. & Policy Engine, Finance Service \\
 \req{BR-05,NFR-19--NFR-21} & SME-owned deployment, Docker Compose baseline, future Helm. & Deployment architecture, \adr{002}, \adr{010} \\
+\req{BR-13--BR-16,FR-57--FR-62,IR-14--IR-15,DR-13,NFR-25--NFR-27} & Self-hosted release package, local update workflow, node status, network/channel package import, and version compatibility checks. & Deployment architecture, Self-hosted Release Design, \adr{013} \\
 \req{BR-06,FR-06,FR-51} & Bounded opportunity workspaces and invitations. & Identity/Access, \adr{005} \\
 \req{BR-07,FR-47--FR-50} & Audit service and Fabric adapter anchor hashes and verify transactions. & Audit/Fabric, \adr{006} \\
 \req{BR-08,FR-42,NFR-23} & PDF/JSON closure and evidence packs. & Evidence/Documents, Reporting \\
@@ -419,9 +462,11 @@ OQ-12 & Should operator-assisted Fabric governance evolve into automated topolog
 \begin{description}[leftmargin=40mm,style=nextline]
 \item[ADR] Architecture Decision Record.
 \item[C4] Context, Container, Component, and Code diagram hierarchy for software architecture.
+\item[Channel join package] Configuration package used to validate optional private-network or Fabric channel participation; it carries compatibility and endpoint metadata but not Fabric admin private keys.
 \item[Fabric anchor] Hyperledger Fabric transaction containing event/document hash and minimal metadata.
 \item[Mudarabah] Islamic partnership where the capital provider supplies capital and the entrepreneur/operator manages the venture, with profit shared by ratio and genuine loss borne by capital unless breach/negligence/fraud applies.
 \item[Outbox] Durable integration event store used for retryable external side effects.
+\item[Release manifest] Versioned metadata file describing release artifacts, integrity verification, schema compatibility, feature flags, and smoke-test expectations for local installation or update.
 \item[Workspace scope] Authorization boundary for a selected opportunity, project, or cross-organization collaboration area.
 \end{description}
 
@@ -437,7 +482,7 @@ OQ-12 & Should operator-assisted Fabric governance evolve into automated topolog
 \bibitem{mudarabahproc} \emph{Understanding the Link between Mudarabah and Procurement}, uploaded conceptual thesis.
 \bibitem{mudarabahmalaysia} \emph{Mudarabah Performance Research Report -- Malaysia}, uploaded research synthesis.
 \bibitem{featurestatus} \emph{MEPN Feature Status and Future Implementation Plan}, repository document \texttt{docs/roadmap/feature-status-and-future-implementation.md}.
-\bibitem{evidenceindex} \emph{MEPN Evidence Index}, repository document \texttt{docs/evidence/EVIDENCE_INDEX.md}.
+\bibitem{evidenceindex} \emph{MEPN Evidence Index}, repository document \texttt{docs/evidence/EVIDENCE\_INDEX.md}.
 \bibitem{fabricgovernance} \emph{Fabric Consortium Governance Requirements And Base Decision}, repository document \texttt{docs/roadmap/fabric-consortium-governance-requirements.md}.
 \end{thebibliography}
 
