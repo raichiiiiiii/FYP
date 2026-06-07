@@ -42,6 +42,28 @@ Important constraints:
 - Ledger/P&L must never calculate or imply guaranteed fixed return.
 - Figma Make remains visual/interaction reference only.
 
+## Deployment Mode Navigation Boundary
+
+The application shell now filters navigation in two layers:
+
+1. The organization deployment mode decides whether a module is relevant to the
+   current node.
+2. Role and permission codes decide whether the current user can see or use the
+   relevant route.
+
+Organization administrators have elevated navigation access for permission-gated
+routes inside the active deployment mode, but they do not bypass deployment-mode
+boundaries. For example, an organization admin on a standalone SME node may see
+SME procurement and administration routes, while Fabric governance remains hidden
+unless the active organization is configured as a Fabric organization node.
+
+| Deployment mode | Navigation boundary |
+|---|---|
+| `standalone_sme` | SME procurement, evidence authoring, finance application participation, reports, integrations, operations, identity/admin, and organization profile routes according to permissions. |
+| `financial_entity_node` | Finance review, contract/disbursement/closure, reports, integrations, operations, identity/admin, and organization profile routes according to permissions. SME procurement authoring routes are hidden. |
+| `fabric_organization` | Fabric governance, integrations, operations, reports, identity/admin, and organization profile routes according to permissions. SME procurement and hosted financier routes are hidden unless explicitly added to this deployment mode. |
+| `hosted_financier_portal` | Hosted finance portal review routes and reports according to permissions. Self-hosted integrations, operations, Fabric governance, and SME procurement authoring routes are hidden. |
+
 ## Repository State Reconciliation
 
 Last reconciled: 2026-06-06.
