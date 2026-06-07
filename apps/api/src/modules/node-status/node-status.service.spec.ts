@@ -47,6 +47,21 @@ describe('NodeStatusService', () => {
         configuredChannel: 'configured',
         configuredChaincode: 'configured',
         configuredMspId: 'configured',
+        uatBlockerDecisionEndpoint: '/api/v1/fabric/uat-blocker-decisions',
+        uatBlockerDecisions: [
+          {
+            id: 'UAT-B-003',
+            status: 'resolved_by_decision',
+            topologyMutationSupported: false,
+            liveEvidenceRequired: false,
+          },
+          {
+            id: 'UAT-B-004',
+            status: 'resolved_by_live_gate',
+            topologyMutationSupported: false,
+            liveEvidenceRequired: true,
+          },
+        ],
       },
     });
     expect(

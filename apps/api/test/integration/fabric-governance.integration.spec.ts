@@ -111,6 +111,45 @@ describe('Integration: Fabric consortium governance', () => {
     );
   });
 
+  it('reports accepted UAT Fabric blocker decisions without enabling topology mutation or fake proof', async () => {
+    const setup = await createOrganizationFixture(context.app);
+
+    const response = await request(context.app.getHttpServer())
+      .get('/api/v1/fabric/uat-blocker-decisions')
+      .query({
+        organizationId: setup.organization.id,
+        actorUserId: setup.adminUser.id,
+      })
+      .expect(200);
+
+    expect(response.body.adr).toEqual(
+      expect.objectContaining({
+        id: 'ADR-016',
+        status: 'accepted',
+      }),
+    );
+    expect(response.body.decisions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'UAT-B-003',
+          status: 'resolved_by_decision',
+          topologyMutationSupported: false,
+          localSeedCanPass: true,
+        }),
+        expect.objectContaining({
+          id: 'UAT-B-004',
+          status: 'resolved_by_live_gate',
+          topologyMutationSupported: false,
+          localSeedCanPass: false,
+          liveEvidenceRequired: true,
+        }),
+      ]),
+    );
+    expect(JSON.stringify(response.body)).not.toMatch(
+      /BEGIN|PRIVATE KEY|FABRIC_PRIVATE_KEY|password=|token=|grpcs:\/\//i,
+    );
+  });
+
   it('invites an organization, accepts membership, approves, and records sanitized operator execution', async () => {
     const sponsor = await createOrganizationFixture(context.app);
     const invited = await createOrganizationFixture(context.app);
@@ -275,6 +314,14 @@ describe('Integration: Fabric consortium governance', () => {
 
     await request(context.app.getHttpServer())
       .get('/api/v1/fabric/automation/readiness')
+      .query({
+        organizationId: setup.organization.id,
+        actorUserId: procurement.userId,
+      })
+      .expect(403);
+
+    await request(context.app.getHttpServer())
+      .get('/api/v1/fabric/uat-blocker-decisions')
       .query({
         organizationId: setup.organization.id,
         actorUserId: procurement.userId,

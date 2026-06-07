@@ -56,8 +56,8 @@ accepted.
 | UC-14 Verify audit/evidence pack | `auditor.user@raudah.local` | `/evidence/hashes` | `docs/evidence/uat/screenshots/UC-14-audit-evidence.png` | Playwright route simulation; real Fabric proof gated |
 | UC-15 Integrate ERP/accounting | `erp.integrator@nusantara.local` | `/integrations` | `docs/evidence/uat/screenshots/UC-15-erp-integration.png` | Playwright route simulation |
 | UC-16 Verify release/update local node | `buyer.admin@amanah.local` | `/operations` | `docs/evidence/uat/screenshots/UC-16-update-local-node.png` | Documentation/operations-backed partial |
-| UC-17 Import network/channel package | `platform.admin@mepn.local` | `/fabric-governance` | `docs/evidence/uat/screenshots/UC-17-channel-join-package.png` | Governance/readiness-backed; no topology mutation |
-| UC-18 Check node/channel compatibility | `fabric.operator@mepn.local` | `/fabric-governance` plus `GET /api/v1/node/status` | `docs/evidence/uat/screenshots/UC-18-node-compatibility.png` | Route simulation plus node-status API probe; topology mutation remains unsupported |
+| UC-17 Import network/channel package | `platform.admin@mepn.local` | `/fabric-governance` plus `GET /api/v1/fabric/uat-blocker-decisions` | `docs/evidence/uat/screenshots/UC-17-channel-join-package.png` | Governance/readiness-backed; no topology mutation; accepted UAT-B-003 decision |
+| UC-18 Check node/channel compatibility | `fabric.operator@mepn.local` | `/fabric-governance` plus `GET /api/v1/node/status` | `docs/evidence/uat/screenshots/UC-18-node-compatibility.png` | Route simulation plus node-status API probe; accepted UAT-B-003/UAT-B-004 decision summary; topology mutation remains unsupported |
 
 ## Latest Local Result
 
@@ -114,3 +114,25 @@ Notes:
   `docs/evidence/uat/seeded-node-accounts.txt`.
 - Password login remains local/demo scoped and does not replace production OIDC
   hardening.
+
+2026-06-07 Fabric blocker decision retest:
+
+```text
+corepack pnpm --dir apps/api test:unit -- fabric-governance node-status
+passed
+
+corepack pnpm --dir apps/api test:integration -- fabric-governance node-status
+passed
+
+corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts
+18 passed
+```
+
+Notes:
+
+- UAT-B-003 is resolved by accepted boundary decision, not by implementing
+  direct Fabric topology mutation.
+- UAT-B-004 is resolved by accepted live-proof gate, not by treating seeded
+  metadata as real Fabric proof.
+- `GET /api/v1/fabric/uat-blocker-decisions` provides reviewer-visible,
+  authorization-gated decision metadata.

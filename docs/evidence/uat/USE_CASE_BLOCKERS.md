@@ -12,8 +12,8 @@ the corresponding UI/API path exists and is exercised by the test.
 |---|---|---:|---|---|---|
 | UAT-B-001 | Role model | Medium | Accepted MVP limitation | `Role.code` is globally unique and each membership has one `roleId`. Current MVP assigns one primary role per user per organization. | Add organization-scoped roles and membership role assignments in a later schema migration. |
 | UAT-B-002 | Authentication | Medium | Resolved for local UAT | Seeded accounts store `passwordHash` and can now authenticate through local seeded-password login when local password auth is enabled. This is local/demo behavior, not production credential policy. | Use `mepn-demo-password` only for local/UAT seeded accounts. Production deployments should use OIDC or an approved identity boundary unless `LOCAL_PASSWORD_AUTH_ENABLED=true` is explicitly accepted. |
-| UAT-B-003 | Fabric topology | High | Intentional boundary / ADR required | MEPN records governance metadata and readiness checks only. Direct API channel creation, channel joining, MSP onboarding, admin key custody, and real topology mutation are not implemented. | See `docs/adr/ADR-016-uat-fabric-blocker-resolution-path.md`. Keep ADR-015 boundary unless a future operator-agent ADR approves managed key custody, recovery policy, and disposable-network tests. |
-| UAT-B-004 | Fabric proof | High | Environment-gated / ADR required | Seeded hash and anchor metadata must not be treated as real Fabric verification. Positive verification requires backend ReadAnchor chaincode query and hash comparison. | See `docs/adr/ADR-016-uat-fabric-blocker-resolution-path.md`. Configure live Fabric Gateway, create/locate a real anchored hash record, and run the gated proof UAT. |
+| UAT-B-003 | Fabric topology | High | Resolved by accepted boundary decision | MEPN records governance metadata, invitations, approvals, readiness checks, and sanitized operator evidence only. Direct API channel creation, channel joining, MSP onboarding, admin key custody, and real topology mutation are intentionally not implemented in the app runtime. | Use `GET /api/v1/fabric/uat-blocker-decisions` and `GET /api/v1/fabric/automation/readiness` as reviewer evidence. Future direct automation requires a separate operator-agent implementation and disposable real-Fabric tests. |
+| UAT-B-004 | Fabric proof | High | Resolved by live-proof gate; environment evidence pending | Seeded hash and anchor metadata must not be treated as real Fabric verification. Positive verification requires backend ReadAnchor chaincode query and hash comparison. | Use the decision endpoint to verify local seed cannot pass real proof. Configure live Fabric Gateway, create/locate a real anchored hash record, and run the gated proof UAT when real proof evidence is required. |
 | UAT-B-005 | Cross-node collaboration | Medium | Partial | The seed creates multiple organization nodes, but some workflows are represented in one local operational database for UAT visibility. | Add inter-node API invitation/workspace flows and explicit cross-node synchronization contracts. |
 | UAT-B-006 | Release/update node lifecycle | Medium | Hardening | UC-16 is currently evidenced through setup/update docs, operations visibility, backup/restore scripts, and readiness surfaces. Full release manifest/update execution UI is not yet implemented. | Add release manifest parser, preflight result persistence, upgrade run records, and rollback evidence UI. |
 | UAT-B-007 | Node/channel compatibility | Medium | Resolved for local UAT | UC-18 now probes `GET /api/v1/node/status` for self-hosted node status, Prisma migration status, app/API/report/canonical-hash compatibility labels, feature flags, and Fabric readiness linkage. The endpoint deliberately reports `topologyMutationSupported=false`. | Keep this endpoint as a compatibility/readiness surface. Add richer release-manifest and channel-package validation only in a later hardening slice. |
@@ -38,8 +38,8 @@ the corresponding UI/API path exists and is exercised by the test.
 | UC-14 | Route-backed evidence/hash visibility. | Fabric Gateway unavailable must show pending/unavailable, not verified. |
 | UC-15 | Route-backed integrations/reconciliation visibility. | Real ERP adapter remains integration hardening unless configured. |
 | UC-16 | Documentation/operations-backed. | Full release package update UI is hardening. |
-| UC-17 | Governance/readiness-backed. | Real topology mutation is intentionally blocked. |
-| UC-18 | Route-backed and API-backed through `/fabric-governance` plus `GET /api/v1/node/status`. | Node status covers local UAT compatibility visibility. Production release package execution and real Fabric topology mutation remain separate hardening/boundary items. |
+| UC-17 | Governance/readiness-backed and API-backed through `GET /api/v1/fabric/uat-blocker-decisions`. | Real topology mutation is intentionally outside the app runtime. |
+| UC-18 | Route-backed and API-backed through `/fabric-governance` plus `GET /api/v1/node/status`. | Node status covers local UAT compatibility visibility and links the accepted Fabric blocker decision surface. Production release package execution and real Fabric topology mutation remain separate hardening/boundary items. |
 
 ## Latest Diagnosis And Fix Log
 
@@ -58,5 +58,14 @@ the corresponding UI/API path exists and is exercised by the test.
 - Kept the existing dev login path available for local recovery and existing deterministic tests.
 - Added `docs/evidence/uat/seeded-node-accounts.txt` as the reviewer account reference.
 - Added `docs/adr/ADR-016-uat-fabric-blocker-resolution-path.md` to define the decision path for UAT-B-003 and UAT-B-004.
-- UAT-B-003 remains intentionally blocked unless topology automation receives a managed operator-agent/key-custody decision.
-- UAT-B-004 remains environment-gated unless a live Fabric Gateway `ReadAnchor` proof is captured.
+- Documented UAT-B-003 as intentionally unresolved until a topology-boundary decision was accepted.
+- Documented UAT-B-004 as environment-gated unless a live Fabric Gateway `ReadAnchor` proof is captured.
+
+2026-06-07 decision implementation:
+
+- Accepted ADR-015 as the current Fabric topology automation boundary.
+- Accepted ADR-016 as the UAT blocker resolution decision.
+- Implemented `GET /api/v1/fabric/uat-blocker-decisions`.
+- UAT-B-003 is resolved as an accepted product boundary: operator-assisted governance is implemented, direct topology mutation is not.
+- UAT-B-004 is resolved as a live-proof gate: local seeded data cannot pass real Fabric proof, and `verified=true` remains available only through live `ReadAnchor` hash comparison.
+- Added the decision summary to `GET /api/v1/node/status`.

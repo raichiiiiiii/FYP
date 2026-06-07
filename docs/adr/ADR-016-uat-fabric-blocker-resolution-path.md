@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed for product-owner, Fabric operator, and security review.
+Accepted for local UAT and reviewer evidence.
 
 ## Date
 
@@ -31,17 +31,16 @@ read.
 
 MEPN will keep UAT-B-003 and UAT-B-004 separate.
 
-UAT-B-003 may only be resolved by one of these approved future choices:
+UAT-B-003 is resolved for local UAT by accepting the operator-assisted Fabric
+governance boundary:
 
 1. Keep topology mutation operator-assisted and record sanitized operator
-   evidence only. This keeps the blocker as an intentional boundary.
-2. Approve ADR-015 and implement a dedicated Fabric operator-agent boundary with
-   managed key custody, recovery policy, disposable-network integration tests,
-   and explicit feature gating.
-3. Integrate with an external Fabric operations platform that owns admin key
-   custody and returns auditable execution results to MEPN.
+   evidence only.
+2. Do not create channels, join channels, enroll MSP material, or mutate
+   endorsement policy directly from the normal MEPN API runtime.
+3. Expose decision/readiness metadata so reviewers can verify the boundary.
 
-UAT-B-004 may only be resolved by live proof evidence:
+UAT-B-004 is resolved for local UAT by accepting a live-proof gate:
 
 1. Configure a real Fabric Gateway using mounted runtime material.
 2. Create or locate a hash record anchored by the real Gateway worker.
@@ -88,13 +87,24 @@ Real proof evidence must include:
 
 ## Consequences
 
-UAT-B-003 remains an intentional boundary unless a future approved topology
-automation ADR and operator-agent implementation exists.
+UAT-B-003 is no longer a missing local UAT implementation. It is an accepted
+boundary: MEPN implements governance metadata/readiness/evidence, while topology
+execution remains outside the app.
 
-UAT-B-004 remains environment-gated until a real live Fabric Gateway hash record
-is available. Local seeded records may support UI and workflow testing, but they
-must remain labelled as local, pending, unavailable, mock, or not fully
-verified.
+UAT-B-004 is no longer an ADR decision gap. It remains environment-gated until a
+real live Fabric Gateway hash record is available. Local seeded records may
+support UI and workflow testing, but they must remain labelled as local,
+pending, unavailable, mock, or not fully verified.
+
+The implemented decision surface is:
+
+```http
+GET /api/v1/fabric/uat-blocker-decisions
+```
+
+The endpoint is Fabric-governance read protected and returns the accepted
+decision for UAT-B-003 and UAT-B-004 without exposing secrets or claiming direct
+topology mutation.
 
 This ADR prevents the project from resolving Fabric blockers by weakening proof
 truth rules or by moving admin Fabric key custody into the normal application

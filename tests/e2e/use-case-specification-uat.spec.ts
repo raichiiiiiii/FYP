@@ -254,6 +254,7 @@ const useCaseProbes: UseCaseProbe[] = [
     organizationKey: 'platform',
     route: '/fabric-governance',
     expectedText: /Fabric|governance|channel|operator|readiness/i,
+    apiPath: '/fabric/uat-blocker-decisions',
     screenshotName: 'UC-17-channel-join-package.png',
     blockerNote:
       'This flow records operator-assisted readiness metadata only; it must not mutate real Fabric topology.',
@@ -300,8 +301,11 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
         .filter((pattern) => pattern.test(bodyText))
         .map((pattern) => pattern.toString());
       const expectedTextVisible = probe.expectedText.test(bodyText);
-      const apiProbe = probe.apiPath
-        ? await apiGet<Record<string, unknown>>(request, probe.apiPath)
+      const apiPath = probe.apiPath
+        ? scopedApiPath(probe.apiPath, session)
+        : null;
+      const apiProbe = apiPath
+        ? await apiGet<Record<string, unknown>>(request, apiPath)
         : null;
       const apiProbeText = apiProbe ? JSON.stringify(apiProbe) : '';
       const apiForbiddenFindings = forbiddenRenderedPatterns
@@ -314,6 +318,10 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
         assertNodeStatusProbe(apiProbe);
       }
 
+      if (probe.apiPath === '/fabric/uat-blocker-decisions') {
+        assertFabricUatBlockerDecisionProbe(apiProbe);
+      }
+
       await attachUseCaseDiagnostic(testInfo, {
         useCaseId: probe.id,
         title: probe.title,
@@ -321,7 +329,7 @@ test.describe.serial('SRS use case specification UAT simulation', () => {
         route: probe.route,
         documentStatus: response?.status() ?? null,
         screenshotPath,
-        apiPath: probe.apiPath ?? null,
+        apiPath,
         apiProbePresent: Boolean(apiProbe),
         expectedTextVisible,
         blockerNote: probe.blockerNote ?? null,
@@ -426,7 +434,60 @@ function assertNodeStatusProbe(apiProbe: Record<string, unknown> | null) {
         proofInfrastructureOptional: true,
         topologyMutationSupported: false,
         automationReadinessEndpoint: '/api/v1/fabric/automation/readiness',
+        uatBlockerDecisionEndpoint:
+          '/api/v1/fabric/uat-blocker-decisions',
+        uatBlockerDecisions: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'UAT-B-003',
+            topologyMutationSupported: false,
+          }),
+          expect.objectContaining({
+            id: 'UAT-B-004',
+            liveEvidenceRequired: true,
+          }),
+        ]),
       }),
     }),
   );
+}
+
+function assertFabricUatBlockerDecisionProbe(
+  apiProbe: Record<string, unknown> | null,
+) {
+  expect(apiProbe).toEqual(
+    expect.objectContaining({
+      adr: expect.objectContaining({
+        id: 'ADR-016',
+        status: 'accepted',
+      }),
+      decisions: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'UAT-B-003',
+          status: 'resolved_by_decision',
+          topologyMutationSupported: false,
+          localSeedCanPass: true,
+        }),
+        expect.objectContaining({
+          id: 'UAT-B-004',
+          status: 'resolved_by_live_gate',
+          topologyMutationSupported: false,
+          localSeedCanPass: false,
+          liveEvidenceRequired: true,
+        }),
+      ]),
+    }),
+  );
+}
+
+function scopedApiPath(pathValue: string, session: E2ESession) {
+  if (pathValue !== '/fabric/uat-blocker-decisions') {
+    return pathValue;
+  }
+
+  const params = new URLSearchParams({
+    organizationId: session.organizationId,
+    actorUserId: session.actorUserId,
+  });
+
+  return `${pathValue}?${params.toString()}`;
 }

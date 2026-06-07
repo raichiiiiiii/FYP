@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed for product-owner and security review.
+Accepted for the current MEPN product boundary.
 
 ## Date
 
@@ -27,14 +27,15 @@ updates, manage orderers, or submit channel config updates automatically.
 
 ## Decision
 
-Direct Fabric topology automation remains disabled by default.
+Direct Fabric topology automation remains out of the normal application runtime
+for the current product boundary.
 
 The application may expose a readiness/preflight API that reports whether the
 runtime has the required decisions and non-secret configuration for a future
 operator-agent execution path. The readiness API must not print, return, or log
 secret contents.
 
-Direct execution may only be implemented behind an explicit feature flag after
+Direct execution may only be implemented in a future operator-agent slice after
 all of these are approved and configured:
 
 - Direct Fabric topology automation ADR approval.
@@ -100,7 +101,7 @@ It is accessible only to Fabric governance readable roles.
 
 ## Resume Criteria For Direct Automation
 
-Direct automation implementation may resume when:
+Direct automation implementation may resume only when:
 
 1. This ADR is accepted.
 2. Secret custody and recovery policy are approved.

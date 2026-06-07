@@ -51,6 +51,7 @@ not be stored in this directory.
 | `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` | Graph anchor overlay, backend risk metadata, saved views, URL filters, and no-leak E2E evidence. | Complete for FYP scope. |
 | `docs/evidence/uat/USE_CASE_BLOCKERS.md` | SRS use-case UAT blocker and limitation register for UC-01 through UC-18. | Current for local node UAT simulation. |
 | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md` | SRS use-case UAT runner, latest local result, screenshot paths, and safety notes. | Passed locally for UC-01 through UC-18. |
+| `docs/evidence/uat/FABRIC_UAT_BLOCKER_DECISIONS.md` | Accepted UAT-B-003/UAT-B-004 decision evidence and validation commands. | Complete for local UAT decision boundary; live proof evidence remains environment-gated. |
 | `docs/evidence/uat/seeded-node-accounts.txt` | Seeded organization-node account list and local/demo password reference. | Complete for local/UAT reviewer use; not production credential behavior. |
 | `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` | Route-health audit for dashboard, finance, graph, and operations routes. | Complete for latest UI/HCI recovery run. |
 | `docs/evidence/ux/HCI_ASSESSMENT_ACTIVITY_REPORT.md` | HCI assessment boundary, DECIDE-aligned activity plan, and metric rules. | Prepared; participant scoring remains unmeasured. |

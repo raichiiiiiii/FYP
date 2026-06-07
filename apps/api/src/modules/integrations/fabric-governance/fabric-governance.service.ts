@@ -36,6 +36,7 @@ import {
   type FabricGovernanceEvidenceDto,
   type FabricNetworkDto,
 } from './fabric-governance.dto';
+import { getFabricUatBlockerDecisionResponse } from './fabric-uat-blocker-decisions';
 import { getFabricTopologyAutomationReadiness } from './fabric-topology-automation-readiness';
 
 type CreateNetworkInput = {
@@ -397,6 +398,11 @@ export class FabricGovernanceService {
   async getAutomationReadiness(input: ListScopedInput = {}) {
     await this.requireReadableActor(input);
     return getFabricTopologyAutomationReadiness();
+  }
+
+  async getUatBlockerDecisions(input: ListScopedInput = {}) {
+    await this.requireReadableActor(input);
+    return getFabricUatBlockerDecisionResponse();
   }
 
   async createInvitation(input: InvitationInput) {

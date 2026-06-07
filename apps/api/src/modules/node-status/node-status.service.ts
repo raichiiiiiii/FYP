@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { missingFabricGatewayConfig } from '../../config/fabric-env';
 import { PrismaService } from '../../database/prisma.service';
 import { getAuthRuntimeConfig } from '../auth/auth.config';
+import { getFabricUatBlockerDecisionResponse } from '../integrations/fabric-governance/fabric-uat-blocker-decisions';
 import { getFabricTopologyAutomationReadiness } from '../integrations/fabric-governance/fabric-topology-automation-readiness';
 import {
   type NodeStatusDatabaseDto,
@@ -36,6 +37,7 @@ export class NodeStatusService {
     ]);
     const authConfig = getAuthRuntimeConfig(process.env);
     const fabricReadiness = getFabricTopologyAutomationReadiness(process.env);
+    const fabricUatDecisions = getFabricUatBlockerDecisionResponse();
     const missingGatewayConfig = missingFabricGatewayConfig(process.env);
 
     return {
@@ -91,6 +93,13 @@ export class NodeStatusService {
         proofInfrastructureOptional: true,
         topologyMutationSupported: false,
         automationReadinessEndpoint: '/api/v1/fabric/automation/readiness',
+        uatBlockerDecisionEndpoint: '/api/v1/fabric/uat-blocker-decisions',
+        uatBlockerDecisions: fabricUatDecisions.decisions.map((decision) => ({
+          id: decision.id,
+          status: decision.status,
+          topologyMutationSupported: decision.topologyMutationSupported,
+          liveEvidenceRequired: decision.liveEvidenceRequired,
+        })),
         automationStatus: fabricReadiness.status,
         automationEnabled: fabricReadiness.enabled,
         configuredChannel: configuredStatus(

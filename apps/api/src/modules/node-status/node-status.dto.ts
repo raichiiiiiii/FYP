@@ -28,6 +28,13 @@ export type NodeStatusFabricDto = {
   proofInfrastructureOptional: true;
   topologyMutationSupported: false;
   automationReadinessEndpoint: '/api/v1/fabric/automation/readiness';
+  uatBlockerDecisionEndpoint: '/api/v1/fabric/uat-blocker-decisions';
+  uatBlockerDecisions: Array<{
+    id: 'UAT-B-003' | 'UAT-B-004';
+    status: 'resolved_by_decision' | 'resolved_by_live_gate';
+    topologyMutationSupported: false;
+    liveEvidenceRequired: boolean;
+  }>;
   automationStatus: 'disabled' | 'blocked' | 'ready';
   automationEnabled: boolean;
   configuredChannel: NodeStatusValue;

@@ -90,6 +90,17 @@ export class FabricGovernanceController {
     });
   }
 
+  @Get('uat-blocker-decisions')
+  getUatBlockerDecisions(
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+  ) {
+    return this.fabricGovernance.getUatBlockerDecisions({
+      organizationId,
+      actorUserId,
+    });
+  }
+
   @Post('channels')
   createChannel(@Body() body: CreateChannelBody) {
     return this.fabricGovernance.createChannel(body);

@@ -45,6 +45,7 @@ describe('Integration: node status', () => {
           proofInfrastructureOptional: true,
           topologyMutationSupported: false,
           automationReadinessEndpoint: '/api/v1/fabric/automation/readiness',
+          uatBlockerDecisionEndpoint: '/api/v1/fabric/uat-blocker-decisions',
           configuredChannel: 'configured',
           configuredChaincode: 'configured',
           configuredMspId: 'configured',
@@ -52,6 +53,18 @@ describe('Integration: node status', () => {
       }),
     );
     expect(response.body.database.appliedMigrationCount).toBeGreaterThan(0);
+    expect(response.body.fabric.uatBlockerDecisions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'UAT-B-003',
+          topologyMutationSupported: false,
+        }),
+        expect.objectContaining({
+          id: 'UAT-B-004',
+          liveEvidenceRequired: true,
+        }),
+      ]),
+    );
     expect(JSON.stringify(response.body)).not.toMatch(
       /BEGIN PRIVATE KEY|FABRIC_PRIVATE_KEY_PEM|password|token|grpcs:\/\//i,
     );
