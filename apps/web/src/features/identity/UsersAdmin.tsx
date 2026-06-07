@@ -25,6 +25,7 @@ import {
 const createUserSchema = z.object({
   displayName: z.string().trim().min(1, 'Display name is required.'),
   email: z.string().trim().email('Enter a valid email address.'),
+  selectedRoleId: z.string().trim().min(1, 'Select an initial role.'),
 })
 
 const assignRoleSchema = z.object({
@@ -44,6 +45,7 @@ export function UsersAdmin() {
     defaultValues: {
       displayName: 'Procurement Officer',
       email: 'procurement@example.test',
+      selectedRoleId: '',
     },
   })
   const assignRoleForm = useValidatedForm(assignRoleSchema, {
@@ -67,18 +69,26 @@ export function UsersAdmin() {
   )
 
   const loadAdminData = useCallback(async () => {
+    const identityScope = buildIdentityScopeQuery({
+      organizationId: session.organizationId,
+      actorUserId: session.actorUserId,
+    })
     const [userRows, roleRows, membershipRows] = await Promise.all([
-      apiRequest<User[]>('/users'),
-      apiRequest<Role[]>('/roles'),
+      apiRequest<User[]>(`/users?${identityScope}`),
+      apiRequest<Role[]>(`/roles?${identityScope}`),
       session.organizationId
         ? apiRequest<Membership[]>(
-            `/orgs/${session.organizationId}/memberships`,
+            `/orgs/${session.organizationId}/memberships?${new URLSearchParams(
+              {
+                actorUserId: session.actorUserId ?? '',
+              },
+            ).toString()}`,
           )
         : Promise.resolve([]),
     ])
 
     return { userRows, roleRows, membershipRows }
-  }, [session.organizationId])
+  }, [session.actorUserId, session.organizationId])
 
   const applyAdminData = useCallback(
     (data: {
@@ -89,10 +99,11 @@ export function UsersAdmin() {
       setUsers(data.userRows)
       setRoles(data.roleRows)
       setMemberships(data.membershipRows)
+      createUserForm.setValue('selectedRoleId', data.roleRows[0]?.id ?? '')
       assignRoleForm.setValue('selectedUserId', data.userRows[0]?.id ?? '')
       assignRoleForm.setValue('selectedRoleId', data.roleRows[0]?.id ?? '')
     },
-    [assignRoleForm],
+    [assignRoleForm, createUserForm],
   )
 
   async function refresh() {
@@ -134,6 +145,7 @@ export function UsersAdmin() {
         body: JSON.stringify({
           email: values.email,
           displayName: values.displayName,
+          roleId: values.selectedRoleId,
           organizationId: session.organizationId,
           actorUserId: session.actorUserId,
         }),
@@ -268,8 +280,21 @@ export function UsersAdmin() {
             registration={createUserForm.register('email')}
             error={createUserForm.formState.errors.email?.message}
           />
+          <SelectField
+            label="Initial role"
+            name="selectedRoleId"
+            registration={createUserForm.register('selectedRoleId')}
+            error={createUserForm.formState.errors.selectedRoleId?.message}
+            options={roles.map((role) => ({
+              value: role.id,
+              label: role.name,
+            }))}
+          />
           <div className="form-actions">
-            <Button type="submit" disabled={createUserForm.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={!roles.length || createUserForm.formState.isSubmitting}
+            >
               Create user
             </Button>
           </div>
@@ -364,4 +389,17 @@ export function UsersAdmin() {
       </section>
     </>
   )
+}
+
+function buildIdentityScopeQuery({
+  organizationId,
+  actorUserId,
+}: {
+  organizationId?: string | null
+  actorUserId?: string | null
+}) {
+  return new URLSearchParams({
+    organizationId: organizationId ?? '',
+    actorUserId: actorUserId ?? '',
+  }).toString()
 }

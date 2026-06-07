@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { AuditEventsService } from '../audit-events/audit-events.service';
@@ -15,6 +16,11 @@ export type CreateRoleInput = {
   organizationId?: string;
 };
 
+export type ScopedRoleInput = {
+  organizationId?: string;
+  actorUserId?: string;
+};
+
 @Injectable()
 export class RolesService {
   constructor(
@@ -27,8 +33,9 @@ export class RolesService {
       throw new BadRequestException('code and name are required');
     }
 
+    const scope = await this.assertOrganizationAdmin(input);
     const existing = await this.prisma.role.findUnique({
-      where: { code: input.code },
+      where: { code: input.code.trim() },
     });
 
     if (existing) {
@@ -37,9 +44,9 @@ export class RolesService {
 
     const role = await this.prisma.role.create({
       data: {
-        code: input.code,
-        name: input.name,
-        description: input.description,
+        code: input.code.trim(),
+        name: input.name.trim(),
+        description: input.description?.trim() || undefined,
         permissions: {
           connectOrCreate: (input.permissionCodes || []).map((code) => ({
             where: { code },
@@ -60,8 +67,8 @@ export class RolesService {
     });
 
     await this.auditEvents.create({
-      organizationId: input.organizationId,
-      actorUserId: input.actorUserId,
+      organizationId: scope.organizationId,
+      actorUserId: scope.actorUserId,
       eventType: 'ROLE_CREATED',
       entityType: 'Role',
       entityId: role.id,
@@ -75,7 +82,9 @@ export class RolesService {
     return role;
   }
 
-  list() {
+  async list(input: ScopedRoleInput) {
+    await this.assertOrganizationAdmin(input);
+
     return this.prisma.role.findMany({
       include: {
         permissions: true,
@@ -84,5 +93,38 @@ export class RolesService {
         createdAt: 'desc',
       },
     });
+  }
+
+  private async assertOrganizationAdmin(input: ScopedRoleInput) {
+    const organizationId = input.organizationId?.trim();
+    const actorUserId = input.actorUserId?.trim();
+
+    if (!organizationId || !actorUserId) {
+      throw new BadRequestException(
+        'organizationId and actorUserId are required',
+      );
+    }
+
+    const actorMembership = await this.prisma.membership.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId: actorUserId,
+        },
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    if (
+      !actorMembership ||
+      actorMembership.status !== 'active' ||
+      actorMembership.role.code !== 'ORG_ADMIN'
+    ) {
+      throw new ForbiddenException('Organization admin membership is required');
+    }
+
+    return { organizationId, actorUserId };
   }
 }

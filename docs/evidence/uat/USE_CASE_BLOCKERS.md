@@ -94,3 +94,17 @@ the corresponding UI/API path exists and is exercised by the test.
 - Updated the UAT seed so each self-hosted organization node has a persisted `NodeDeployment`.
 - The local event endpoint uses a local shared-secret boundary and rejects secret-like payloads. This is local/UAT transport only, not production Fabric operator automation.
 - UAT-B-004 remains protected by the live-proof gate. Node-federation channels do not produce `verified=true`; real verification still requires backend `ReadAnchor` hash comparison.
+
+2026-06-07 organization-admin identity hardening:
+
+- Kept UAT-B-001's accepted MVP limitation: `Role.code` is still globally
+  unique and each membership has one primary role.
+- Hardened current MVP behavior so user, role, and membership administration is
+  restricted to an active same-organization `ORG_ADMIN`.
+- `GET /api/v1/users`, `GET /api/v1/roles`, and
+  `GET /api/v1/orgs/:orgId/memberships` now require scoped admin context.
+- `POST /api/v1/memberships` now rejects assignment of a user already
+  registered under another organization.
+- This resolves the local multi-node requirement that organization admins
+  cannot assign roles to users from another node/organization within the current
+  one-role MVP model.

@@ -209,6 +209,41 @@ corepack pnpm --dir apps/web test -- account
 3 tests passed
 ```
 
+## Current Slice: Organization Admin Identity Hardening
+
+Implemented:
+
+- `POST /api/v1/users` now requires `organizationId` and `actorUserId` for an
+  active same-organization `ORG_ADMIN`.
+- `GET /api/v1/users` now requires the same organization-admin scope and returns
+  only users with membership in that organization.
+- `POST /api/v1/roles` and `GET /api/v1/roles` now require an
+  organization-admin scope.
+- `POST /api/v1/memberships` now requires an organization admin actor, validates
+  the role exists, and rejects target users already registered under another
+  organization.
+- `GET /api/v1/orgs/:orgId/memberships` now requires an `actorUserId` query
+  from an active admin in the same organization.
+- `/admin/users` now calls scoped identity APIs and creates users with an
+  initial role so the new account belongs to the current node organization.
+- `/admin/roles` now calls the scoped role API.
+
+Boundary:
+
+- The MVP still uses globally unique `Role.code` and one primary role per
+  `Membership`. Organization-scoped custom roles and multiple role assignments
+  remain a later schema migration.
+- Sidebar visibility overrides are not included in this slice.
+
+Validation:
+
+```text
+corepack pnpm --dir apps/api test:integration -- identity-rbac
+
+1 test suite passed
+4 tests passed
+```
+
 Single-node seed command:
 
 ```text

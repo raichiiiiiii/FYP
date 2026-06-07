@@ -53,7 +53,16 @@ export function RolesAdmin() {
     }
   }, [roles])
 
-  const loadRoles = useCallback(() => apiRequest<Role[]>('/roles'), [])
+  const loadRoles = useCallback(
+    () =>
+      apiRequest<Role[]>(
+        `/roles?${new URLSearchParams({
+          organizationId: session.organizationId ?? '',
+          actorUserId: session.actorUserId ?? '',
+        }).toString()}`,
+      ),
+    [session.actorUserId, session.organizationId],
+  )
 
   useEffect(() => {
     let cancelled = false

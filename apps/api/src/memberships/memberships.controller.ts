@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import type { CreateMembershipInput } from './memberships.service';
 import { MembershipsService } from './memberships.service';
 
@@ -12,7 +12,13 @@ export class MembershipsController {
   }
 
   @Get('orgs/:orgId/memberships')
-  listOrganizationMemberships(@Param('orgId') orgId: string) {
-    return this.membershipsService.listByOrganization(orgId);
+  listOrganizationMemberships(
+    @Param('orgId') orgId: string,
+    @Query('actorUserId') actorUserId?: string,
+  ) {
+    return this.membershipsService.listByOrganization({
+      organizationId: orgId,
+      actorUserId,
+    });
   }
 }

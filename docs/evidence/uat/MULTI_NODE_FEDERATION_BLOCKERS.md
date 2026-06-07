@@ -5,15 +5,14 @@ Last updated: 2026-06-07
 ## Active Blockers
 
 None for the isolated node seed, Docker/start scaffolding, backend
-node-federation API, preconfigured channel bootstrap, or graph route federation
-panel, or local password update slices.
+node-federation API, preconfigured channel bootstrap, graph route federation
+panel, local password update, or organization-admin identity hardening slices.
 
 ## Open Implementation Items
 
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- Organization admin role-assignment hardening.
 - Sidebar visibility override APIs/UI.
 - Multi-node E2E/UAT screenshots from every relevant local port.
 
@@ -34,6 +33,9 @@ multi-node federation objective:
 - `/graph/projects` now includes an API-backed local node-federation panel.
 - `/account/profile` now supports local/UAT password updates through
   `PATCH /api/v1/account/password`.
+- User, role, and membership administration now requires an active
+  same-organization `ORG_ADMIN` actor. Membership assignment rejects target
+  users already registered under another organization.
 
 ## Validation Limitations
 

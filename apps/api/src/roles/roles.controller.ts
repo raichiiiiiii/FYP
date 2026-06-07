@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import type { CreateRoleInput } from './roles.service';
 import { RolesService } from './roles.service';
 
@@ -12,7 +12,10 @@ export class RolesController {
   }
 
   @Get()
-  listRoles() {
-    return this.rolesService.list();
+  listRoles(
+    @Query('organizationId') organizationId?: string,
+    @Query('actorUserId') actorUserId?: string,
+  ) {
+    return this.rolesService.list({ organizationId, actorUserId });
   }
 }
