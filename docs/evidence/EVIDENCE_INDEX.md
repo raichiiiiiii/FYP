@@ -49,6 +49,8 @@ not be stored in this directory.
 | `docs/evidence/qa/ACCESSIBILITY_EVIDENCE.md` | Accessibility helper, axe/focus checks, and critical-route evidence. | Complete for automated FYP scope. |
 | `docs/evidence/qa/SUMMARY_DTO_EVIDENCE.md` | Dashboard/procurement/finance summary DTO and UI evidence. | Complete for FYP scope. |
 | `docs/evidence/qa/GRAPH_ANCHOR_OVERLAY_E2E_EVIDENCE.md` | Graph anchor overlay, backend risk metadata, saved views, URL filters, and no-leak E2E evidence. | Complete for FYP scope. |
+| `docs/evidence/uat/USE_CASE_BLOCKERS.md` | SRS use-case UAT blocker and limitation register for UC-01 through UC-18. | Current for local node UAT simulation. |
+| `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md` | SRS use-case UAT runner, latest local result, screenshot paths, and safety notes. | Passed locally for UC-01 through UC-18. |
 | `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` | Route-health audit for dashboard, finance, graph, and operations routes. | Complete for latest UI/HCI recovery run. |
 | `docs/evidence/ux/HCI_ASSESSMENT_ACTIVITY_REPORT.md` | HCI assessment boundary, DECIDE-aligned activity plan, and metric rules. | Prepared; participant scoring remains unmeasured. |
 | `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md` | Cognitive walkthrough workflow mapping and evidence rules. | Prepared with Playwright instrumentation evidence. |
@@ -73,6 +75,24 @@ not be stored in this directory.
 | `docs/evidence/uat/graph-anchor-overlay-auditor.png` | Admin/auditor graph with hash/anchor overlay. |
 | `docs/evidence/uat/graph-anchor-overlay-procurement-filtered.png` | Procurement role graph with finance context hidden. |
 | `docs/evidence/uat/graph-risk-saved-view.png` | Saved graph view restoring an anchor-only filtered view. |
+| `docs/evidence/uat/screenshots/UC-01-install-node.png` | UC-01 self-hosted node setup/profile route. |
+| `docs/evidence/uat/screenshots/UC-02-authenticate.png` | UC-02 seeded actor authentication/authorization route. |
+| `docs/evidence/uat/screenshots/UC-03-onboard-supplier.png` | UC-03 supplier onboarding evidence route. |
+| `docs/evidence/uat/screenshots/UC-04-rfq-evaluation.png` | UC-04 RFQ and supplier evaluation route. |
+| `docs/evidence/uat/screenshots/UC-05-p2p.png` | UC-05 procure-to-pay matching route. |
+| `docs/evidence/uat/screenshots/UC-06-publish-opportunity.png` | UC-06 opportunity publishing visibility route. |
+| `docs/evidence/uat/screenshots/UC-07-apply-capital.png` | UC-07 mudarabah application visibility route. |
+| `docs/evidence/uat/screenshots/UC-08-due-diligence.png` | UC-08 financier due diligence route. |
+| `docs/evidence/uat/screenshots/UC-09-shariah-review.png` | UC-09 Shariah/compliance review route. |
+| `docs/evidence/uat/screenshots/UC-10-contract-disburse.png` | UC-10 contract/disbursement route. |
+| `docs/evidence/uat/screenshots/UC-11-monitor-execution.png` | UC-11 project ledger/monitoring route. |
+| `docs/evidence/uat/screenshots/UC-12-profit-loss-close.png` | UC-12 profit/loss and closure route. |
+| `docs/evidence/uat/screenshots/UC-13-network-canvas.png` | UC-13 supply-chain network canvas route. |
+| `docs/evidence/uat/screenshots/UC-14-audit-evidence.png` | UC-14 audit/hash evidence route. |
+| `docs/evidence/uat/screenshots/UC-15-erp-integration.png` | UC-15 ERP integration/reconciliation route. |
+| `docs/evidence/uat/screenshots/UC-16-update-local-node.png` | UC-16 operations/update evidence route. |
+| `docs/evidence/uat/screenshots/UC-17-channel-join-package.png` | UC-17 Fabric governance package readiness route. |
+| `docs/evidence/uat/screenshots/UC-18-node-compatibility.png` | UC-18 Fabric/node compatibility readiness route. |
 | `docs/evidence/ux/screenshots/after-dashboard.png` | Dashboard route-health after screenshot. |
 | `docs/evidence/ux/screenshots/after-finance-opportunities.png` | Finance opportunities route-health after screenshot. |
 | `docs/evidence/ux/screenshots/after-finance-applications.png` | Finance applications route-health after screenshot and overflow fix proof. |

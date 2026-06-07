@@ -40,6 +40,7 @@ required runtime is actually available.
 | `corepack pnpm test:e2e -- tests/e2e/00-route-health.spec.ts` | Dashboard, finance, graph, and operations route-health regression. | Passed in UI/HCI recovery aggregation; 7 checks passed. | `docs/evidence/ux/UI_ROUTE_HEALTH_AUDIT.md` |
 | `corepack pnpm test:e2e -- tests/e2e/20-hci-walkthrough.spec.ts` | Playwright-instrumented HCI cognitive walkthrough route timing and error-count capture. | Passed in UI/HCI recovery aggregation. | `docs/evidence/ux/hci-walkthrough-instrumentation.json`; `docs/evidence/ux/HCI_COGNITIVE_WALKTHROUGH.md` |
 | `corepack pnpm test:e2e -- tests/e2e/21-hci-screenshot-capture.spec.ts` | Safe HCI screenshot capture for reviewer routes and heuristic focus areas. | Passed in UI/HCI recovery aggregation. | `docs/evidence/ux/SCREENSHOT_INDEX.md` |
+| `corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts` | SRS UC-01 through UC-18 local node account/use-case route simulation and screenshots. | Passed locally on 2026-06-07; 18 checks passed. | `docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md`; `docs/evidence/uat/screenshots/` |
 
 ## Deployment / Operations Checks
 

@@ -130,6 +130,121 @@ MinIO console:http://localhost:9001
 The frontend currently uses a local/dev session flow. Real OAuth/OIDC remains a
 future integration behind configuration.
 
+## Local Self-Hosted Node Setup
+
+MEPN is distributed for the MVP as a self-hostable organization node. Each local
+deployment owns its PostgreSQL database, evidence/object storage, configuration,
+and secrets. Fabric participation is optional proof infrastructure; Fabric stores
+hash/proof anchors only and is not the operational business database.
+
+Prerequisites:
+
+- Node.js 22 or compatible LTS
+- Corepack
+- Docker Desktop or Docker Engine
+- Git
+
+Install and start local infrastructure:
+
+```bash
+corepack enable
+corepack pnpm install
+docker compose -f infra/docker-compose.yml up -d
+```
+
+Apply database migrations and seed the local/UAT organization-node accounts:
+
+```bash
+corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
+corepack pnpm seed:uat
+```
+
+Start the application services in separate terminals:
+
+```bash
+corepack pnpm dev:api
+corepack pnpm dev:web
+corepack pnpm dev:worker
+```
+
+Local URLs:
+
+```text
+Web:          http://localhost:5173
+API health:   http://localhost:3000/api/v1/health
+MinIO API:    http://localhost:9000
+MinIO console:http://localhost:9001
+```
+
+Seeded local/demo password:
+
+```text
+mepn-demo-password
+```
+
+The seed stores only `passwordHash`. Current local authentication is still the
+configured dev/OIDC-style login boundary, so use the local login options exposed
+by the app for demo access. Change or disable seeded accounts before any
+non-demo use.
+
+Seeded node accounts:
+
+```text
+platform.admin@mepn.local
+fabric.operator@mepn.local
+support.operator@mepn.local
+buyer.admin@amanah.local
+procurement.officer@amanah.local
+approver.manager@amanah.local
+finance.accountant@amanah.local
+receiving.officer@amanah.local
+supplier.admin@barakah.local
+supplier.sales@barakah.local
+mudarib.operator@barakah.local
+supplier.finance@barakah.local
+financier.admin@mabrur.local
+investment.officer@mabrur.local
+disbursement.officer@mabrur.local
+risk.reviewer@mabrur.local
+shariah.admin@hidayah.local
+shariah.reviewer@hidayah.local
+compliance.reviewer@hidayah.local
+auditor.admin@raudah.local
+auditor.user@raudah.local
+regulator.user@raudah.local
+integrator.admin@nusantara.local
+erp.integrator@nusantara.local
+api.integrator@nusantara.local
+```
+
+Run the SRS use-case UAT simulation:
+
+```bash
+corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts
+```
+
+Screenshot output:
+
+```text
+docs/evidence/uat/screenshots/
+```
+
+UAT reports:
+
+```text
+docs/evidence/uat/USE_CASE_BLOCKERS.md
+docs/evidence/uat/USE_CASE_SIMULATION_RESULTS.md
+```
+
+Reset local infrastructure data:
+
+```bash
+docker compose -f infra/docker-compose.yml down -v
+docker compose -f infra/docker-compose.yml up -d
+corepack pnpm --dir apps/api exec prisma migrate deploy --schema prisma/schema.prisma
+corepack pnpm seed:uat
+```
+
 ## Verify Locally
 
 Run:
