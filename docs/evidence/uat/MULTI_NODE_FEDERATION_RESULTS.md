@@ -178,6 +178,37 @@ available in this session (`agent.browsers.list()` returned an empty list).
 No screenshot was captured for this slice.
 ```
 
+## Current Slice: Local Account Password Update
+
+Implemented:
+
+- Added `PATCH /api/v1/account/password`.
+- The endpoint requires active organization membership, current password
+  verification, and a new password of at least eight characters.
+- The endpoint updates only the stored `passwordHash`.
+- Audit event `ACCOUNT_PASSWORD_UPDATED` is written without password values.
+- `/account/profile` now includes a local/UAT password update form.
+
+Boundary:
+
+- This is local/UAT seeded-password behavior.
+- Production deployments should use OIDC or an approved identity boundary
+  unless local password auth is explicitly enabled.
+
+Validation:
+
+```text
+corepack pnpm --dir apps/api test:integration -- account-inbox
+
+1 test suite passed
+4 tests passed
+
+corepack pnpm --dir apps/web test -- account
+
+1 test file passed
+3 tests passed
+```
+
 Single-node seed command:
 
 ```text

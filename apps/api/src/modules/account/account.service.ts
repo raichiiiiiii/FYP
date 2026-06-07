@@ -3,9 +3,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { AuditEventsService } from '../../audit-events/audit-events.service';
 import { PrismaService } from '../../database/prisma.service';
+import { getAuthRuntimeConfig } from '../auth/auth.config';
 import {
   validateDisplayName,
   validateProfileImageUrl,
@@ -19,6 +22,11 @@ export type AccountProfileLookup = {
 export type UpdateAccountProfileInput = AccountProfileLookup & {
   displayName?: string;
   profileImageUrl?: string | null;
+};
+
+export type UpdateAccountPasswordInput = AccountProfileLookup & {
+  currentPassword?: string;
+  newPassword?: string;
 };
 
 @Injectable()
@@ -74,6 +82,81 @@ export class AccountService {
     });
 
     return this.toProfileDto(membership.userId, membership.organizationId);
+  }
+
+  async updatePassword(input: UpdateAccountPasswordInput) {
+    const membership = await this.assertActiveMembership(input);
+
+    if (!getAuthRuntimeConfig().passwordAuthEnabled) {
+      throw new ForbiddenException(
+        'Local password update is disabled for this environment',
+      );
+    }
+
+    const currentPassword = input.currentPassword ?? '';
+    const newPassword = input.newPassword ?? '';
+
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestException(
+        'currentPassword and newPassword are required',
+      );
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException(
+        'newPassword must be at least 8 characters',
+      );
+    }
+
+    if (currentPassword === newPassword) {
+      throw new BadRequestException(
+        'newPassword must be different from currentPassword',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: membership.userId,
+      },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!verifyPasswordHash(currentPassword, user.passwordHash)) {
+      throw new UnauthorizedException('Current password is invalid');
+    }
+
+    await this.prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        passwordHash: hashPassword(newPassword),
+      },
+    });
+
+    await this.auditEvents.create({
+      organizationId: membership.organizationId,
+      actorUserId: membership.userId,
+      eventType: 'ACCOUNT_PASSWORD_UPDATED',
+      entityType: 'User',
+      entityId: membership.userId,
+      metadata: {
+        localUatCredentialBoundary: true,
+      },
+    });
+
+    return {
+      updated: true,
+      userId: user.id,
+      organizationId: membership.organizationId,
+    };
   }
 
   private async assertActiveMembership(input: AccountProfileLookup) {
@@ -175,4 +258,25 @@ export class AccountService {
       })),
     };
   }
+}
+
+function hashPassword(password: string) {
+  return `sha256:${createHash('sha256').update(password).digest('hex')}`;
+}
+
+function verifyPasswordHash(password: string, storedHash: string | null) {
+  if (!storedHash?.startsWith('sha256:')) {
+    return false;
+  }
+
+  const expectedHex = storedHash.slice('sha256:'.length);
+  const actualHex = createHash('sha256').update(password).digest('hex');
+  const expected = Buffer.from(expectedHex, 'hex');
+  const actual = Buffer.from(actualHex, 'hex');
+
+  if (expected.length !== actual.length || expected.length === 0) {
+    return false;
+  }
+
+  return timingSafeEqual(expected, actual);
 }

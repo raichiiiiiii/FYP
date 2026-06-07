@@ -198,6 +198,8 @@ Current status:
   finance-support channels through backend API calls.
 - The graph route includes an API-backed local federation panel showing
   self-hosted nodes, simulated channels, and channel relationships.
+- Account profile includes a local/UAT password update form backed by
+  `PATCH /api/v1/account/password`.
 
 Preconfigured simulated channels:
 
@@ -219,6 +221,7 @@ Validate the local federation catalog and channel plan:
 corepack pnpm test:uat-catalog
 node tests/uat/bootstrap-local-node-federation.mjs --dry-run
 corepack pnpm --dir apps/web test -- graph
+corepack pnpm --dir apps/api test:integration -- account-inbox
 ```
 
 Prerequisites:

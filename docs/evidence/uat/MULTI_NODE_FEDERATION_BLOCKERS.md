@@ -6,7 +6,7 @@ Last updated: 2026-06-07
 
 None for the isolated node seed, Docker/start scaffolding, backend
 node-federation API, preconfigured channel bootstrap, or graph route federation
-panel slices.
+panel, or local password update slices.
 
 ## Open Implementation Items
 
@@ -15,7 +15,6 @@ multi-node federation objective:
 
 - Organization admin role-assignment hardening.
 - Sidebar visibility override APIs/UI.
-- Account password update API/UI.
 - Multi-node E2E/UAT screenshots from every relevant local port.
 
 ## Resolved Items
@@ -33,6 +32,8 @@ multi-node federation objective:
   establish the preconfigured simulated tender, award/deal, finance-data, and
   finance-support channels after seed.
 - `/graph/projects` now includes an API-backed local node-federation panel.
+- `/account/profile` now supports local/UAT password updates through
+  `PATCH /api/v1/account/password`.
 
 ## Validation Limitations
 

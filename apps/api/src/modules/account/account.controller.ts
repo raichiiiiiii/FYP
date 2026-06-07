@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Patch, Query } from '@nestjs/common';
-import type { UpdateAccountProfileInput } from './account.service';
+import type {
+  UpdateAccountPasswordInput,
+  UpdateAccountProfileInput,
+} from './account.service';
 import { AccountService } from './account.service';
 
 @Controller('account')
@@ -17,5 +20,10 @@ export class AccountController {
   @Patch('profile')
   updateProfile(@Body() body: UpdateAccountProfileInput) {
     return this.accountService.updateProfile(body);
+  }
+
+  @Patch('password')
+  updatePassword(@Body() body: UpdateAccountPasswordInput) {
+    return this.accountService.updatePassword(body);
   }
 }

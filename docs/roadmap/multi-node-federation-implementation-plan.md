@@ -13,8 +13,8 @@ Progress as of 2026-06-07:
 - Phase 10 Docker Compose/start scaffolding implemented.
 - Preconfigured channel bootstrap implemented.
 - Graph route node/channel federation panel implemented.
-- Remaining work: admin sidebar overrides, password update UI/API, multi-node
-  E2E screenshots.
+- Account password update API/UI implemented.
+- Remaining work: admin sidebar overrides and multi-node E2E screenshots.
 
 ## Direction for the implementation plan
 

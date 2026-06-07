@@ -18,7 +18,9 @@ import type { AccountProfile } from '../../shared/types'
 import { useAuth } from '../auth/useAuth'
 import {
   accountProfileImageMaxBytes,
+  accountPasswordMinLength,
   formatAccessCode,
+  isValidLocalPasswordLength,
   isSupportedAccountProfileImage,
   requestableRoleOptions,
 } from './accountProfile.model'
@@ -33,9 +35,24 @@ const permissionRequestSchema = z.object({
   reason: z.string().trim().min(1, 'Reason is required.'),
 })
 
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required.'),
+    newPassword: z
+      .string()
+      .refine(isValidLocalPasswordLength, {
+        message: `Use at least ${accountPasswordMinLength} characters.`,
+      }),
+    confirmPassword: z.string().min(1, 'Confirm the new password.'),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'New password and confirmation must match.',
+  })
+
 export function AccountProfileRoute() {
   const { session } = useAppSession()
-  const { refreshSession } = useAuth()
+  const { authSession, refreshSession } = useAuth()
   const { notify } = useToast()
   const [profile, setProfile] = useState<AccountProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +70,15 @@ export function AccountProfileRoute() {
       reason: '',
     },
   })
+  const passwordForm = useValidatedForm(passwordSchema, {
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  })
   const profileImageUrl = profileForm.watch('profileImageUrl')
+  const localPasswordEnabled = authSession?.passwordAuthEnabled ?? false
 
   const applyProfile = useCallback(
     (loaded: AccountProfile) => {
@@ -153,6 +178,36 @@ export function AccountProfileRoute() {
         error,
         'Unable to send permission request',
       )
+      setMessage(errorMessage)
+      notify({ type: 'error', message: errorMessage })
+    }
+  })
+
+  const submitPassword = passwordForm.handleSubmit(async (values) => {
+    if (!session.organizationId || !session.actorUserId) {
+      setMessage('Active session is required.')
+      return
+    }
+
+    try {
+      setMessage(null)
+      await apiRequest(endpoints.account.updatePassword, {
+        method: 'PATCH',
+        body: {
+          organizationId: session.organizationId,
+          actorUserId: session.actorUserId,
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        },
+      })
+      passwordForm.reset({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      notify({ type: 'success', message: 'Local password updated' })
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Unable to update password')
       setMessage(errorMessage)
       notify({ type: 'error', message: errorMessage })
     }
@@ -264,6 +319,80 @@ export function AccountProfileRoute() {
             </Button>
           </div>
         </form>
+
+        {localPasswordEnabled ? (
+          <form
+            className="account-card"
+            noValidate
+            onSubmit={(event) => void submitPassword(event)}
+          >
+            <span className="eyebrow">Local/UAT credentials</span>
+            <h2>Change password</h2>
+            <p>
+              This updates the local seeded-password credential for this
+              self-hosted node. Production deployments should use the configured
+              identity provider unless local password login is explicitly
+              enabled.
+            </p>
+            <FormField
+              label="Current password"
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              required
+              registration={passwordForm.register('currentPassword')}
+              error={passwordForm.formState.errors.currentPassword?.message}
+            />
+            <FormField
+              label="New password"
+              name="newPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              registration={passwordForm.register('newPassword')}
+              error={passwordForm.formState.errors.newPassword?.message}
+            />
+            <FormField
+              label="Confirm new password"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              registration={passwordForm.register('confirmPassword')}
+              error={passwordForm.formState.errors.confirmPassword?.message}
+            />
+            <div className="form-actions">
+              <Button type="submit" disabled={passwordForm.formState.isSubmitting}>
+                {passwordForm.formState.isSubmitting
+                  ? 'Updating...'
+                  : 'Update password'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  passwordForm.reset({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: '',
+                  })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <section className="account-card" aria-labelledby="local-password-disabled-title">
+            <span className="eyebrow">Local/UAT credentials</span>
+            <h2 id="local-password-disabled-title">Password login disabled</h2>
+            <p>
+              This node is not currently accepting local seeded-password login.
+              Use the configured identity provider, or enable the local password
+              boundary explicitly for UAT/demo use.
+            </p>
+          </section>
+        )}
 
         <section className="account-card" aria-labelledby="account-access-title">
           <span className="eyebrow">Access</span>

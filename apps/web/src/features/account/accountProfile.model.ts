@@ -1,5 +1,7 @@
 export const accountProfileImageMaxBytes = 1024 * 1024
 
+export const accountPasswordMinLength = 8
+
 export const requestableRoleOptions = [
   { value: 'ORG_ADMIN', label: 'Organization Admin' },
   { value: 'PROCUREMENT_OFFICER', label: 'Procurement Officer' },
@@ -21,4 +23,8 @@ export function formatAccessCode(code: string) {
     .split(/[_:]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+export function isValidLocalPasswordLength(password: string) {
+  return password.length >= accountPasswordMinLength
 }

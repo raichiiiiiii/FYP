@@ -39,6 +39,7 @@ export const endpoints = {
     profile: (organizationId?: string | null, actorUserId?: string | null) =>
       withQuery('/account/profile', { organizationId, actorUserId }),
     updateProfile: '/account/profile',
+    updatePassword: '/account/password',
   },
   inbox: {
     list: (organizationId?: string | null, actorUserId?: string | null) =>
