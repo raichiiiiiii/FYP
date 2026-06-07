@@ -307,7 +307,36 @@ if ($SeedOnly) {
 }
 
 if (-not $SkipUat) {
-  Write-Warn "Multi-node UAT spec is not implemented yet. Run existing use-case UAT with: corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts"
+  Write-Step 'Running multi-node federation UAT.'
+  $oldMultiNodeUat = $env:MEPN_MULTI_NODE_UAT
+  $oldE2eApiPort = $env:E2E_API_PORT
+  $oldE2eWebPort = $env:E2E_WEB_PORT
+  $oldE2eApiBaseUrl = $env:E2E_API_BASE_URL
+  $oldE2eWebBaseUrl = $env:E2E_WEB_BASE_URL
+
+  try {
+    $env:MEPN_MULTI_NODE_UAT = 'true'
+    $env:E2E_API_PORT = '3000'
+    $env:E2E_WEB_PORT = '5173'
+    $env:E2E_API_BASE_URL = 'http://127.0.0.1:3000/api/v1'
+    $env:E2E_WEB_BASE_URL = 'http://127.0.0.1:5173'
+
+    Push-Location $RepoRoot
+    try {
+      & corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+      if ($LASTEXITCODE -ne 0) {
+        throw 'Multi-node federation UAT failed.'
+      }
+    } finally {
+      Pop-Location
+    }
+  } finally {
+    if ($null -eq $oldMultiNodeUat) { Remove-Item Env:MEPN_MULTI_NODE_UAT -ErrorAction SilentlyContinue } else { $env:MEPN_MULTI_NODE_UAT = $oldMultiNodeUat }
+    if ($null -eq $oldE2eApiPort) { Remove-Item Env:E2E_API_PORT -ErrorAction SilentlyContinue } else { $env:E2E_API_PORT = $oldE2eApiPort }
+    if ($null -eq $oldE2eWebPort) { Remove-Item Env:E2E_WEB_PORT -ErrorAction SilentlyContinue } else { $env:E2E_WEB_PORT = $oldE2eWebPort }
+    if ($null -eq $oldE2eApiBaseUrl) { Remove-Item Env:E2E_API_BASE_URL -ErrorAction SilentlyContinue } else { $env:E2E_API_BASE_URL = $oldE2eApiBaseUrl }
+    if ($null -eq $oldE2eWebBaseUrl) { Remove-Item Env:E2E_WEB_BASE_URL -ErrorAction SilentlyContinue } else { $env:E2E_WEB_BASE_URL = $oldE2eWebBaseUrl }
+  }
 }
 
 Write-Host ''

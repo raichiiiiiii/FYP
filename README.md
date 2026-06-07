@@ -152,6 +152,10 @@ Start or reset all nodes:
 .\start.ps1 -ResetAll
 ```
 
+By default, the script runs the multi-node UAT spec after startup, migration,
+seed, and simulated channel bootstrap. Use `-SkipUat` only when you want to
+start the stack without screenshot capture.
+
 Useful options:
 
 ```powershell
@@ -222,6 +226,23 @@ corepack pnpm test:uat-catalog
 node tests/uat/bootstrap-local-node-federation.mjs --dry-run
 corepack pnpm --dir apps/web test -- graph
 corepack pnpm --dir apps/api test:integration -- account-inbox
+```
+
+Run the 10-node rendered UAT manually against an already-started stack:
+
+```powershell
+$env:MEPN_MULTI_NODE_UAT='true'
+$env:E2E_API_PORT='3000'
+$env:E2E_WEB_PORT='5173'
+$env:E2E_API_BASE_URL='http://127.0.0.1:3000/api/v1'
+$env:E2E_WEB_BASE_URL='http://127.0.0.1:5173'
+corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+```
+
+Multi-node screenshots are written to:
+
+```text
+docs/evidence/uat/screenshots/multi-node/
 ```
 
 Prerequisites:

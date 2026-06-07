@@ -289,6 +289,54 @@ corepack pnpm --dir apps/web test -- authorization identity Sidebar
 23 tests passed
 ```
 
+## Current Slice: Multi-Node UAT Spec And Screenshot Runner
+
+Implemented:
+
+- Added `tests/e2e/multi-node-federation-uat.spec.ts`.
+- The spec is opt-in through `MEPN_MULTI_NODE_UAT=true` so normal single-node
+  `test:e2e` remains deterministic.
+- The spec validates all 10 node API health endpoints and login pages.
+- The spec logs in through seeded local password auth for every node admin.
+- The spec asserts a cross-node user cannot log in to another node.
+- The spec validates synchronized simulated channel metadata for:
+  - `tender-market-channel`
+  - `award-amanah-barakah-channel`
+  - `finance-data-channel`
+  - `finance-mabrur-barakah-channel`
+- The spec validates representative node-federation canvas API output for a
+  buyer node and a finance node.
+- The spec captures rendered screenshots under:
+
+```text
+docs/evidence/uat/screenshots/multi-node/
+```
+
+- Updated `start.ps1` so running without `-SkipUat` executes the multi-node
+  UAT spec after health checks, migrations, seed, and simulated channel
+  bootstrap.
+- Updated `tests/e2e/setup-e2e.mjs` to skip the single-node E2E database setup
+  when `MEPN_MULTI_NODE_UAT=true`.
+
+Boundary:
+
+- The spec asserts simulated metadata only.
+- It does not claim real Fabric topology mutation.
+- It does not claim real Fabric proof.
+
+Validation:
+
+```text
+corepack pnpm test:e2e -- tests/e2e/multi-node-federation-uat.spec.ts
+
+Skipped by default unless MEPN_MULTI_NODE_UAT=true.
+```
+
+Pending runtime evidence:
+
+- Run `.\start.ps1 -ResetAll` without `-SkipUat` to populate the screenshot
+  directory from all local node ports.
+
 Single-node seed command:
 
 ```text
@@ -344,4 +392,5 @@ Direct database verification after the finance-node seed:
 
 ## Remaining Work
 
-- Add multi-node E2E/UAT screenshots from each local port.
+- Run the new multi-node E2E/UAT spec against the 10-node local Docker stack
+  and commit safe screenshots from each local port.

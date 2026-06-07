@@ -6,6 +6,13 @@ import pg from 'pg';
 
 const { Client } = pg;
 
+if (process.env.MEPN_MULTI_NODE_UAT === 'true') {
+  console.log(
+    'MEPN_MULTI_NODE_UAT=true; skipping single-node E2E database preparation.',
+  );
+  process.exit(0);
+}
+
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..',
