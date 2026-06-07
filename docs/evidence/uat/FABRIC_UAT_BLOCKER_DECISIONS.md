@@ -13,6 +13,11 @@ that local seeded data is real on-chain proof.
 | UAT-B-003 Fabric topology | Resolved by accepted boundary decision. MEPN keeps channel creation, channel joining, MSP onboarding, and topology mutation operator-assisted outside the app runtime. | `GET /api/v1/fabric/uat-blocker-decisions`; `GET /api/v1/fabric/automation/readiness`; operator-assisted governance workflows. |
 | UAT-B-004 Fabric proof | Resolved by live-proof gate. MEPN can only mark real proof passed when API-side chaincode `ReadAnchor` verification compares matching hashes. | `GET /api/v1/fabric/uat-blocker-decisions`; hash-record Fabric verification endpoint; gated real Fabric proof UAT. |
 
+ADR-017 adds a separate implementation decision for local UAT: simulated
+node-federation channels may be created as application metadata through
+`/api/v1/node-federation/*`. This is reviewer-visible local network metadata
+only and is not real Fabric topology mutation.
+
 ## Implemented Endpoint
 
 ```http
@@ -42,6 +47,8 @@ values.
 ```bash
 corepack pnpm --dir apps/api test:unit -- fabric-governance node-status
 corepack pnpm --dir apps/api test:integration -- fabric-governance node-status
+corepack pnpm --dir apps/api test:unit -- node-federation
+corepack pnpm --dir apps/api test:integration -- node-federation
 corepack pnpm test:e2e -- tests/e2e/use-case-specification-uat.spec.ts
 ```
 

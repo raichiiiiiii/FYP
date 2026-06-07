@@ -77,6 +77,30 @@ The implementation must label simulated channel state honestly. Reviewer
 evidence may claim local federation metadata and canvas behavior, but must not
 claim real Fabric topology mutation or real Fabric proof from the simulation.
 
+## Implemented API Surface
+
+The accepted local/UAT simulation boundary is implemented through:
+
+```http
+GET  /api/v1/node-federation/status
+GET  /api/v1/node-federation/peers
+POST /api/v1/node-federation/peers
+POST /api/v1/node-federation/peers/:peerId/ping
+GET  /api/v1/node-federation/channels
+POST /api/v1/node-federation/channels
+POST /api/v1/node-federation/channels/:channelId/invite
+POST /api/v1/node-federation/invitations/:invitationId/accept
+POST /api/v1/node-federation/events
+GET  /api/v1/node-federation/canvas
+```
+
+These endpoints persist `NodeDeployment`, `NodePeer`, `NodeChannel`,
+`NodeChannelMembership`, `OutboundNodeEvent`, and `InboundNodeEvent` records.
+Inbound node events use a local shared-secret boundary for the UAT demo and
+reject secret-like payload material. The implementation remains local/simulated:
+it does not create real Fabric channels, join real peers, onboard MSP material,
+or mark Fabric proof as verified.
+
 ## Related Work
 
 - `docs/adr/ADR-015-fabric-topology-automation-boundary.md`

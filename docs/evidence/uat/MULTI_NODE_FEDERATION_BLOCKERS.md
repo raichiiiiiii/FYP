@@ -4,14 +4,14 @@ Last updated: 2026-06-07
 
 ## Active Blockers
 
-None for the isolated node seed slice.
+None for the isolated node seed, Docker/start scaffolding, or backend
+node-federation API slices.
 
 ## Open Implementation Items
 
 These are not blockers for the current slice, but remain required for the full
 multi-node federation objective:
 
-- Node-to-node federation APIs and shared-secret local transport.
 - Preconfigured simulated tender, award/deal, finance-data, and finance-support
   channels.
 - Graph/canvas node/channel rendering.
@@ -28,6 +28,9 @@ multi-node federation objective:
 - Per-node local demo env files added under `.env.nodes/`.
 - Root `start.ps1` now supports reset/start/migrate/seed/health checks across
   the 10 local nodes.
+- Backend node-federation APIs now support local simulated peers, channels,
+  invitations, inbound events with a local shared-secret boundary, and canvas
+  DTOs.
 
 ## Boundary Notes
 

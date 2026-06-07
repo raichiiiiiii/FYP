@@ -62,6 +62,7 @@ model Organization {
   sentFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationCreatedByOrganization")
   receivedFabricChannelInvitations FabricChannelInvitation[] @relation("FabricChannelInvitationInvitedOrganization")
   fabricGovernanceApprovals FabricGovernanceApproval[]
+  nodeDeployments       NodeDeployment[]
 }
 
 model User {
@@ -325,6 +326,138 @@ model FabricGovernanceEvidence {
   @@index([evidenceType])
   @@index([createdByUserId])
   @@index([contentHash])
+}
+
+model NodeDeployment {
+  id              String   @id @default(uuid())
+  nodeKey         String   @unique
+  organizationId  String?
+  displayName     String
+  nodeType        String
+  publicWebUrl    String?
+  publicApiUrl    String?
+  status          String   @default("local")
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  peers          NodePeer[]
+  channels       NodeChannel[]
+  outboundEvents OutboundNodeEvent[]
+  inboundEvents  InboundNodeEvent[]
+
+  @@index([organizationId])
+  @@index([nodeType])
+  @@index([status])
+}
+
+model NodePeer {
+  id                   String    @id @default(uuid())
+  localNodeId           String
+  peerNodeKey           String
+  peerOrganizationName  String
+  peerNodeType          String
+  peerApiUrl            String?
+  peerWebUrl            String?
+  status                String    @default("configured")
+  lastSeenAt            DateTime?
+  metadata              Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  localNode      NodeDeployment @relation(fields: [localNodeId], references: [id], onDelete: Cascade)
+  outboundEvents OutboundNodeEvent[]
+
+  @@unique([localNodeId, peerNodeKey])
+  @@index([peerNodeKey])
+  @@index([status])
+}
+
+model NodeChannel {
+  id               String   @id @default(uuid())
+  localNodeId       String
+  channelName       String
+  channelType       String
+  status            String   @default("simulated_proposed")
+  purpose           String?
+  visibilityScope   String   @default("organization")
+  createdByNodeKey  String
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  localNode   NodeDeployment @relation(fields: [localNodeId], references: [id], onDelete: Cascade)
+  memberships NodeChannelMembership[]
+
+  @@unique([localNodeId, channelName])
+  @@index([channelType])
+  @@index([status])
+  @@index([createdByNodeKey])
+}
+
+model NodeChannelMembership {
+  id                String    @id @default(uuid())
+  channelId         String
+  nodeKey           String
+  organizationName  String
+  nodeType          String
+  membershipStatus  String    @default("simulated_invited")
+  peerApiUrl        String?
+  peerWebUrl        String?
+  joinedAt          DateTime?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  channel NodeChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, nodeKey])
+  @@index([nodeKey])
+  @@index([membershipStatus])
+}
+
+model OutboundNodeEvent {
+  id             String    @id @default(uuid())
+  localNodeId    String
+  peerId         String?
+  eventType      String
+  idempotencyKey String    @unique
+  payload        Json
+  status         String    @default("queued")
+  attempts       Int       @default(0)
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  localNode NodeDeployment @relation(fields: [localNodeId], references: [id], onDelete: Cascade)
+  peer      NodePeer?      @relation(fields: [peerId], references: [id], onDelete: SetNull)
+
+  @@index([localNodeId])
+  @@index([peerId])
+  @@index([eventType])
+  @@index([status])
+}
+
+model InboundNodeEvent {
+  id             String    @id @default(uuid())
+  localNodeId    String
+  sourceNodeKey  String
+  eventType      String
+  idempotencyKey String    @unique
+  payload        Json
+  status         String    @default("processed")
+  receivedAt     DateTime  @default(now())
+  processedAt    DateTime?
+  error          String?
+
+  localNode NodeDeployment @relation(fields: [localNodeId], references: [id], onDelete: Cascade)
+
+  @@index([localNodeId])
+  @@index([sourceNodeKey])
+  @@index([eventType])
+  @@index([status])
 }
 
 model Workspace {

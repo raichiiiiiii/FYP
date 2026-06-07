@@ -33,9 +33,30 @@ Implemented:
 - The script keeps Fabric in mock/simulated mode and does not attempt real
   topology automation.
 
+## Current Slice: Node-Federation API
+
+Implemented:
+
+- Added node-federation persistence models for local node deployments, peers,
+  simulated channels, memberships, outbound events, and inbound events.
+- Added `GET /api/v1/node-federation/status`.
+- Added peer registration and ping APIs.
+- Added simulated channel create/invite/accept APIs.
+- Added `POST /api/v1/node-federation/events` for local backend-to-backend
+  invitation mirroring through a local shared-secret boundary.
+- Added `GET /api/v1/node-federation/canvas` for reviewer-visible node/channel
+  graph data.
+- Updated the UAT seed so each seeded organization has a `NodeDeployment`.
+
+Boundary:
+
+- The APIs are local/UAT federation simulation APIs.
+- They do not create real Fabric channels, join real Fabric channels, onboard
+  MSP certificates, store Fabric admin private keys, or mark seeded proof as
+  real Fabric verification.
+
 Pending in later slices:
 
-- Node-federation API.
 - Preconfigured simulated tender, award, finance-data, and support channels.
 - Multi-node canvas rendering and screenshots.
 
@@ -55,6 +76,20 @@ Docker/start scaffolding checks:
 powershell parser check for start.ps1
 docker compose -f docker-compose.node.yml --env-file .env.nodes/amanah-retail.env config
 docker compose -f docker-compose.node.yml --env-file .env.nodes/mabrur-finance.env config
+```
+
+Node-federation API checks:
+
+```text
+corepack pnpm --dir apps/api test:unit -- node-federation
+
+1 test suite passed
+4 tests passed
+
+corepack pnpm --dir apps/api test:integration -- node-federation
+
+1 test suite passed
+4 tests passed
 ```
 
 Single-node seed command:
@@ -112,8 +147,7 @@ Direct database verification after the finance-node seed:
 
 ## Remaining Work
 
-- Create multi-node Docker Compose configuration.
-- Update `start.ps1` to reset and start all 10 nodes.
-- Add node-federation APIs and simulated channel synchronization.
 - Extend graph/canvas to show node/channel relationships.
+- Preconfigure simulated tender, award/deal, finance-data, and support
+  channels through startup automation.
 - Add multi-node E2E/UAT screenshots from each local port.

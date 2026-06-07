@@ -368,6 +368,7 @@ async function main() {
           id: node.organization.id,
           legalName: node.organization.legalName,
           deploymentMode: node.organization.deploymentMode,
+          nodeDeploymentId: node.deployment.id,
           adminUserId: node.admin.id,
           adminEmail: node.admin.email,
           users: Object.values(node.users).map((user) => ({
@@ -524,6 +525,7 @@ async function seedSingleOrganizationNode(nodeKey) {
 
   const definition = applySingleNodeEnvOverrides(catalogDefinition);
   const organization = await ensureOrganization(definition);
+  const deployment = await ensureNodeDeployment(definition, organization);
   const workspace = await ensureWorkspace(organization.id);
   const admin = await ensureUser(definition.admin, organization, workspace);
   const users = {};
@@ -553,6 +555,7 @@ async function seedSingleOrganizationNode(nodeKey) {
 
   return {
     definition,
+    deployment,
     organization,
     workspace,
     admin: {
@@ -570,6 +573,7 @@ function buildSingleNodeSummary(node) {
     generatedAt: new Date().toISOString(),
     node: {
       key: node.definition.key,
+      deploymentId: node.deployment.id,
       category: node.definition.category,
       type: node.definition.type,
       mainFunction: node.definition.mainFunction,
@@ -665,6 +669,7 @@ async function seedOrganizationNodes() {
 
   for (const definition of organizationNodes) {
     const organization = await ensureOrganization(definition);
+    const deployment = await ensureNodeDeployment(definition, organization);
     const workspace = await ensureWorkspace(organization.id);
     const admin = await ensureUser(definition.admin, organization, workspace);
     const users = {};
@@ -690,6 +695,7 @@ async function seedOrganizationNodes() {
 
     nodes[definition.key] = {
       definition,
+      deployment,
       organization,
       workspace,
       admin: {
@@ -724,6 +730,29 @@ async function ensureOrganization(definition) {
   }
 
   return prisma.organization.create({ data });
+}
+
+async function ensureNodeDeployment(definition, organization) {
+  return prisma.nodeDeployment.upsert({
+    where: { nodeKey: definition.key },
+    update: {
+      organizationId: organization.id,
+      displayName: definition.legalName,
+      nodeType: definition.type,
+      publicWebUrl: definition.webUrl ?? null,
+      publicApiUrl: definition.apiUrl ?? null,
+      status: 'local',
+    },
+    create: {
+      nodeKey: definition.key,
+      organizationId: organization.id,
+      displayName: definition.legalName,
+      nodeType: definition.type,
+      publicWebUrl: definition.webUrl ?? null,
+      publicApiUrl: definition.apiUrl ?? null,
+      status: 'local',
+    },
+  });
 }
 
 async function ensureWorkspace(organizationId) {

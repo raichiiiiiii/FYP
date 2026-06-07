@@ -75,3 +75,22 @@ the corresponding UI/API path exists and is exercised by the test.
 - Expanded the UAT-B-003/UAT-B-004 decision response with explicit safety flags: `directFabricExecutionSupported=false`, `seededProofAccepted=false`, and `readAnchorRequired=true` for real proof.
 - Surfaced the same decision flags through `GET /api/v1/node/status` for UC-18 compatibility review.
 - Aligned seeded local account evidence and tests to the current local demo password: `password`.
+
+2026-06-07 local federation implementation:
+
+- Kept the UAT-B-003 decision intact: direct Fabric channel creation, real channel join, MSP onboarding, admin key custody, and topology mutation remain outside the normal MEPN runtime.
+- Implemented ADR-017 local node-federation simulation APIs for reviewer/UAT flows:
+  - `GET /api/v1/node-federation/status`
+  - `GET /api/v1/node-federation/peers`
+  - `POST /api/v1/node-federation/peers`
+  - `POST /api/v1/node-federation/peers/:peerId/ping`
+  - `GET /api/v1/node-federation/channels`
+  - `POST /api/v1/node-federation/channels`
+  - `POST /api/v1/node-federation/channels/:channelId/invite`
+  - `POST /api/v1/node-federation/invitations/:invitationId/accept`
+  - `POST /api/v1/node-federation/events`
+  - `GET /api/v1/node-federation/canvas`
+- Added local persistence for `NodeDeployment`, `NodePeer`, `NodeChannel`, `NodeChannelMembership`, `OutboundNodeEvent`, and `InboundNodeEvent`.
+- Updated the UAT seed so each self-hosted organization node has a persisted `NodeDeployment`.
+- The local event endpoint uses a local shared-secret boundary and rejects secret-like payloads. This is local/UAT transport only, not production Fabric operator automation.
+- UAT-B-004 remains protected by the live-proof gate. Node-federation channels do not produce `verified=true`; real verification still requires backend `ReadAnchor` hash comparison.

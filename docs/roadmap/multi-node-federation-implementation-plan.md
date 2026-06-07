@@ -1,8 +1,18 @@
 # MEPN Multi-Node Federation Required Implementation Plan
 
-Status: planned  
+Status: partial implementation in progress
 Scope: required implementation plan only.  
 Boundary: keep real Fabric topology automation and real Fabric proof boundaries intact; implement local/UAT simulated node federation first.
+
+Progress as of 2026-06-07:
+
+- Phase 1 ADR accepted.
+- Phase 2 isolated node seed implemented.
+- Phase 3 10-node catalog implemented.
+- Phase 6 backend node-federation API implemented.
+- Phase 10 Docker Compose/start scaffolding implemented.
+- Remaining work: preconfigured channel bootstrap, graph/canvas UI rendering,
+  admin sidebar overrides, password update UI/API, multi-node E2E screenshots.
 
 ## Direction for the implementation plan
 
@@ -315,6 +325,8 @@ API:
 - `PATCH /api/v1/admin/users/:id/navigation`
 
 ### Phase 6 — Implement local node federation APIs
+
+Status: implemented for backend local/UAT simulation.
 
 Existing Fabric governance APIs are useful but they are local metadata/readiness APIs. They do not currently do node-to-node federation. Add a thin local federation layer that calls peer node backends.
 
